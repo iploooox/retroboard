@@ -165,9 +165,9 @@
 
 ### Phase 1: Foundation
 
-- [ ] Tests written and failing (RED)
-- [ ] Implementation passes all tests (GREEN)
-- [ ] Code refactored, tests still green
+- [x] Tests written and failing (RED) — TDD cycle per feature agent
+- [x] Implementation passes all tests (GREEN) — 352 backend + 29 frontend = 381 tests
+- [x] Code refactored, tests still green
 - [ ] E2E happy path test passes
 - [ ] PR created (< 2000 lines)
 - [ ] PR merged
