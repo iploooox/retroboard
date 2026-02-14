@@ -3,6 +3,7 @@
 **Feature:** teams
 **Database:** PostgreSQL 15+
 **Driver:** postgres (porsager/postgres)
+**Changed:** 2026-02-14 — Spec Review Gate
 
 ---
 
@@ -31,6 +32,7 @@
         │    │ created_by   UUID   FK → users  │
         │    │ created_at   TIMESTAMPTZ        │
         │    │ updated_at   TIMESTAMPTZ        │
+        │    │ deleted_at   TIMESTAMPTZ NULL   │
         │    └───────┬──────────────┬──────────┘
         │            │              │
         │            │ 1:N          │ 1:N
@@ -44,7 +46,10 @@
 │ joined_at TIMESTAMPTZ      │  │ created_by  UUID   FK → users   │
 │ (PK: team_id + user_id)   │  │ expires_at  TIMESTAMPTZ         │
 └────────────────────────────┘  │ max_uses    INT NULL            │
+                                 │ role        team_role DEFAULT   │
+                                 │             'member'            │
                                  │ use_count   INT DEFAULT 0      │
+                                 │ revoked_at  TIMESTAMPTZ NULL   │
                                  │ created_at  TIMESTAMPTZ         │
                                  └─────────────────────────────────┘
 ```
@@ -73,6 +78,7 @@ Stores team records.
 | created_by | `UUID` | NOT NULL | -- | FK to users.id (team creator) |
 | created_at | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Team creation timestamp |
 | updated_at | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Last update timestamp |
+| deleted_at | `TIMESTAMPTZ` | NULL | `NULL` | Soft delete timestamp. NULL = active. |
 
 ### Constraints
 
@@ -136,7 +142,9 @@ Stores invitation links for teams.
 | created_by | `UUID` | NOT NULL | -- | FK to users.id (who created the invite) |
 | expires_at | `TIMESTAMPTZ` | NOT NULL | -- | When the invitation expires |
 | max_uses | `INT` | NULL | `NULL` | Max number of uses. NULL = unlimited. |
+| role | `team_role` | NOT NULL | `'member'` | Role assigned to users who join via this invite |
 | use_count | `INT` | NOT NULL | `0` | How many times the invite has been used |
+| revoked_at | `TIMESTAMPTZ` | NULL | `NULL` | When the invite was revoked. NULL = active. |
 | created_at | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Invitation creation timestamp |
 
 ### Constraints
@@ -178,6 +186,7 @@ CREATE TABLE IF NOT EXISTS teams (
     created_by      UUID            NOT NULL,
     created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    deleted_at      TIMESTAMPTZ,
 
     CONSTRAINT teams_slug_key UNIQUE (slug),
     CONSTRAINT teams_created_by_fkey
@@ -233,7 +242,9 @@ CREATE TABLE IF NOT EXISTS team_invitations (
     created_by      UUID            NOT NULL,
     expires_at      TIMESTAMPTZ     NOT NULL,
     max_uses        INT,
+    role            team_role       NOT NULL DEFAULT 'member',
     use_count       INT             NOT NULL DEFAULT 0,
+    revoked_at      TIMESTAMPTZ,
     created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
     CONSTRAINT team_invitations_code_key UNIQUE (code),
@@ -280,6 +291,7 @@ SELECT t.*, tm.role AS your_role,
        (SELECT COUNT(*) FROM team_members WHERE team_id = t.id) AS member_count
 FROM teams t
 INNER JOIN team_members tm ON tm.team_id = t.id AND tm.user_id = $1
+WHERE t.deleted_at IS NULL
 ORDER BY t.created_at DESC
 LIMIT $2 OFFSET $3;
 ```
@@ -291,7 +303,7 @@ SELECT t.*, tm.role AS your_role,
        (SELECT COUNT(*) FROM team_members WHERE team_id = t.id) AS member_count
 FROM teams t
 INNER JOIN team_members tm ON tm.team_id = t.id AND tm.user_id = $2
-WHERE t.id = $1;
+WHERE t.id = $1 AND t.deleted_at IS NULL;
 ```
 
 ### 7.4 Check user membership and role
@@ -329,8 +341,11 @@ WHERE team_id = $1 AND role = 'admin';
 ### 7.7 Find invitation by code
 
 ```sql
-SELECT * FROM team_invitations
-WHERE code = $1;
+SELECT ti.* FROM team_invitations ti
+INNER JOIN teams t ON t.id = ti.team_id
+WHERE ti.code = $1
+  AND ti.revoked_at IS NULL
+  AND t.deleted_at IS NULL;
 ```
 
 ### 7.8 Join via invitation (transaction)
@@ -338,15 +353,23 @@ WHERE code = $1;
 ```sql
 BEGIN;
 
-INSERT INTO team_members (team_id, user_id, role)
-VALUES ($1, $2, 'member');
-
+-- Atomically increment use_count with guard to prevent race condition (Security S-02).
+-- If no row is returned, the invite is exhausted — abort the transaction.
 UPDATE team_invitations
 SET use_count = use_count + 1
-WHERE id = $3;
+WHERE id = $3
+  AND revoked_at IS NULL
+  AND (max_uses IS NULL OR use_count < max_uses)
+RETURNING id, role;
+
+-- Insert member with the role from the invitation (defaults to 'member').
+INSERT INTO team_members (team_id, user_id, role)
+VALUES ($1, $2, $4);
 
 COMMIT;
 ```
+
+Note: `$4` is the `role` value returned by the UPDATE's RETURNING clause. If the UPDATE returns no rows, the transaction is aborted and the join fails with `TEAM_INVITE_EXHAUSTED`.
 
 ### 7.9 Update member role
 
@@ -374,11 +397,14 @@ WHERE team_id = $1 AND user_id = $2;
 
 All within comfortable PostgreSQL range. No partitioning needed.
 
-## 9. Cascade Behavior
+## 9. Cascade & Soft Delete Behavior
 
-| Parent deleted | Cascading effect |
-|----------------|------------------|
-| Team deleted | All team_members and team_invitations for that team are deleted |
+Team deletion is a **soft delete** — sets `deleted_at = NOW()` on the teams row. All queries filter on `deleted_at IS NULL` to exclude soft-deleted teams. Associated data (team_members, team_invitations) is retained but inaccessible via normal queries because the parent team is filtered out.
+
+| Parent action | Cascading effect |
+|---------------|------------------|
+| Team soft-deleted | Team row gets `deleted_at` set. Members and invitations remain but are invisible (parent filtered). |
+| Team hard-deleted (future admin op) | All team_members and team_invitations for that team are CASCADE deleted. |
 | User deleted | All team_members entries for that user are deleted. Team invitations created by that user are deleted. Teams created by that user are RESTRICTED (cannot delete user if they created teams). |
 
 ## 10. Migration Dependencies

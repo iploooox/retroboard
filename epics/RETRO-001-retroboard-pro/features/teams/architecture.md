@@ -5,6 +5,7 @@
 **Depends on:** auth
 **Phase:** 1
 **Status:** planning
+**Changed:** 2026-02-14 — Spec Review Gate
 
 ---
 
@@ -69,11 +70,16 @@ Slugs are immutable after creation in Phase 1 (simplifies URL stability). Can be
 ### 4.3 Invitation Links (No Email)
 
 Invitations work via shareable URLs, not email:
-1. Admin/facilitator creates an invite via API, receiving a unique code.
+1. Admin/facilitator creates an invite via API, receiving a unique code. The invite can optionally specify a `role` (default: `member`, also `facilitator`; only admins can create `admin`-role invites).
 2. The invite URL is `{app_url}/join/{code}`.
 3. An authenticated user calls `POST /api/v1/teams/join/{code}` to accept.
-4. The user is added as a `member` role by default.
+4. The user is added with the **role specified by the invitation** (not hardcoded to `member`).
 5. Invites can have an `expires_at` and `max_uses` limit.
+6. Maximum **5 active invitations** per team at any time (active = non-expired, non-revoked, non-exhausted).
+
+**Invite revocation:** Admins and facilitators can revoke an invite via `DELETE /api/v1/teams/:id/invitations/:inviteId`, which sets `revoked_at = NOW()`. Revoked invites cannot be used to join. This mitigates the risk of leaked invite links remaining valid until expiry.
+
+**Atomic join guard:** The join flow uses an atomic `UPDATE ... WHERE use_count < max_uses RETURNING id` to prevent race conditions where concurrent requests could exceed `max_uses`. If no row is returned, the invite is exhausted.
 
 This avoids the complexity of email delivery infrastructure.
 
@@ -81,9 +87,9 @@ This avoids the complexity of email delivery infrastructure.
 
 The `team_members` table uses a composite primary key `(team_id, user_id)`. This naturally enforces that a user can only have one role per team and makes the common query pattern (lookup by team + user) efficient without an additional index.
 
-### 4.5 Team Deletion
+### 4.5 Team Deletion (Soft Delete)
 
-Deleting a team is a destructive operation. It cascades to all associated data (sprints, boards, cards, etc.). Only the team admin can delete a team. In Phase 1, deletion is immediate with no soft-delete. A confirmation flow is a frontend concern.
+Deleting a team is a **soft delete** — sets `deleted_at = NOW()` on the team row. All queries filter on `deleted_at IS NULL`, making the team and its associated data (sprints, boards, cards, invitations) inaccessible without physically destroying them. Only the team admin can delete a team. Hard delete (permanent data removal) is deferred to a future admin operation. A confirmation flow is a frontend concern.
 
 ## 5. Architecture Layers
 
@@ -124,6 +130,7 @@ Request Flow:
 │  - updateMemberRole(teamId, userId, role)         │
 │  - removeMember(teamId, userId)                   │
 │  - createInvitation(teamId, createdBy, options)   │
+│  - revokeInvitation(teamId, inviteId)             │
 │  - joinViaInvite(code, userId)                    │
 └──────────────────┬───────────────────────────────┘
                    │
@@ -241,9 +248,11 @@ src/
     |                              |                                   |
     |  POST /teams/join/ABC123     |                                   |
     |---------------------------->|                                   |
-    |                              |  SELECT * FROM                   |
-    |                              |  team_invitations                |
+    |                              |  SELECT FROM team_invitations    |
+    |                              |  JOIN teams                      |
     |                              |  WHERE code = 'ABC123'           |
+    |                              |  AND revoked_at IS NULL          |
+    |                              |  AND teams.deleted_at IS NULL    |
     |                              |---------------------------------->|
     |                              |  invitation row                  |
     |                              |<----------------------------------|
@@ -251,18 +260,25 @@ src/
     |                              |  Validate:                       |
     |                              |  - invitation exists             |
     |                              |  - not expired                   |
-    |                              |  - use_count < max_uses          |
+    |                              |  - not revoked                   |
     |                              |  - user not already a member     |
     |                              |                                   |
     |                              |  BEGIN TRANSACTION               |
     |                              |                                   |
-    |                              |  INSERT INTO team_members        |
-    |                              |  (team_id, user_id,              |
-    |                              |   role='member')                 |
-    |                              |---------------------------------->|
-    |                              |                                   |
     |                              |  UPDATE team_invitations         |
     |                              |  SET use_count = use_count + 1   |
+    |                              |  WHERE id = X AND                |
+    |                              |  (max_uses IS NULL OR            |
+    |                              |   use_count < max_uses)          |
+    |                              |  RETURNING id, role              |
+    |                              |---------------------------------->|
+    |                              |  (atomic guard — if 0 rows,      |
+    |                              |   invite exhausted, abort)       |
+    |                              |<----------------------------------|
+    |                              |                                   |
+    |                              |  INSERT INTO team_members        |
+    |                              |  (team_id, user_id,              |
+    |                              |   role=invite.role)              |
     |                              |---------------------------------->|
     |                              |                                   |
     |                              |  COMMIT                          |
@@ -279,8 +295,10 @@ src/
 | Cross-team data access | RBAC middleware checks team membership on every team-scoped route |
 | Privilege escalation | Role changes restricted to admin only. Cannot set role higher than admin. |
 | Invite link brute force | Invite codes are 12-character alphanumeric (62^12 combinations). Rate limiting on join endpoint. |
+| Invite link leakage | Admins/facilitators can revoke invites via DELETE endpoint, setting `revoked_at`. Join flow checks `revoked_at IS NULL`. |
+| Invite join race condition | Atomic `UPDATE ... WHERE use_count < max_uses RETURNING id` prevents concurrent requests from exceeding `max_uses` (Security S-02). |
 | Last admin leaving | Service layer prevents the last admin from leaving or being demoted. |
-| Team deletion cascade | Only admin can delete. All related data cascades via FK constraints. |
+| Team deletion | Soft delete (`deleted_at = NOW()`) preserves data while making it inaccessible. Only admin can delete. |
 | Unauthorized member removal | Only admin can remove members. Users can always leave voluntarily. |
 
 ## 11. Error Codes
@@ -296,13 +314,14 @@ src/
 | `TEAM_INVITE_NOT_FOUND` | 404 | Invite code does not exist |
 | `TEAM_INVITE_EXPIRED` | 410 | Invite has expired |
 | `TEAM_INVITE_EXHAUSTED` | 410 | Invite has reached its max usage limit |
+| `TEAM_INVITE_LIMIT_REACHED` | 400 | Team already has 5 active invitations |
 | `TEAM_CANNOT_REMOVE_SELF` | 400 | Use the leave endpoint instead of remove |
 | `VALIDATION_ERROR` | 400 | Request body fails validation |
 
 ## 12. Future Considerations (Not in Phase 1)
 
 - **Team search/discovery**: Currently teams are private and join-by-invite only. Public team directory could be added later.
-- **Team archival**: Soft-delete/archive rather than hard delete.
+- **Hard delete / purge**: Admin operation to permanently remove soft-deleted teams and cascade data.
 - **Custom roles**: User-defined roles with granular permissions.
 - **Transfer ownership**: Transfer admin role to another member.
 - **Audit log**: Track who changed what in team settings and membership.

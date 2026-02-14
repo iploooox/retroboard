@@ -3,6 +3,7 @@
 **Feature:** teams
 **Base path:** `/api/v1/teams`
 **Authentication:** All endpoints require a valid access token.
+**Changed:** 2026-02-14 — Spec Review Gate
 
 ---
 
@@ -15,11 +16,12 @@
 5. [DELETE /api/v1/teams/:id](#5-delete-apiv1teamsid)
 6. [GET /api/v1/teams/:id/members](#6-get-apiv1teamsidmembers)
 7. [POST /api/v1/teams/:id/invitations](#7-post-apiv1teamsidinvitations)
-8. [POST /api/v1/teams/join/:code](#8-post-apiv1teamsjoincode)
-9. [PUT /api/v1/teams/:id/members/:userId](#9-put-apiv1teamsidmembersuserid)
-10. [DELETE /api/v1/teams/:id/members/:userId](#10-delete-apiv1teamsidmembersuserid)
-11. [Common Error Responses](#11-common-error-responses)
-12. [Data Types](#12-data-types)
+8. [DELETE /api/v1/teams/:id/invitations/:inviteId](#8-delete-apiv1teamsidinvitationsinviteid)
+9. [POST /api/v1/teams/join/:code](#9-post-apiv1teamsjoincode)
+10. [PUT /api/v1/teams/:id/members/:userId](#10-put-apiv1teamsidmembersuserid)
+11. [DELETE /api/v1/teams/:id/members/:userId](#11-delete-apiv1teamsidmembersuserid)
+12. [Common Error Responses](#12-common-error-responses)
+13. [Data Types](#13-data-types)
 
 ---
 
@@ -256,7 +258,7 @@ At least one field must be provided. The slug is NOT updated when the name chang
 
 ## 5. DELETE /api/v1/teams/:id
 
-Delete a team and all associated data (sprints, boards, cards, etc.).
+Soft-delete a team. Sets `deleted_at = NOW()` on the team row. The team and all associated data (sprints, boards, cards, invitations) become inaccessible but are not permanently destroyed. Hard delete is deferred to a future admin operation.
 
 **Required role:** admin
 
@@ -267,13 +269,9 @@ DELETE /api/v1/teams/b2c3d4e5-f6a7-8901-bcde-f12345678901
 Authorization: Bearer <token>
 ```
 
-### Response: 200 OK
+### Response: 204 No Content
 
-```json
-{
-  "message": "Team deleted successfully"
-}
-```
+No response body.
 
 ### Error Responses
 
@@ -367,7 +365,8 @@ Content-Type: application/json
 ```json
 {
   "expires_in_hours": 168,
-  "max_uses": 10
+  "max_uses": 10,
+  "role": "member"
 }
 ```
 
@@ -377,6 +376,11 @@ Content-Type: application/json
 |-------|------|----------|-------|
 | expires_in_hours | number | No | Min 1. Max 720 (30 days). Default: 168 (7 days). |
 | max_uses | number \| null | No | Min 1. Max 1000. Default: `null` (unlimited). |
+| role | string | No | Enum: `"member"` (default), `"facilitator"`. Only admins can create invites with `role = "admin"`. Facilitators can only create `member` or `facilitator` invites. |
+
+### Invite Limit
+
+A team can have at most **5 active invitations** at any time. An invitation is active if `revoked_at IS NULL` AND `expires_at > NOW()` AND (`max_uses IS NULL` OR `use_count < max_uses`). If the limit is reached, return `400 TEAM_INVITE_LIMIT_REACHED`.
 
 ### Response: 201 Created
 
@@ -390,6 +394,7 @@ Content-Type: application/json
     "created_by": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "expires_at": "2026-02-21T10:30:00.000Z",
     "max_uses": 10,
+    "role": "member",
     "use_count": 0,
     "created_at": "2026-02-14T10:30:00.000Z"
   }
@@ -403,14 +408,44 @@ The `code` is a 12-character alphanumeric string (a-z, A-Z, 0-9). The `invite_ur
 | Status | Code | Condition |
 |--------|------|-----------|
 | 400 | `VALIDATION_ERROR` | Invalid field values |
+| 400 | `TEAM_INVITE_LIMIT_REACHED` | Team already has 5 active (non-expired, non-revoked, non-exhausted) invitations |
 | 401 | `AUTH_UNAUTHORIZED` | Not authenticated |
-| 403 | `TEAM_INSUFFICIENT_ROLE` | User is not admin or facilitator |
+| 403 | `TEAM_INSUFFICIENT_ROLE` | User is not admin or facilitator, or facilitator trying to create admin invite |
 | 403 | `TEAM_NOT_MEMBER` | User is not a member |
 | 404 | `TEAM_NOT_FOUND` | Team does not exist |
 
 ---
 
-## 8. POST /api/v1/teams/join/:code
+## 8. DELETE /api/v1/teams/:id/invitations/:inviteId
+
+Revoke an invitation link. Sets `revoked_at = NOW()` on the invitation. Revoked invitations cannot be used to join.
+
+**Required role:** admin or facilitator
+
+### Request
+
+```
+DELETE /api/v1/teams/b2c3d4e5-f6a7-8901-bcde-f12345678901/invitations/f6a7b8c9-d0e1-2345-f012-567890123456
+Authorization: Bearer <token>
+```
+
+### Response: 204 No Content
+
+No response body.
+
+### Error Responses
+
+| Status | Code | Condition |
+|--------|------|-----------|
+| 401 | `AUTH_UNAUTHORIZED` | Not authenticated |
+| 403 | `TEAM_INSUFFICIENT_ROLE` | User is not admin or facilitator |
+| 403 | `TEAM_NOT_MEMBER` | User is not a member |
+| 404 | `TEAM_NOT_FOUND` | Team does not exist |
+| 404 | `TEAM_INVITE_NOT_FOUND` | Invitation does not exist or already revoked |
+
+---
+
+## 9. POST /api/v1/teams/join/:code
 
 Join a team using an invitation code.
 
@@ -439,10 +474,10 @@ No request body required. The invite code is in the URL path.
     "created_at": "2026-02-14T10:30:00.000Z",
     "updated_at": "2026-02-14T10:30:00.000Z",
     "member_count": 6,
-    "your_role": "member"
+    "your_role": "facilitator"
   },
   "membership": {
-    "role": "member",
+    "role": "facilitator",
     "joined_at": "2026-02-14T14:00:00.000Z"
   }
 }
@@ -451,9 +486,13 @@ No request body required. The invite code is in the URL path.
 ### Behavior
 
 1. Look up invitation by code.
-2. Validate the invitation exists, is not expired, and has not exceeded `max_uses`.
+2. Validate the invitation:
+   - Exists and `revoked_at IS NULL`
+   - Not expired: `expires_at > NOW()`
+   - Not exhausted: `max_uses IS NULL OR use_count < max_uses`
+   - Parent team is not soft-deleted: `teams.deleted_at IS NULL`
 3. Check that the user is not already a member of the team.
-4. In a transaction: insert into `team_members` with `role = 'member'` and increment `use_count` on the invitation.
+4. In a transaction: atomically increment `use_count` with a WHERE guard (prevents race condition — see DB spec query 7.8), then insert into `team_members` with the invite's `role` (not hardcoded to `member`).
 5. Return the team and membership details.
 
 ### Error Responses
@@ -468,7 +507,7 @@ No request body required. The invite code is in the URL path.
 
 ---
 
-## 9. PUT /api/v1/teams/:id/members/:userId
+## 10. PUT /api/v1/teams/:id/members/:userId
 
 Update a team member's role.
 
@@ -531,7 +570,7 @@ Content-Type: application/json
 
 ---
 
-## 10. DELETE /api/v1/teams/:id/members/:userId
+## 11. DELETE /api/v1/teams/:id/members/:userId
 
 Remove a member from the team. For self-removal (leaving the team), the `:userId` matches the authenticated user's ID.
 
@@ -571,7 +610,7 @@ Authorization: Bearer <token>
 
 ---
 
-## 11. Common Error Responses
+## 12. Common Error Responses
 
 All error responses follow the standard shape:
 
@@ -591,10 +630,11 @@ All error responses follow the standard shape:
 |--------|------|-------------|
 | 400 | `VALIDATION_ERROR` | Request validation failed |
 | 400 | `TEAM_LAST_ADMIN` | Cannot remove/demote the last admin |
+| 400 | `TEAM_INVITE_LIMIT_REACHED` | Team already has 5 active invitations |
 | 403 | `TEAM_NOT_MEMBER` | User is not a member of this team |
 | 403 | `TEAM_INSUFFICIENT_ROLE` | User's role lacks required permission |
 | 404 | `TEAM_NOT_FOUND` | Team with given ID does not exist |
-| 404 | `TEAM_INVITE_NOT_FOUND` | Invitation code not found |
+| 404 | `TEAM_INVITE_NOT_FOUND` | Invitation code not found or already revoked |
 | 409 | `TEAM_SLUG_EXISTS` | Slug collision during team creation |
 | 409 | `TEAM_MEMBER_EXISTS` | User already in team |
 | 410 | `TEAM_INVITE_EXPIRED` | Invitation expired |
@@ -602,7 +642,7 @@ All error responses follow the standard shape:
 
 ---
 
-## 12. Data Types
+## 13. Data Types
 
 ### Team Object
 
@@ -647,7 +687,9 @@ interface InvitationResponse {
   created_by: string;      // UUID of creator
   expires_at: string;      // ISO 8601
   max_uses: number | null; // null = unlimited
+  role: 'member' | 'facilitator' | 'admin'; // Role assigned on join
   use_count: number;
+  revoked_at: string | null; // ISO 8601 or null if active
   created_at: string;      // ISO 8601
 }
 ```
