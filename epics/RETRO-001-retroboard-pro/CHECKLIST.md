@@ -14,138 +14,145 @@
 ### Feature: auth
 
 **Architecture:**
-- [ ] architecture.md created with design decisions
+- [x] architecture.md created with design decisions
 
 **API / Data Specs:**
-- [ ] specs/api.md has all endpoints with request/response shapes
-- [ ] specs/database.md has all table schemas
+- [x] specs/api.md has all endpoints with request/response shapes
+- [x] specs/database.md has all table schemas
 - [ ] UI/API contract validated — all UI fields match API fields
 
 **Test Plan:**
-- [ ] specs/tests.md complete with test cases
+- [x] specs/tests.md complete with test cases
 
 ### Feature: teams
 
 **Architecture:**
-- [ ] architecture.md created with design decisions
+- [x] architecture.md created with design decisions
 
 **API / Data Specs:**
-- [ ] specs/api.md has all endpoints with request/response shapes
-- [ ] specs/database.md has all table schemas
+- [x] specs/api.md has all endpoints with request/response shapes
+- [x] specs/database.md has all table schemas
 - [ ] UI/API contract validated
 
 **Test Plan:**
-- [ ] specs/tests.md complete with test cases
+- [x] specs/tests.md complete with test cases
 
 ### Feature: sprints
 
 **Architecture:**
-- [ ] architecture.md created with design decisions
+- [x] architecture.md created with design decisions
 
 **API / Data Specs:**
-- [ ] specs/api.md has all endpoints with request/response shapes
-- [ ] specs/database.md has all table schemas
+- [x] specs/api.md has all endpoints with request/response shapes
+- [x] specs/database.md has all table schemas
 - [ ] UI/API contract validated
 
 **Test Plan:**
-- [ ] specs/tests.md complete with test cases
+- [x] specs/tests.md complete with test cases
 
 ### Feature: retro-board
 
 **Architecture:**
-- [ ] architecture.md created with design decisions
+- [x] architecture.md created with design decisions
 
 **UI Specs:**
-- [ ] specs/ui/INDEX.md created
-- [ ] Page specs written in specs/ui/pages/ for each view
-- [ ] specs/ui/flows.md documents navigation between pages
-- [ ] specs/ui/state.md documents global state structure
+- [x] specs/ui/INDEX.md created
+- [x] Page specs written in specs/ui/pages/ for each view
+- [x] specs/ui/flows.md documents navigation between pages
+- [x] specs/ui/state.md documents global state structure
 
 **API / Data Specs:**
-- [ ] specs/api.md has all endpoints with request/response shapes
-- [ ] specs/database.md has all table schemas
+- [x] specs/api.md has all endpoints with request/response shapes
+- [x] specs/database.md has all table schemas
 - [ ] UI/API contract validated
 
 **Test Plan:**
-- [ ] specs/tests.md complete with test cases
+- [x] specs/tests.md complete with test cases
 
 ### Feature: templates
 
 **Architecture:**
-- [ ] architecture.md created with design decisions
+- [x] architecture.md created with design decisions
 
 **API / Data Specs:**
-- [ ] specs/api.md has all endpoints
-- [ ] specs/database.md has all table schemas
+- [x] specs/api.md has all endpoints
+- [x] specs/database.md has all table schemas
 
 **Test Plan:**
-- [ ] specs/tests.md complete with test cases
+- [x] specs/tests.md complete with test cases
 
 ### Feature: facilitation
 
 **Architecture:**
-- [ ] architecture.md created with design decisions
+- [x] architecture.md created with design decisions
 
 **UI Specs:**
-- [ ] specs/ui/INDEX.md created
-- [ ] Page specs written
+- [x] specs/ui/INDEX.md created
+- [x] Page specs written
 
 **API / Data Specs:**
-- [ ] specs/api.md has all endpoints
-- [ ] specs/database.md has all table schemas
+- [x] specs/api.md has all endpoints
+- [x] specs/database.md has all table schemas
 
 **Test Plan:**
-- [ ] specs/tests.md complete with test cases
+- [x] specs/tests.md complete with test cases
 
 ### Feature: action-items
 
 **Architecture:**
-- [ ] architecture.md created with design decisions
+- [x] architecture.md created with design decisions
 
 **API / Data Specs:**
-- [ ] specs/api.md has all endpoints
-- [ ] specs/database.md has all table schemas
+- [x] specs/api.md has all endpoints
+- [x] specs/database.md has all table schemas
 
 **Test Plan:**
-- [ ] specs/tests.md complete with test cases
+- [x] specs/tests.md complete with test cases
 
 ### Feature: analytics
 
 **Architecture:**
-- [ ] architecture.md created with design decisions
+- [x] architecture.md created with design decisions
 
 **UI Specs:**
-- [ ] specs/ui/INDEX.md created
-- [ ] Page specs written
+- [x] specs/ui/INDEX.md created
+- [x] Page specs written
 
 **API / Data Specs:**
-- [ ] specs/api.md has all endpoints
-- [ ] specs/database.md has all table schemas
+- [x] specs/api.md has all endpoints
+- [x] specs/database.md has all table schemas
 
 **Test Plan:**
-- [ ] specs/tests.md complete with test cases
+- [x] specs/tests.md complete with test cases
 
 ### Feature: real-time
 
 **Architecture:**
-- [ ] architecture.md created with design decisions
+- [x] architecture.md created with design decisions
 
 **API / Data Specs:**
-- [ ] specs/api.md has WebSocket protocol documented
+- [x] specs/api.md has WebSocket protocol documented
 
 **Test Plan:**
-- [ ] specs/tests.md complete with test cases
+- [x] specs/tests.md complete with test cases
 
 ### Feature: export
 
 **Architecture:**
-- [ ] architecture.md created with design decisions
+- [x] architecture.md created with design decisions
 
 **API / Data Specs:**
-- [ ] specs/api.md has all endpoints
+- [x] specs/api.md has all endpoints
 
 **Test Plan:**
-- [ ] specs/tests.md complete with test cases
+- [x] specs/tests.md complete with test cases
+
+## Spec Review Gate
+
+- [ ] PO reviewed specs from user perspective
+- [ ] QA reviewed test plans for gaps and edge cases
+- [ ] Security reviewed specs for vulnerabilities
+- [ ] All review findings addressed
 
 ## Pre-Implementation Validation
 
