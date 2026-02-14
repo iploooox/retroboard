@@ -28,8 +28,13 @@ describe('Health Check', () => {
     expect(res.headers.get('referrer-policy')).toBe('strict-origin-when-cross-origin');
   });
 
-  it('placeholder auth routes return 501', async () => {
-    const res = await app.request('/api/v1/auth/login', { method: 'POST' });
-    expect(res.status).toBe(501);
+  it('auth routes are implemented (no longer 501)', async () => {
+    const res = await app.request('/api/v1/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'test@example.com', password: 'Test1234' }),
+    });
+    // Should get a real auth response (401 for invalid credentials), not 501
+    expect(res.status).not.toBe(501);
   });
 });
