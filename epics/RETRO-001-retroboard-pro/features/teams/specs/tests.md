@@ -1,5 +1,7 @@
 # Teams Test Plan
 
+**changed:** 2026-02-14 — Spec Review Gate
+
 **Feature:** teams
 **Test framework:** Vitest + Supertest
 **Test database:** Dedicated test PostgreSQL database, reset between test suites
@@ -84,6 +86,9 @@ tests/
 | I-CT-08 | Description is optional | Authenticated user | POST /teams without description | 201, description is null |
 | I-CT-09 | member_count is 1 after creation | Create team | Check response | member_count = 1 |
 | I-CT-10 | Unauthenticated request returns 401 | -- | POST /teams without token | 401 |
+| I-CT-11 | Name with only whitespace returns 400 | Authenticated user | POST /teams `{ name: "   " }` | 400, VALIDATION_ERROR (after trim, name is empty) |
+| I-CT-12 | Description over 500 chars returns 400 | Authenticated user | POST /teams with 501-char description | 400, VALIDATION_ERROR |
+| I-CT-13 | Invalid avatar_url format returns 400 | Authenticated user | POST /teams `{ name: "Team", avatar_url: "not-a-url" }` | 400, VALIDATION_ERROR |
 
 ### 3.2 List Teams (`list-teams.test.ts`)
 
@@ -97,6 +102,8 @@ tests/
 | I-LT-06 | Empty list for new user | New user, no teams | GET /teams | 200, empty array |
 | I-LT-07 | Returns member_count | Team with 3 members | GET /teams | member_count = 3 |
 | I-LT-08 | per_page max 100 | -- | GET /teams?per_page=200 | Capped at 100 |
+| I-LT-09 | Negative page returns 400 | -- | GET /teams?page=-1 | 400, VALIDATION_ERROR |
+| I-LT-10 | Zero per_page returns 400 | -- | GET /teams?per_page=0 | 400, VALIDATION_ERROR |
 
 ### 3.3 Get Team (`get-team.test.ts`)
 
@@ -154,6 +161,9 @@ tests/
 | I-MEM-14 | Non-admin cannot remove others | Member tries to remove another member | DELETE /teams/:id/members/:otherId | 403, TEAM_INSUFFICIENT_ROLE |
 | I-MEM-15 | Removed member cannot access team | Remove member | GET /teams/:id as removed user | 403, TEAM_NOT_MEMBER |
 | I-MEM-16 | Remove non-existent member returns 404 | Admin | DELETE /teams/:id/members/random-uuid | 404 |
+| I-MEM-17 | Admin removes another admin (not last admin) | Two admin users | DELETE /teams/:id/members/:adminUserId | 200, admin removed |
+| I-MEM-18 | Admin changes own role to member (when other admins exist) | Two admin users | PUT /teams/:id/members/own-id `{ role: "member" }` | 200, role changed to member |
+| I-MEM-19 | Facilitator leaves team (self-remove) | Facilitator user | DELETE /teams/:id/members/own-id | 200, left team |
 
 ### 3.7 Invitations (`invitations.test.ts`)
 
@@ -180,6 +190,10 @@ tests/
 | I-INV-19 | Unauthenticated join returns 401 | -- | POST /teams/join/:code without token | 401 |
 | I-INV-20 | Invalid expires_in_hours (0) returns 400 | Admin | POST with `{ expires_in_hours: 0 }` | 400, VALIDATION_ERROR |
 | I-INV-21 | Invalid expires_in_hours (>720) returns 400 | Admin | POST with `{ expires_in_hours: 800 }` | 400, VALIDATION_ERROR |
+| I-INV-22 | Concurrent join at max_uses boundary (atomic guard) | Invite with max_uses=2, use_count=1 | Two users POST /teams/join/:code simultaneously | One gets 200, other gets 410 TEAM_INVITE_EXHAUSTED |
+| I-INV-23 | Revoked invite returns error on join | Invite revoked by admin | POST /teams/join/:code | 410 or 404 (invite no longer valid) |
+| I-INV-24 | Max 5 active invites enforced | Team with 5 active invites | POST /teams/:id/invitations (6th) | 400, TEAM_INVITE_LIMIT_REACHED |
+| I-INV-25 | Invite with role assigns correct role on join | Invite created with `role: "facilitator"` | New user joins via invite | role = "facilitator" (not default "member") |
 
 ---
 
@@ -195,6 +209,10 @@ tests/
 | E-TM-06 | Invite code brute force | Try 100 random codes | All return 404 (not 500 or other info leak) |
 | E-TM-07 | Cross-team data isolation | User in team A tries to access team B | 403, TEAM_NOT_MEMBER |
 | E-TM-08 | UUID format validation | Pass "abc" as team ID | 400, VALIDATION_ERROR (not 500) |
+| E-TM-09 | Delete user who created a team (RESTRICT) | User created team | DELETE user | Error (RESTRICT constraint prevents deletion, not 500) |
+| E-TM-10 | Team soft-delete: deleted team not returned in list | Soft-delete a team | GET /teams | Team not in list |
+| E-TM-11 | Team soft-delete: team sprints become inaccessible | Soft-delete a team with sprints | GET /teams/:id/sprints | 404 or 403 (team not found/accessible) |
+| E-TM-12 | Oversized request body (>1MB) returns 413 | -- | POST /teams with >1MB body | 413, request entity too large |
 
 ---
 

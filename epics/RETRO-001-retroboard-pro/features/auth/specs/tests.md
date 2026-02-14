@@ -1,5 +1,7 @@
 # Auth Test Plan
 
+**changed:** 2026-02-14 — Spec Review Gate
+
 **Feature:** auth
 **Test framework:** Vitest + Supertest
 **Test database:** Dedicated test PostgreSQL database, reset between test suites
@@ -77,6 +79,10 @@ tests/
 | U-VAL-15 | Rejects invalid avatar_url | `"not a url"` | Error on `avatar_url` |
 | U-VAL-16 | Accepts null avatar_url (clear) | `null` | No errors |
 | U-VAL-17 | Rejects avatar_url over 500 chars | 501-char URL | Error on `avatar_url` |
+| U-VAL-18 | Email with leading/trailing whitespace is trimmed or rejected | `" alice@example.com "` | Trimmed to `"alice@example.com"` or error on `email` |
+| U-VAL-19 | Display name with only whitespace rejected | `"   "` | Error on `display_name` (after trim, becomes empty) |
+| U-VAL-20 | Rejects `avatar_url` with `javascript:` protocol | `"javascript:alert(1)"` | Error on `avatar_url` |
+| U-VAL-21 | Rejects `avatar_url` with `data:` protocol | `"data:text/html,<script>alert(1)</script>"` | Error on `avatar_url` |
 
 ---
 
@@ -184,10 +190,56 @@ tests/
 | E-SEC-08 | JWT secret from environment | Check token verification | Uses `JWT_SECRET` env var, not hardcoded |
 | E-SEC-09 | Response timing for wrong email vs wrong password | Time both error paths | Similar timing (bcrypt compare on dummy hash for non-existent user) |
 | E-SEC-10 | XSS in display_name | Register with `<script>alert('xss')</script>` | Stored as-is (API returns JSON, XSS is frontend concern). No HTML escaping in API. |
+| E-SEC-11 | JWT with `alg: "none"` header is rejected | Craft token with algorithm=none | 401, `AUTH_TOKEN_INVALID` |
+| E-SEC-12 | JWT with RS256 algorithm is rejected | Craft token with RS256 algorithm | 401, `AUTH_TOKEN_INVALID` |
+| E-SEC-13 | JWT with future `iat` claim is rejected | Token where `iat` is 1 hour in the future | 401, `AUTH_TOKEN_INVALID` |
+| E-SEC-14 | Revoke all sessions invalidates all refresh tokens | User with 3 active sessions calls POST /auth/revoke-all | All refresh_tokens for user have `revoked_at` set |
+| E-SEC-15 | CORS: cross-origin request without proper origin is blocked | Request with `Origin: https://evil.com` | Blocked by CORS policy (no `Access-Control-Allow-Origin`) |
+| E-SEC-16 | Login with non-existent email takes same time as wrong password | Time both error paths with high-precision timer | Response times within 50ms of each other (dummy bcrypt hash) |
+| E-SEC-17 | Register with extra unknown fields silently ignored | Register with `{ email, password, display_name, role: "admin" }` | 201, `role` field not in DB or response |
+| E-SEC-18 | Wrong Content-Type header returns 400/415 | POST /auth/login with `Content-Type: text/plain` | 400 or 415, not 500 |
+| E-SEC-19 | Concurrent refresh token rotation | Two simultaneous POST /auth/refresh with same token | One succeeds (200), other triggers theft detection (401) and revokes all tokens |
 
 ---
 
-## 5. Test Utilities
+## 5. Rate Limiting Tests
+
+| # | Test case | Description | Expected |
+|---|-----------|-------------|----------|
+| RL-01 | 6th failed login within 15 minutes returns 429 | 5 failed logins for same email within window, then 6th attempt | 429 with `Retry-After` header |
+| RL-02 | Rapid registration from same IP returns 429 | Exceed registration rate limit from single IP | 429 with `Retry-After` header |
+| RL-03 | Successful login resets failed attempt counter | 4 failed logins, then 1 successful login, then 1 failed login | Last failed login returns 401 (not 429 — counter was reset) |
+| RL-04 | Different IPs are tracked independently | 5 failed logins from IP-A, then 1 failed login from IP-B | IP-B attempt returns 401 (not 429) |
+
+---
+
+## 6. Cross-Feature Integration Tests
+
+> These tests verify end-to-end flows spanning multiple features. Included in auth test plan as the entry point for user journeys.
+
+| # | Test case | Description | Expected |
+|---|-----------|-------------|----------|
+| X-INT-01 | End-to-end: register → create team → invite → join → create sprint → activate → complete | Full user journey through all Phase 1 features | Each step succeeds with correct state transitions |
+| X-INT-02 | Team deletion cascades to sprints correctly | Create team with sprints, then delete team | All sprints deleted, no orphan rows in sprints table |
+| X-INT-03 | User deletion blocked when user created teams (RESTRICT) | User creates team, then attempt to delete user | Delete fails with clear error (not 500), team and user both persist |
+
+---
+
+## 7. Security Cross-Cutting Tests
+
+> These tests apply to all API endpoints and should be verified globally.
+
+| # | Test case | Description | Expected |
+|---|-----------|-------------|----------|
+| X-SEC-01 | Response includes `X-Content-Type-Options: nosniff` | Any API response | Header present with value `nosniff` |
+| X-SEC-02 | Response includes `X-Frame-Options: DENY` | Any API response | Header present with value `DENY` |
+| X-SEC-03 | CORS preflight returns correct headers | OPTIONS request with `Origin` header | Correct `Access-Control-Allow-*` headers returned |
+| X-SEC-04 | API responses do not include stack traces in production mode | Trigger a server error in production mode | Error response contains error code but no stack trace |
+| X-SEC-05 | Request body exceeding 1MB limit returns 413 | POST any endpoint with >1MB body | 413, request entity too large |
+
+---
+
+## 8. Test Utilities
 
 ### Test Helper: createTestUser
 
@@ -233,7 +285,7 @@ beforeEach(async () => {
 
 ---
 
-## 6. Test Coverage Targets
+## 9. Test Coverage Targets
 
 | Category | Target |
 |----------|--------|

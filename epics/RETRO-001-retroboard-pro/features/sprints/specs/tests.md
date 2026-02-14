@@ -1,5 +1,7 @@
 # Sprints Test Plan
 
+**changed:** 2026-02-14 — Spec Review Gate
+
 **Feature:** sprints
 **Test framework:** Vitest + Supertest
 **Test database:** Dedicated test PostgreSQL database, reset between test suites
@@ -46,6 +48,9 @@ tests/
 | U-SV-10 | Null end_date accepted | `{ name: "Sprint 1", start_date: "2026-03-01", end_date: null }` | No errors |
 | U-SV-11 | Goal over 500 chars rejected | 501-char goal | Error on `goal` |
 | U-SV-12 | Goal is optional | `{ name: "Sprint 1", start_date: "2026-03-01" }` | No errors, goal = null |
+| U-SV-13 | Name with only whitespace rejected | `{ name: "   " }` | Error on `name` (after trim, becomes empty) |
+| U-SV-14 | Invalid date (non-leap-year Feb 29) rejected | `{ start_date: "2027-02-29" }` | Error on `start_date` (2027 is not a leap year) |
+| U-SV-15 | ISO datetime format rejected (date-only required) | `{ start_date: "2026-03-01T00:00:00Z" }` | Error on `start_date` (must be YYYY-MM-DD only) |
 
 ### 2.2 Status Transitions (`status-transition.test.ts`)
 
@@ -102,6 +107,8 @@ tests/
 | I-LS-13 | Member can list | Member user | GET /teams/:tid/sprints | 200, success |
 | I-LS-14 | Invalid status filter returns 400 | -- | GET ?status=invalid | 400, VALIDATION_ERROR |
 | I-LS-15 | per_page capped at 100 | -- | GET ?per_page=200 | per_page in response = 100 |
+| I-LS-16 | page=0 returns 400 | -- | GET ?page=0 | 400, VALIDATION_ERROR |
+| I-LS-17 | page=-1 returns 400 | -- | GET ?page=-1 | 400, VALIDATION_ERROR |
 
 ### 3.3 Get Sprint (`get-sprint.test.ts`)
 
@@ -131,6 +138,7 @@ tests/
 | I-US-12 | Empty body returns 400 | Admin user | PUT with `{}` | 400, VALIDATION_ERROR |
 | I-US-13 | Invalid end_date returns 400 | Planning sprint | PUT with end_date < start_date | 400, SPRINT_DATE_INVALID |
 | I-US-14 | updated_at changes | Admin user | PUT with valid data | updated_at is newer than before |
+| I-US-15 | Update active sprint with only date fields | Active sprint, admin | PUT with `{ start_date: "2026-04-01" }` | 400, VALIDATION_ERROR (no updatable fields provided — dates are ignored for active sprints) |
 
 ### 3.5 Activate Sprint (`activate-sprint.test.ts`)
 
@@ -147,6 +155,7 @@ tests/
 | I-AS-09 | Sprint from wrong team returns 404 | Sprint in team A | PUT on team B | 404, SPRINT_NOT_FOUND |
 | I-AS-10 | Activate after completing previous | Activate sprint A, complete it, create sprint B | Activate sprint B | 200, sprint B active |
 | I-AS-11 | updated_at changes on activation | Sprint | PUT /:sid/activate | updated_at is newer |
+| I-AS-12 | Activate sprint via wrong team URL | Sprint belongs to team A, user is member of both | PUT /teams/:teamB/sprints/:sid/activate | 404, SPRINT_NOT_FOUND (team_id mismatch) |
 
 ### 3.6 Complete Sprint (`complete-sprint.test.ts`)
 
@@ -191,6 +200,9 @@ tests/
 | E-SP-08 | UUID format validation on team_id | Pass "abc" as teamId | 400, VALIDATION_ERROR (not 500) |
 | E-SP-09 | UUID format validation on sprint_id | Pass "abc" as sprint id | 400, VALIDATION_ERROR (not 500) |
 | E-SP-10 | Large number of sprints pagination | Team with 500 completed sprints | Paginated query returns in < 500ms |
+| E-SP-11 | Concurrent sprint completion | Two facilitators complete same active sprint simultaneously | One succeeds (200), other gets 400 SPRINT_INVALID_TRANSITION |
+| E-SP-12 | Sprint number auto-increments per team | Create 3 sprints in a team | Sprint numbers are 1, 2, 3 |
+| E-SP-13 | Sprint number is returned in API response | Create sprint | Response includes `sprint_number` field |
 
 ---
 
