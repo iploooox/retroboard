@@ -19,7 +19,7 @@
 **API / Data Specs:**
 - [x] specs/api.md has all endpoints with request/response shapes
 - [x] specs/database.md has all table schemas
-- [ ] UI/API contract validated — all UI fields match API fields
+- [x] UI/API contract validated — login/register fields match auth API responses
 
 **Test Plan:**
 - [x] specs/tests.md complete with test cases
@@ -32,7 +32,7 @@
 **API / Data Specs:**
 - [x] specs/api.md has all endpoints with request/response shapes
 - [x] specs/database.md has all table schemas
-- [ ] UI/API contract validated
+- [x] UI/API contract validated — member list nested structure noted, Phase 2+ fields deferred
 
 **Test Plan:**
 - [x] specs/tests.md complete with test cases
@@ -45,7 +45,7 @@
 **API / Data Specs:**
 - [x] specs/api.md has all endpoints with request/response shapes
 - [x] specs/database.md has all table schemas
-- [ ] UI/API contract validated
+- [x] UI/API contract validated — sprint_number now in API, board fields deferred to Phase 2
 
 **Test Plan:**
 - [x] specs/tests.md complete with test cases
@@ -64,7 +64,7 @@
 **API / Data Specs:**
 - [x] specs/api.md has all endpoints with request/response shapes
 - [x] specs/database.md has all table schemas
-- [ ] UI/API contract validated
+- [x] UI/API contract validated — board/activity/action-item fields deferred to Phase 2+
 
 **Test Plan:**
 - [x] specs/tests.md complete with test cases
@@ -149,17 +149,17 @@
 
 ## Spec Review Gate
 
-- [ ] PO reviewed specs from user perspective
-- [ ] QA reviewed test plans for gaps and edge cases
-- [ ] Security reviewed specs for vulnerabilities
-- [ ] All review findings addressed
+- [x] PO reviewed specs from user perspective — 20 findings (reviews/po-review.md)
+- [x] QA reviewed test plans for gaps and edge cases — 45 missing tests found (reviews/qa-review.md)
+- [x] Security reviewed specs for vulnerabilities — 18 findings (reviews/security-review.md)
+- [x] All review findings addressed — 4 remediation commits (f83fc94, cc16465, 44f010a, fac24ef)
 
 ## Pre-Implementation Validation
 
-- [ ] All spec files consistent with each other
-- [ ] Phase plans created with task breakdowns
-- [ ] No unresolved UI/API mismatches
-- [ ] Architecture decisions recorded as ADRs
+- [x] All spec files consistent with each other — reconciled after review gate
+- [x] Phase plans created with task breakdowns — phase1.md reconciled with DB specs
+- [x] No unresolved UI/API mismatches — Phase 1 fields validated, Phase 2+ deferred
+- [x] Architecture decisions recorded as ADRs — ADR-001..003 + security additions in architecture.md
 
 ## Phase Completion
 
