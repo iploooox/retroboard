@@ -3,6 +3,7 @@
 **Feature:** auth
 **Base path:** `/api/v1/auth`
 **Authentication:** Endpoints marked with a lock icon require a valid access token in the `Authorization: Bearer <token>` header.
+**changed:** 2026-02-14 — Spec Review Gate
 
 ---
 
@@ -14,8 +15,10 @@
 4. [GET /api/v1/auth/me](#4-get-apiv1authme)
 5. [PUT /api/v1/auth/me](#5-put-apiv1authme)
 6. [POST /api/v1/auth/logout](#6-post-apiv1authlogout)
-7. [Common Error Responses](#7-common-error-responses)
-8. [Data Types](#8-data-types)
+7. [POST /api/v1/auth/revoke-all](#7-post-apiv1authrevoke-all)
+8. [Rate Limiting](#8-rate-limiting)
+9. [Common Error Responses](#9-common-error-responses)
+10. [Data Types](#10-data-types)
 
 ---
 
@@ -46,7 +49,7 @@ Content-Type: application/json
 |-------|------|----------|-------|
 | email | string | Yes | Valid email format (RFC 5322 simplified). Max 255 characters. Case-insensitive (stored lowercase). |
 | password | string | Yes | Min 8 characters. Max 128 characters. Must contain at least one uppercase letter, one lowercase letter, and one digit. |
-| display_name | string | Yes | Min 1 character. Max 100 characters. Trimmed of leading/trailing whitespace. |
+| display_name | string | Yes | Min 2 characters. Max 50 characters. Trimmed of leading/trailing whitespace. |
 
 ### Response: 201 Created
 
@@ -301,8 +304,8 @@ Content-Type: application/json
 
 | Field | Type | Required | Rules |
 |-------|------|----------|-------|
-| display_name | string | No | Min 1 character. Max 100 characters. Trimmed. |
-| avatar_url | string \| null | No | Valid URL format or `null` to clear. Max 500 characters. |
+| display_name | string | No | Min 2 characters. Max 50 characters. Trimmed. |
+| avatar_url | string \| null | No | Valid URL format, must use `https://` protocol. Reject `javascript:`, `data:`, `vbscript:` schemes. Or `null` to clear. Max 500 characters. |
 
 At least one field must be provided. Unknown fields are ignored.
 
@@ -380,7 +383,73 @@ Content-Type: application/json
 
 ---
 
-## 7. Common Error Responses
+## 7. POST /api/v1/auth/revoke-all
+
+Revoke all refresh tokens for the authenticated user. This effectively logs out all sessions.
+
+**Authentication:** Required
+
+### Request
+
+```
+POST /api/v1/auth/revoke-all
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+No request body required.
+
+### Response: 200 OK
+
+```json
+{
+  "message": "All sessions revoked"
+}
+```
+
+### Behavior
+
+1. Revoke all refresh tokens for the authenticated user (`UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL`).
+2. The current access token remains valid until it naturally expires (stateless).
+
+### Error Responses
+
+| Status | Code | Condition |
+|--------|------|-----------|
+| 401 | `AUTH_UNAUTHORIZED` | Not authenticated |
+
+---
+
+## 8. Rate Limiting
+
+Auth endpoints are rate limited to prevent brute-force and abuse. Rate limits are enforced using a PostgreSQL-backed sliding window counter (see `rate_limits` table in database spec).
+
+### Limits
+
+| Endpoint | Key | Limit | Window |
+|----------|-----|-------|--------|
+| POST /api/v1/auth/login | `login:email:{email}` | 5 requests | 15 minutes |
+| POST /api/v1/auth/login | `login:ip:{ip}` | 30 requests | 1 minute |
+| POST /api/v1/auth/register | `register:ip:{ip}` | 10 requests | 1 hour |
+| POST /api/v1/auth/refresh | `refresh:user:{userId}` | 30 requests | 1 minute |
+
+### Response: 429 Too Many Requests
+
+When a rate limit is exceeded, the server returns:
+
+```json
+{
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Too many requests. Please try again later."
+  }
+}
+```
+
+The response includes a `Retry-After` header with the number of seconds until the rate limit window resets.
+
+---
+
+## 9. Common Error Responses
 
 All error responses follow this shape:
 
@@ -415,11 +484,12 @@ The `details` array is only present for `VALIDATION_ERROR` responses. Each entry
 | 401 | `AUTH_REFRESH_TOKEN_INVALID` | Refresh token not found or revoked |
 | 401 | `AUTH_REFRESH_TOKEN_EXPIRED` | Refresh token past expiry |
 | 409 | `AUTH_EMAIL_EXISTS` | Registration with existing email |
+| 429 | `RATE_LIMIT_EXCEEDED` | Too many requests for this endpoint |
 | 500 | `INTERNAL_ERROR` | Unexpected server error |
 
 ---
 
-## 8. Data Types
+## 10. Data Types
 
 ### User Object
 

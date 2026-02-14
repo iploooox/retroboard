@@ -5,6 +5,7 @@
 **Depends on:** --
 **Phase:** 1
 **Status:** planning
+**changed:** 2026-02-14 — Spec Review Gate
 
 ---
 
@@ -108,7 +109,7 @@ Request Flow:
                    v
 ┌──────────────────────────────────────────────┐
 │  PostgreSQL                                  │
-│  Tables: users, refresh_tokens               │
+│  Tables: users, refresh_tokens, rate_limits  │
 └──────────────────────────────────────────────┘
 ```
 
@@ -133,6 +134,7 @@ src/
     migrations/
       001_create_users.sql
       002_create_refresh_tokens.sql
+      003_create_rate_limits.sql
 ```
 
 ## 7. Login Flow
@@ -265,14 +267,20 @@ src/
 
 | Concern | Mitigation |
 |---------|-----------|
-| Password brute force | bcrypt cost 12 makes each attempt ~250ms |
+| Password brute force | bcrypt cost 12 makes each attempt ~250ms. Rate limiting on login (§13). |
 | Token theft (access) | 15-minute expiry limits window of exposure |
 | Token theft (refresh) | Rotation detects reuse; all tokens revoked on reuse of revoked token |
 | Token storage (server) | Refresh tokens stored as SHA-256 hashes, not plaintext |
 | Token storage (client) | Client stores tokens in memory or httpOnly cookie (implementation choice for frontend) |
-| JWT secret compromise | Single env var `JWT_SECRET`. Must be rotated via deployment. All tokens invalidated on rotation. |
+| JWT secret compromise | Single env var `JWT_SECRET`. Must be rotated via deployment. All tokens invalidated on rotation. Minimum 32 chars enforced at startup (§19). |
+| JWT algorithm confusion | Algorithm pinned to HS256; `alg: none` rejected (§18). |
 | SQL injection | `postgres` driver uses tagged template literals -- parameterized by design |
-| Timing attacks | bcrypt.compare is constant-time. JWT verification via jose is constant-time. |
+| Timing attacks | bcrypt.compare is constant-time. JWT verification via jose is constant-time. Login uses dummy hash for missing emails (§20). |
+| XSS via avatar_url | `avatar_url` restricted to `https://` protocol; `javascript:`, `data:`, `vbscript:` schemes rejected |
+| Clickjacking | `X-Frame-Options: DENY` header (§16) |
+| CORS misconfiguration | Strict origin policy, no wildcard (§14) |
+| Transport security | HTTPS required in production, HSTS enforced (§15) |
+| Oversized payloads | Global 1MB request body limit (§17) |
 
 ## 11. Environment Variables
 
@@ -306,9 +314,60 @@ Error codes:
 - `AUTH_UNAUTHORIZED` -- no token provided
 - `VALIDATION_ERROR` -- request body fails validation
 
-## 13. Future Considerations (Not in Phase 1)
+## 13. Rate Limiting
+
+PostgreSQL-backed rate limiter using the `rate_limits` table. Sliding window counter pattern.
+
+**Key format:**
+- `login:email:{email}` — per-email login attempts
+- `login:ip:{ip}` — per-IP login attempts
+- `register:ip:{ip}` — per-IP registration attempts
+
+The rate limiter increments a counter using `INSERT ... ON CONFLICT DO UPDATE SET count = count + 1`. When the count exceeds the configured threshold for the window, the request is rejected with 429 and a `Retry-After` header.
+
+A periodic cleanup job deletes expired windows (`window_start < NOW() - INTERVAL '1 day'`).
+
+## 14. CORS
+
+Strict origin policy:
+- `Access-Control-Allow-Origin` set to app domain only (not `*`)
+- `Access-Control-Allow-Credentials: true`
+- `Access-Control-Allow-Headers: Authorization, Content-Type`
+
+## 15. HTTPS / HSTS
+
+Server must run behind TLS in production.
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+- Bearer tokens transmitted only over HTTPS
+
+## 16. Security Headers Middleware
+
+Applied globally to all responses:
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Content-Security-Policy: default-src 'self'`
+
+## 17. Request Body Size Limit
+
+Global 1MB limit via Hono `bodyLimit` middleware. Prevents oversized payloads from consuming server resources.
+
+## 18. JWT Algorithm Pinning
+
+When verifying JWTs, explicitly pass `algorithms: ['HS256']`. This rejects tokens with `alg: none` or any other algorithm, preventing algorithm confusion attacks.
+
+## 19. JWT_SECRET Validation
+
+On startup, validate `JWT_SECRET.length >= 32`. Refuse to start if shorter. This ensures the HMAC key has sufficient entropy to resist brute-force attacks.
+
+## 20. Login Timing Attack Mitigation
+
+When an email is not found during login, run `bcrypt.compare(password, DUMMY_HASH)` to ensure consistent response timing. This prevents attackers from distinguishing "email not found" from "wrong password" based on response time.
+
+`DUMMY_HASH` is a pre-computed bcrypt hash with the same cost factor (12), generated at startup.
+
+## 21. Future Considerations (Not in Phase 1)
 
 - **Password reset flow** (Phase 5): Generate reset token, store hash, email link, reset endpoint.
 - **OAuth providers**: Google/GitHub login. Would add an `oauth_accounts` table linking external IDs to users.
-- **Rate limiting**: Limit login attempts per IP/email. Can be done with a PostgreSQL counter table.
 - **Multi-device sessions**: UI to view and revoke active sessions (query refresh_tokens table).
