@@ -19,5 +19,6 @@ export default defineConfig({
         singleFork: true,
       },
     },
+    exclude: ['client/**', 'node_modules/**'],
   },
 });
