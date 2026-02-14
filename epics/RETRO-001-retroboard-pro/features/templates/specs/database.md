@@ -1,8 +1,14 @@
+---
+changed: 2026-02-14 — Spec Review Gate
+---
+
 # Templates — Database Specification
 
 ## Overview
 
-This document defines the database schema for the templates feature, including table definitions, constraints, indexes, and seed data for all 6 system templates.
+This document defines the database schema for the templates feature, including table definitions, constraints, indexes, and seed data for Phase 1 system templates.
+
+> **Scope note:** Phase 1 (S-012) seeds 2 system templates. The remaining 4 system templates (4Ls, Mad/Sad/Glad, Sailboat, Starfish) and custom template CRUD will be added in Phase 5 (S-025). The table schema already supports custom templates for future phases.
 
 ## Entity-Relationship Diagram
 
@@ -247,11 +253,14 @@ COMMIT;
 
 ## Seed Data: System Templates
 
-This seed SQL creates all 6 system templates with their column definitions. It uses fixed UUIDs for deterministic seeding (idempotent via ON CONFLICT).
+This seed SQL creates the 2 Phase 1 system templates with their column definitions. It uses fixed UUIDs for deterministic seeding (idempotent via ON CONFLICT).
+
+> **Phase 5 note:** Additional system templates (4Ls, Mad/Sad/Glad, Sailboat, Starfish) will be seeded in Phase 5 (S-025).
 
 ```sql
 -- Seed: system_templates.sql
 -- Run after migration 002. Idempotent (uses ON CONFLICT DO NOTHING).
+-- Phase 1 scope: 2 system templates only (S-012).
 
 BEGIN;
 
@@ -305,130 +314,6 @@ VALUES
    'What should the team continue doing?', 2)
 ON CONFLICT (id) DO NOTHING;
 
--- ============================================================
--- Template 3: 4Ls
--- ============================================================
-INSERT INTO templates (id, name, description, is_system, team_id, created_by)
-VALUES (
-  '00000000-0000-4000-8000-000000000003',
-  '4Ls',
-  'Four-column emotional and aspirational reflection: Liked, Learned, Lacked, Longed For. Encourages deeper team introspection.',
-  true, NULL, NULL
-) ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO template_columns (id, template_id, name, color, prompt_text, position)
-VALUES
-  ('00000000-0000-4000-8003-000000000001',
-   '00000000-0000-4000-8000-000000000003',
-   'Liked', '#22c55e',
-   'What did you like about this sprint?', 0),
-  ('00000000-0000-4000-8003-000000000002',
-   '00000000-0000-4000-8000-000000000003',
-   'Learned', '#3b82f6',
-   'What did you learn during this sprint?', 1),
-  ('00000000-0000-4000-8003-000000000003',
-   '00000000-0000-4000-8000-000000000003',
-   'Lacked', '#f59e0b',
-   'What was lacking or missing this sprint?', 2),
-  ('00000000-0000-4000-8003-000000000004',
-   '00000000-0000-4000-8000-000000000003',
-   'Longed For', '#8b5cf6',
-   'What did you wish you had or could do?', 3)
-ON CONFLICT (id) DO NOTHING;
-
--- ============================================================
--- Template 4: Mad / Sad / Glad
--- ============================================================
-INSERT INTO templates (id, name, description, is_system, team_id, created_by)
-VALUES (
-  '00000000-0000-4000-8000-000000000004',
-  'Mad / Sad / Glad',
-  'Emotion-based three-column format for team reflection. Helps surface feelings that drive team dynamics.',
-  true, NULL, NULL
-) ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO template_columns (id, template_id, name, color, prompt_text, position)
-VALUES
-  ('00000000-0000-4000-8004-000000000001',
-   '00000000-0000-4000-8000-000000000004',
-   'Mad', '#ef4444',
-   'What made you frustrated or angry this sprint?', 0),
-  ('00000000-0000-4000-8004-000000000002',
-   '00000000-0000-4000-8000-000000000004',
-   'Sad', '#6366f1',
-   'What made you disappointed or sad?', 1),
-  ('00000000-0000-4000-8004-000000000003',
-   '00000000-0000-4000-8000-000000000004',
-   'Glad', '#22c55e',
-   'What made you happy or grateful?', 2)
-ON CONFLICT (id) DO NOTHING;
-
--- ============================================================
--- Template 5: Sailboat
--- ============================================================
-INSERT INTO templates (id, name, description, is_system, team_id, created_by)
-VALUES (
-  '00000000-0000-4000-8000-000000000005',
-  'Sailboat',
-  'Metaphor-based format using a sailboat analogy: Wind pushes you forward, Anchors hold you back, Rocks are risks ahead, and the Island is your goal.',
-  true, NULL, NULL
-) ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO template_columns (id, template_id, name, color, prompt_text, position)
-VALUES
-  ('00000000-0000-4000-8005-000000000001',
-   '00000000-0000-4000-8000-000000000005',
-   'Wind (Helps Us)', '#22c55e',
-   'What is pushing us forward? What helps us move faster?', 0),
-  ('00000000-0000-4000-8005-000000000002',
-   '00000000-0000-4000-8000-000000000005',
-   'Anchor (Holds Us Back)', '#ef4444',
-   'What is slowing us down? What holds us back?', 1),
-  ('00000000-0000-4000-8005-000000000003',
-   '00000000-0000-4000-8000-000000000005',
-   'Rocks (Risks)', '#f59e0b',
-   'What risks or obstacles do we see ahead?', 2),
-  ('00000000-0000-4000-8005-000000000004',
-   '00000000-0000-4000-8000-000000000005',
-   'Island (Goals)', '#3b82f6',
-   'What is our destination? What goals are we working toward?', 3)
-ON CONFLICT (id) DO NOTHING;
-
--- ============================================================
--- Template 6: Starfish
--- ============================================================
-INSERT INTO templates (id, name, description, is_system, team_id, created_by)
-VALUES (
-  '00000000-0000-4000-8000-000000000006',
-  'Starfish',
-  'Comprehensive five-column format for nuanced feedback. Goes beyond simple start/stop by including gradations of behavior change.',
-  true, NULL, NULL
-) ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO template_columns (id, template_id, name, color, prompt_text, position)
-VALUES
-  ('00000000-0000-4000-8006-000000000001',
-   '00000000-0000-4000-8000-000000000006',
-   'Keep Doing', '#22c55e',
-   'What should we keep doing exactly as is?', 0),
-  ('00000000-0000-4000-8006-000000000002',
-   '00000000-0000-4000-8000-000000000006',
-   'More Of', '#3b82f6',
-   'What should we do more of?', 1),
-  ('00000000-0000-4000-8006-000000000003',
-   '00000000-0000-4000-8000-000000000006',
-   'Less Of', '#f59e0b',
-   'What should we do less of?', 2),
-  ('00000000-0000-4000-8006-000000000004',
-   '00000000-0000-4000-8000-000000000006',
-   'Stop Doing', '#ef4444',
-   'What should we stop doing entirely?', 3),
-  ('00000000-0000-4000-8006-000000000005',
-   '00000000-0000-4000-8000-000000000006',
-   'Start Doing', '#8b5cf6',
-   'What new things should we start doing?', 4)
-ON CONFLICT (id) DO NOTHING;
-
 COMMIT;
 ```
 
@@ -479,6 +364,6 @@ SELECT EXISTS(
 
 ## Performance Considerations
 
-1. **Small table**: Templates are a small dataset (6 system + a handful of custom per team). No pagination needed for the list endpoint.
+1. **Small table**: Templates are a small dataset (2 system in Phase 1, up to 6 system + custom per team in Phase 5). No pagination needed for the list endpoint.
 2. **Eager column loading**: Template columns are always loaded with the template (no lazy loading) since there are at most 10 columns per template.
 3. **Fixed UUIDs for system templates**: Allows deterministic seeding and easy reference in tests and documentation.

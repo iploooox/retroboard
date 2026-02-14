@@ -1,3 +1,7 @@
+---
+changed: 2026-02-14 — Spec Review Gate
+---
+
 # Sprints Database Specification
 
 **Feature:** sprints
@@ -31,13 +35,15 @@
                 │ start_date   DATE          NOT NULL       │
                 │ end_date     DATE          NULL           │
                 │ status       sprint_status NOT NULL       │
+                │ sprint_number INTEGER      NOT NULL       │
                 │ created_by   UUID          FK → users     │
                 │ created_at   TIMESTAMPTZ   NOT NULL       │
                 │ updated_at   TIMESTAMPTZ   NOT NULL       │
                 └──────────────────────────────────────────┘
 
-Constraint: Partial unique index on (team_id) WHERE status = 'active'
-            → Only one active sprint per team
+Constraints:
+  - Partial unique index on (team_id) WHERE status = 'active' → Only one active sprint per team
+  - UNIQUE(team_id, sprint_number) → Sprint numbers are unique within a team
 ```
 
 ## 2. Enum Type: sprint_status
@@ -66,6 +72,7 @@ Stores sprint records. Each sprint belongs to exactly one team.
 | start_date | `DATE` | NOT NULL | -- | Sprint start date (no time component) |
 | end_date | `DATE` | NULL | `NULL` | Sprint end date. NULL if open-ended. |
 | status | `sprint_status` | NOT NULL | `'planning'` | Current lifecycle status |
+| sprint_number | `INTEGER` | NOT NULL | -- | Auto-incremented sprint number within team |
 | created_by | `UUID` | NOT NULL | -- | FK to users.id (sprint creator) |
 | created_at | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Record creation timestamp |
 | updated_at | `TIMESTAMPTZ` | NOT NULL | `NOW()` | Last update timestamp |
@@ -78,6 +85,7 @@ Stores sprint records. Each sprint belongs to exactly one team.
 | sprints_team_id_fkey | FOREIGN KEY | team_id | References teams(id) ON DELETE CASCADE |
 | sprints_created_by_fkey | FOREIGN KEY | created_by | References users(id) ON DELETE RESTRICT |
 | sprints_end_date_check | CHECK | end_date | `end_date IS NULL OR end_date >= start_date` |
+| sprints_team_sprint_number_key | UNIQUE | (team_id, sprint_number) | Sprint numbers are unique within a team |
 | sprints_team_active_idx | UNIQUE (partial) | team_id WHERE status = 'active' | Only one active sprint per team |
 
 ### Indexes
@@ -87,6 +95,7 @@ Stores sprint records. Each sprint belongs to exactly one team.
 | sprints_pkey | id | B-tree (PK) | Primary key lookups |
 | sprints_team_id_status_idx | (team_id, status) | B-tree | List sprints by team, filter by status |
 | sprints_team_id_start_date_idx | (team_id, start_date DESC) | B-tree | Paginated sprint listing sorted by date |
+| sprints_team_sprint_number_key | (team_id, sprint_number) | B-tree (UNIQUE) | Enforce unique sprint numbers per team |
 | sprints_team_active_idx | team_id WHERE status = 'active' | B-tree (partial UNIQUE) | Enforce one active sprint per team |
 
 ### Notes
@@ -96,6 +105,7 @@ Stores sprint records. Each sprint belongs to exactly one team.
   - Multiple `planning` sprints can exist per team.
   - Multiple `completed` sprints can exist per team.
   - Only ONE `active` sprint can exist per team.
+- `sprint_number` is auto-incremented per team using a subquery at insert time (not a database sequence). This keeps numbering scoped to each team.
 - `ON DELETE CASCADE` on `team_id` ensures deleting a team removes all its sprints.
 - `ON DELETE RESTRICT` on `created_by` prevents deleting a user who created sprints.
 
@@ -118,6 +128,7 @@ CREATE TABLE IF NOT EXISTS sprints (
     start_date      DATE            NOT NULL,
     end_date        DATE,
     status          sprint_status   NOT NULL DEFAULT 'planning',
+    sprint_number   INTEGER         NOT NULL,
     created_by      UUID            NOT NULL,
     created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
@@ -127,7 +138,9 @@ CREATE TABLE IF NOT EXISTS sprints (
     CONSTRAINT sprints_created_by_fkey
         FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT,
     CONSTRAINT sprints_end_date_check
-        CHECK (end_date IS NULL OR end_date >= start_date)
+        CHECK (end_date IS NULL OR end_date >= start_date),
+    CONSTRAINT sprints_team_sprint_number_key
+        UNIQUE (team_id, sprint_number)
 );
 
 -- Composite index for listing sprints by team and filtering by status
@@ -144,6 +157,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS sprints_team_active_idx
 
 COMMENT ON TABLE sprints IS 'Time-boxed iterations that contain retro boards';
 COMMENT ON COLUMN sprints.status IS 'Lifecycle: planning -> active -> completed';
+COMMENT ON COLUMN sprints.sprint_number IS 'Auto-incremented sprint number within a team (not a DB sequence)';
 COMMENT ON COLUMN sprints.start_date IS 'Sprint start date (calendar date, no time)';
 COMMENT ON COLUMN sprints.end_date IS 'Sprint end date. NULL for open-ended sprints.';
 COMMENT ON INDEX sprints_team_active_idx IS 'Enforces at most one active sprint per team';
@@ -153,9 +167,15 @@ COMMENT ON INDEX sprints_team_active_idx IS 'Enforces at most one active sprint 
 
 ### 5.1 Create sprint
 
+The `sprint_number` is auto-assigned as the next available number for the team:
+
 ```sql
-INSERT INTO sprints (team_id, name, goal, start_date, end_date, created_by)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO sprints (team_id, name, goal, start_date, end_date, sprint_number, created_by)
+VALUES (
+  $1, $2, $3, $4, $5,
+  (SELECT COALESCE(MAX(sprint_number), 0) + 1 FROM sprints WHERE team_id = $1),
+  $6
+)
 RETURNING *;
 ```
 

@@ -4,6 +4,7 @@ name: "Foundation"
 status: todo
 stories: ["S-001", "S-002", "S-003", "S-004", "S-005", "S-006", "S-012"]
 estimated_duration: "3-4 weeks"
+changed: 2026-02-14 — Spec Review Gate
 ---
 
 # Phase 1: Foundation -- Auth, Teams, Sprints, Database Setup
@@ -59,7 +60,7 @@ Phase 1 establishes the foundational infrastructure for RetroBoard Pro. This inc
 
 ### 2. Database Migrations
 
-- [ ] **BE**: Create `users` table migration (id UUID PK, email, password_hash, display_name, avatar_url, email_verified, onboarding_completed_at, onboarding_data JSONB, created_at, updated_at)
+- [ ] **BE**: Create `users` table migration (id UUID PK, email, password_hash, display_name, avatar_url, email_verified, created_at, updated_at)
 - [ ] **BE**: Create `refresh_tokens` table migration (id UUID PK, user_id FK, token_hash, expires_at, revoked_at, created_at)
 - [ ] **BE**: Create `teams` table migration (id UUID PK, name, slug UNIQUE, description, theme, created_by FK, created_at, updated_at, deleted_at)
 - [ ] **BE**: Create `team_members` table migration (id UUID PK, team_id FK, user_id FK, role ENUM, joined_at) with unique constraint on (team_id, user_id)
@@ -146,13 +147,15 @@ Phase 1 establishes the foundational infrastructure for RetroBoard Pro. This inc
 
 ### 6. Template Seeding (S-012)
 
+> **Scope:** Phase 1 seeds 2 system templates (read-only). Custom template CRUD is Phase 5 (S-025).
+
 - [ ] **BE**: Implement template repository (findAll, findById, findSystemTemplates)
-- [ ] **BE**: Create seed: "What Went Well / Delta" template with 2 columns (green "What Went Well", orange "Delta / Changes")
+- [ ] **BE**: Create seed: "What Went Well / Delta" template with 2 columns (green "What Went Well", red "Delta / Changes")
 - [ ] **BE**: Create seed: "Start / Stop / Continue" template with 3 columns (green "Start", red "Stop", blue "Continue")
-- [ ] **BE**: Create `GET /api/v1/templates` -- list available templates
+- [ ] **BE**: Create `GET /api/v1/templates` -- list system templates
 - [ ] **BE**: Create `GET /api/v1/templates/:templateId` -- template detail with columns
-- [ ] **BE**: Write integration tests for template seeding and endpoints
-- [ ] **FE**: Build template selection grid component
+- [ ] **BE**: Write integration tests for template seeding and endpoints (2 templates)
+- [ ] **FE**: Build template selection grid component (2 system templates)
 - [ ] **FE**: Build template preview cards with column layout visualization
 
 ## Exit Criteria

@@ -1,3 +1,7 @@
+---
+changed: 2026-02-14 — Spec Review Gate
+---
+
 # Sprints API Specification
 
 **Feature:** sprints
@@ -62,6 +66,7 @@ Content-Type: application/json
     "team_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
     "name": "Sprint 42",
     "goal": "Ship the auth feature and start on teams",
+    "sprint_number": 42,
     "start_date": "2026-02-17",
     "end_date": "2026-02-28",
     "status": "planning",
@@ -71,6 +76,8 @@ Content-Type: application/json
   }
 }
 ```
+
+**Note:** `sprint_number` is auto-assigned by the server (next available number for the team). It is not provided in the request body.
 
 ### Error Responses
 
@@ -116,6 +123,7 @@ Authorization: Bearer <token>
       "team_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
       "name": "Sprint 42",
       "goal": "Ship the auth feature and start on teams",
+      "sprint_number": 42,
       "start_date": "2026-02-17",
       "end_date": "2026-02-28",
       "status": "active",
@@ -128,6 +136,7 @@ Authorization: Bearer <token>
       "team_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
       "name": "Sprint 41",
       "goal": "Set up project infrastructure",
+      "sprint_number": 41,
       "start_date": "2026-02-03",
       "end_date": "2026-02-14",
       "status": "completed",
@@ -180,6 +189,7 @@ Authorization: Bearer <token>
     "team_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
     "name": "Sprint 42",
     "goal": "Ship the auth feature and start on teams",
+    "sprint_number": 42,
     "start_date": "2026-02-17",
     "end_date": "2026-02-28",
     "status": "active",
@@ -255,6 +265,7 @@ If a client sends `start_date` or `end_date` for an `active` sprint, those field
     "team_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
     "name": "Sprint 42 - Extended",
     "goal": "Ship auth and teams features",
+    "sprint_number": 42,
     "start_date": "2026-02-17",
     "end_date": "2026-03-07",
     "status": "planning",
@@ -304,6 +315,7 @@ No request body required.
     "team_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
     "name": "Sprint 42",
     "goal": "Ship the auth feature and start on teams",
+    "sprint_number": 42,
     "start_date": "2026-02-17",
     "end_date": "2026-02-28",
     "status": "active",
@@ -375,6 +387,7 @@ No request body required.
     "team_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
     "name": "Sprint 42",
     "goal": "Ship the auth feature and start on teams",
+    "sprint_number": 42,
     "start_date": "2026-02-17",
     "end_date": "2026-02-28",
     "status": "completed",
@@ -481,6 +494,7 @@ interface SprintResponse {
   team_id: string;         // UUID
   name: string;
   goal: string | null;
+  sprint_number: number;   // Auto-incremented per team
   start_date: string;      // ISO 8601 date (YYYY-MM-DD)
   end_date: string | null;  // ISO 8601 date (YYYY-MM-DD)
   status: 'planning' | 'active' | 'completed';
