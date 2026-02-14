@@ -4,6 +4,7 @@ import { logger } from 'hono/logger';
 import { serve } from '@hono/node-server';
 import { env } from './config/env.js';
 import { AppError, formatErrorResponse } from './utils/errors.js';
+import { authRouter } from './routes/auth.js';
 
 const app = new Hono();
 
@@ -45,23 +46,14 @@ app.get('/api/v1/health', (c) => {
   return c.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Placeholder route groups
-const authRoutes = new Hono();
-authRoutes.all('/*', (c) => c.json(formatErrorResponse('NOT_IMPLEMENTED', 'Auth endpoints not yet implemented'), 501));
+import { teamsRouter } from './routes/teams.js';
+import { sprintsRouter } from './routes/sprints.js';
+import { templatesRouter } from './routes/templates.js';
 
-const teamsRoutes = new Hono();
-teamsRoutes.all('/*', (c) => c.json(formatErrorResponse('NOT_IMPLEMENTED', 'Teams endpoints not yet implemented'), 501));
-
-const sprintsRoutes = new Hono();
-sprintsRoutes.all('/*', (c) => c.json(formatErrorResponse('NOT_IMPLEMENTED', 'Sprints endpoints not yet implemented'), 501));
-
-const templatesRoutes = new Hono();
-templatesRoutes.all('/*', (c) => c.json(formatErrorResponse('NOT_IMPLEMENTED', 'Templates endpoints not yet implemented'), 501));
-
-app.route('/api/v1/auth', authRoutes);
-app.route('/api/v1/teams', teamsRoutes);
-app.route('/api/v1/sprints', sprintsRoutes);
-app.route('/api/v1/templates', templatesRoutes);
+app.route('/api/v1/auth', authRouter);
+app.route('/api/v1/teams', teamsRouter);
+app.route('/api/v1/teams/:teamId/sprints', sprintsRouter);
+app.route('/api/v1/templates', templatesRouter);
 
 // Global error handler
 app.onError((err, c) => {
