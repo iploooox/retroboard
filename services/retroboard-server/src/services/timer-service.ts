@@ -131,6 +131,14 @@ export class TimerService {
       paused_at: null,
     });
 
+    // Broadcast timer_resumed event
+    this.broadcast(boardId, {
+      type: 'timer_resumed',
+      payload: {
+        remainingSeconds: active.state.remainingSeconds,
+      },
+    });
+
     return { ...active.state };
   }
 
@@ -147,7 +155,10 @@ export class TimerService {
     this.activeTimers.delete(boardId);
 
     // Broadcast before async DB operation so synchronous test assertions see it
-    this.broadcast(boardId, { type: 'timer_stopped', reason });
+    this.broadcast(boardId, {
+      type: 'timer_stopped',
+      payload: { reason },
+    });
 
     await this.repo.delete(boardId);
   }
@@ -165,7 +176,9 @@ export class TimerService {
 
     this.broadcast(boardId, {
       type: 'timer_tick',
-      remainingSeconds: active.state.remainingSeconds,
+      payload: {
+        remainingSeconds: active.state.remainingSeconds,
+      },
     });
 
     if (active.state.remainingSeconds <= 0) {

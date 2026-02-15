@@ -1,8 +1,11 @@
 import { sql } from '../db/connection.js';
 import { BOARD_PHASES } from '../validation/boards.js';
 import type { BoardPhase } from '../validation/boards.js';
+import type { TimerService } from './timer-service.js';
 
 export class FacilitationService {
+  constructor(private timerService?: TimerService) {}
+
   async setPhase(boardId: string, phase: string, userId: string) {
     // Validate phase
     if (!BOARD_PHASES.includes(phase as BoardPhase)) {
@@ -17,12 +20,21 @@ export class FacilitationService {
     const board = boardResult[0];
     const previousPhase = board.phase as string;
 
-    // Check for running timer and stop it
-    const timerResult = await sql`SELECT * FROM board_timers WHERE board_id = ${boardId}`;
+    // Check for running timer and stop it using timer service
     let timerStopped = false;
-    if (timerResult && timerResult.length > 0) {
-      await sql`DELETE FROM board_timers WHERE board_id = ${boardId}`;
-      timerStopped = true;
+    if (this.timerService) {
+      const timerState = this.timerService.getState(boardId);
+      if (timerState) {
+        await this.timerService.stop(boardId, 'phase_change');
+        timerStopped = true;
+      }
+    } else {
+      // Fallback: direct DB delete if timer service not available
+      const timerResult = await sql`SELECT * FROM board_timers WHERE board_id = ${boardId}`;
+      if (timerResult && timerResult.length > 0) {
+        await sql`DELETE FROM board_timers WHERE board_id = ${boardId}`;
+        timerStopped = true;
+      }
     }
 
     // Update phase

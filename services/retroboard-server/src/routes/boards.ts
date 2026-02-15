@@ -10,9 +10,10 @@ import {
   BOARD_PHASES,
 } from '../validation/boards.js';
 import { FacilitationService } from '../services/facilitation-service.js';
+import { timerService } from './timer.js';
 import { sql } from '../db/connection.js';
 
-const facilitationService = new FacilitationService();
+const facilitationService = new FacilitationService(timerService);
 
 function formatValidationError(error: { issues: Array<{ path: (string | number)[]; message: string }> }) {
   return {
