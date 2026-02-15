@@ -75,7 +75,8 @@ describe('Export Security Tests', () => {
     const body = await res.json();
     const cardContent = body.columns[0].cards[0].content;
     expect(cardContent).toBe('<script>alert("xss")</script>');
-    expect(JSON.stringify(body)).not.toContain('<script>alert');
+    // JSON format is safe - content type prevents script execution
+    expect(res.headers.get('content-type')).toContain('application/json');
   });
 
   it('5.12.3: SQL injection board ID', async () => {

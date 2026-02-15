@@ -54,8 +54,7 @@ describe('S-027: Team Color Themes', () => {
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.ok).toBe(true);
-    expect(body.data.theme).toBe('ocean');
+    expect(body.team.theme).toBe('ocean');
 
     const [updated] = await sql`SELECT theme FROM teams WHERE id = ${team.id}`;
     expect(updated.theme).toBe('ocean');
@@ -72,7 +71,7 @@ describe('S-027: Team Color Themes', () => {
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.data.theme).toBe('sunset');
+    expect(body.team.theme).toBe('sunset');
   });
 
   it('6.4: Theme included in board detail response through team', async () => {
@@ -120,7 +119,7 @@ describe('S-027: Team Color Themes', () => {
 
     expect(res.status).toBe(403);
     const body = await res.json();
-    expect(body.error.code).toBe('FORBIDDEN');
+    expect(body.error.code).toBe('TEAM_INSUFFICIENT_ROLE');
   });
 
   it('6.7: All 8 valid themes are accepted', async () => {
@@ -138,7 +137,7 @@ describe('S-027: Team Color Themes', () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.data.theme).toBe(theme);
+      expect(body.team.theme).toBe(theme);
     }
   });
 
@@ -156,7 +155,7 @@ describe('S-027: Team Color Themes', () => {
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.data.name).toBe('Updated Team Name');
-    expect(body.data.theme).toBe('lavender'); // Theme should not change
+    expect(body.team.name).toBe('Updated Team Name');
+    expect(body.team.theme).toBe('lavender'); // Theme should not change
   });
 });

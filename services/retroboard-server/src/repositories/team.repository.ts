@@ -80,7 +80,7 @@ export const teamRepository = {
     };
   },
 
-  async update(id: string, data: { name?: string; description?: string | null; avatar_url?: string | null }) {
+  async update(id: string, data: { name?: string; description?: string | null; avatar_url?: string | null; theme?: string }) {
     // Build SET clause dynamically — only update provided fields
     const sets: ReturnType<typeof sql>[] = [];
     if (data.name !== undefined) {
@@ -91,6 +91,9 @@ export const teamRepository = {
     }
     if (data.avatar_url !== undefined) {
       sets.push(sql`avatar_url = ${data.avatar_url}`);
+    }
+    if (data.theme !== undefined) {
+      sets.push(sql`theme = ${data.theme}`);
     }
     sets.push(sql`updated_at = NOW()`);
 

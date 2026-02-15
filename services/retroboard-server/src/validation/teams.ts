@@ -50,12 +50,16 @@ export const updateTeamSchema = z
       )
       .nullable()
       .optional(),
+    theme: z
+      .enum(['default', 'ocean', 'sunset', 'forest', 'midnight', 'lavender', 'coral', 'monochrome'])
+      .optional(),
   })
   .refine(
     (data) =>
       data.name !== undefined ||
       data.description !== undefined ||
-      data.avatar_url !== undefined,
+      data.avatar_url !== undefined ||
+      data.theme !== undefined,
     { message: 'At least one field must be provided' },
   );
 

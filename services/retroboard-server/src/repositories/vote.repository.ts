@@ -137,3 +137,19 @@ export async function removeVote(
     };
   });
 }
+
+export async function getCardVoteCount(cardId: string): Promise<number> {
+  const [result] = await sql`
+    SELECT COUNT(*)::int AS vote_count
+    FROM card_votes WHERE card_id = ${cardId}
+  `;
+  return Number(result.vote_count);
+}
+
+export async function getUserVotesForCard(cardId: string, userId: string): Promise<number> {
+  const [result] = await sql`
+    SELECT COUNT(*)::int AS count
+    FROM card_votes WHERE card_id = ${cardId} AND user_id = ${userId}
+  `;
+  return Number(result.count);
+}

@@ -2,6 +2,7 @@ import { sql } from '../../src/db/connection.js';
 
 const TABLES_TO_TRUNCATE = [
   'action_items',
+  'card_reactions',
   'card_group_members',
   'card_groups',
   'card_votes',
@@ -13,16 +14,23 @@ const TABLES_TO_TRUNCATE = [
   'sprints',
   'team_invitations',
   'team_members',
-  'teams',
   'refresh_tokens',
   'rate_limits',
-  'users',
 ];
 
 export async function truncateTables() {
+  // Delete custom icebreakers and history first (preserves system icebreakers)
+  await sql`DELETE FROM team_icebreaker_history`;
+  await sql`DELETE FROM icebreakers WHERE is_system = false`;
+
+  // Truncate all tables except teams (to avoid cascading to icebreakers)
   await sql.unsafe(
     `TRUNCATE TABLE ${TABLES_TO_TRUNCATE.join(', ')} CASCADE`,
   );
+
+  // Delete teams manually to avoid CASCADE to icebreakers
+  await sql`DELETE FROM teams`;
+  await sql`DELETE FROM users`;
 }
 
 export async function createTestUser(overrides: {

@@ -34,13 +34,22 @@ describe('Database', () => {
     const templates = await sql`
       SELECT * FROM templates WHERE is_system = true ORDER BY name
     `;
-    expect(templates).toHaveLength(2);
-    expect(templates[0].name).toBe('Start / Stop / Continue');
-    expect(templates[1].name).toBe('What Went Well / Delta');
+    expect(templates).toHaveLength(6);
 
+    // Check a few key templates exist
+    const templateNames = templates.map((t: any) => t.name);
+    expect(templateNames).toContain('Start / Stop / Continue');
+    expect(templateNames).toContain('What Went Well / Delta');
+    expect(templateNames).toContain('4Ls');
+    expect(templateNames).toContain('Mad / Sad / Glad');
+    expect(templateNames).toContain('Sailboat');
+    expect(templateNames).toContain('Starfish');
+
+    // Check WWD template columns
+    const wwdTemplate = templates.find((t: any) => t.name === 'What Went Well / Delta');
     const columns = await sql`
       SELECT * FROM template_columns
-      WHERE template_id = ${templates[1].id}
+      WHERE template_id = ${wwdTemplate.id}
       ORDER BY position
     `;
     expect(columns).toHaveLength(2);

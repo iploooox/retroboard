@@ -82,7 +82,7 @@ describe('S-026: Reaction Service (Unit)', () => {
 
   it('4.5: Enforces board lock - no reactions when locked', async () => {
     // Lock the board
-    await sql`UPDATE boards SET locked = true WHERE id = ${boardId}`;
+    await sql`UPDATE boards SET is_locked = true WHERE id = ${boardId}`;
 
     await expect(
       reactionService.toggle(cardId, userId, 'thumbsup')

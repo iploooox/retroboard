@@ -160,16 +160,15 @@ describe('E2E: Phase 1 Happy Path', () => {
     expect(bSprintsBody.sprints).toHaveLength(1);
     expect(bSprintsBody.sprints[0].status).toBe('active');
 
-    // ---- Step 11: User A lists templates — verify 2 system templates ----
+    // ---- Step 11: User A lists templates — verify 6 system templates ----
     const listTemplatesRes = await app.request('/api/v1/templates', {
       headers: { Authorization: `Bearer ${userA.access_token}` },
     });
 
     expect(listTemplatesRes.status).toBe(200);
     const listTemplatesBody = await listTemplatesRes.json();
-    expect(listTemplatesBody.templates).toHaveLength(2);
-    expect(listTemplatesBody.templates[0].is_system).toBe(true);
-    expect(listTemplatesBody.templates[1].is_system).toBe(true);
+    expect(listTemplatesBody.templates).toHaveLength(6);
+    expect(listTemplatesBody.templates.every((t: any) => t.is_system === true)).toBe(true);
 
     // ---- Step 12: User A gets template detail — verify columns ----
     const templateDetailRes = await app.request(

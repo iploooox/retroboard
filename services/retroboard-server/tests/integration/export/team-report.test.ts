@@ -101,9 +101,10 @@ describe('GET /api/v1/teams/:teamId/report', () => {
 
   it('5.10.6: Health trend data', async () => {
     for (let i = 0; i < 10; i++) {
+      const monthNum = (i % 12) + 1;
       const sprint = await createTestSprint(team.id, adminUser.id, {
         name: `Sprint ${i + 1}`,
-        startDate: `2025-${String(i + 1).padStart(2, '0')}-01`,
+        startDate: `2025-${String(monthNum).padStart(2, '0')}-01`,
       });
       const { board, columns } = await createTestBoard(sprint.id, SYSTEM_TEMPLATE_WWD, adminUser.id);
       await createTestCard(board.id, columns[0].id, adminUser.id, { content: `Card ${i}` });
@@ -200,9 +201,11 @@ describe('GET /api/v1/teams/:teamId/report', () => {
 
   it('5.10.14: Response < 500ms', async () => {
     for (let i = 0; i < 20; i++) {
+      const monthNum = (i % 12) + 1;
+      const dayNum = Math.floor(i / 12) + 1;
       const sprint = await createTestSprint(team.id, adminUser.id, {
         name: `Sprint ${i + 1}`,
-        startDate: `2025-${String(i + 1).padStart(2, '0')}-01`,
+        startDate: `2025-${String(monthNum).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`,
       });
       const { board, columns } = await createTestBoard(sprint.id, SYSTEM_TEMPLATE_WWD, adminUser.id);
       for (let j = 0; j < 5; j++) {

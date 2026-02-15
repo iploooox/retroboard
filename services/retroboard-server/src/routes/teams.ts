@@ -24,6 +24,7 @@ function formatTeam(team: Record<string, unknown>) {
     slug: team.slug,
     description: team.description ?? null,
     avatar_url: team.avatar_url ?? null,
+    theme: team.theme ?? 'default',
     created_by: team.created_by,
     created_at: team.created_at,
     updated_at: team.updated_at,
@@ -215,8 +216,8 @@ teamsRouter.get('/:id', async (c) => {
   return c.json({ team: formatTeam(team) });
 });
 
-// PUT /api/v1/teams/:id — Update team
-teamsRouter.put('/:id', requireTeamRole(['admin']), async (c) => {
+// PUT/PATCH /api/v1/teams/:id — Update team
+const updateTeamHandler: Parameters<typeof teamsRouter.put>[1] = async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const parsed = updateTeamSchema.safeParse(body);
   if (!parsed.success) {
@@ -236,10 +237,11 @@ teamsRouter.put('/:id', requireTeamRole(['admin']), async (c) => {
   const user = c.get('user');
 
   // Build update object carefully: only include fields that were actually provided
-  const updateData: { name?: string; description?: string | null; avatar_url?: string | null } = {};
+  const updateData: { name?: string; description?: string | null; avatar_url?: string | null; theme?: string } = {};
   if (parsed.data.name !== undefined) updateData.name = parsed.data.name;
   if ('description' in body) updateData.description = parsed.data.description ?? null;
   if ('avatar_url' in body) updateData.avatar_url = parsed.data.avatar_url ?? null;
+  if (parsed.data.theme !== undefined) updateData.theme = parsed.data.theme;
 
   const updated = await teamRepository.update(id, updateData);
   if (!updated) {
@@ -248,7 +250,9 @@ teamsRouter.put('/:id', requireTeamRole(['admin']), async (c) => {
 
   const team = await teamRepository.findByIdForUser(id, user.id);
   return c.json({ team: formatTeam(team) });
-});
+};
+teamsRouter.put('/:id', requireTeamRole(['admin']), updateTeamHandler);
+teamsRouter.patch('/:id', requireTeamRole(['admin']), updateTeamHandler);
 
 // DELETE /api/v1/teams/:id — Soft delete team
 teamsRouter.delete('/:id', requireTeamRole(['admin']), async (c) => {

@@ -155,7 +155,7 @@ describe('S-026: POST /api/v1/cards/:cardId/reactions — Toggle Reaction', () =
   });
 
   it('5.7: Board locked returns 403', async () => {
-    await sql`UPDATE boards SET locked = true WHERE id = ${board.id}`;
+    await sql`UPDATE boards SET is_locked = true WHERE id = ${board.id}`;
 
     const res = await app.request(`/api/v1/cards/${cardId}/reactions`, {
       method: 'POST',

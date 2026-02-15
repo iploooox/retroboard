@@ -543,11 +543,23 @@ boardsRouter.get('/boards/:id', async (c) => {
     }
   }
 
+  // Get team data with theme
+  const [teamData] = await sql`
+    SELECT t.id, t.name, t.theme
+    FROM teams t
+    WHERE t.id = ${teamId}
+  `;
+
   return c.json({
     ok: true,
     data: {
       ...board,
       cards,
+      team: teamData ? {
+        id: teamData.id as string,
+        name: teamData.name as string,
+        theme: (teamData.theme as string) || 'default',
+      } : undefined,
     },
   });
 });

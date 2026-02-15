@@ -6,6 +6,8 @@ import * as voteRepo from '../repositories/vote.repository.js';
 import * as groupRepo from '../repositories/card-group.repository.js';
 import { addCardSchema, updateCardSchema, createGroupSchema, updateGroupSchema } from '../validation/cards.js';
 import { uuidParam } from '../validation/boards.js';
+import { reactionService } from '../services/reaction-service.js';
+import { sql } from '../db/connection.js';
 
 function okRes(data: unknown) {
   return { ok: true, data };
@@ -19,6 +21,51 @@ const cardsRouter = new Hono();
 cardsRouter.use('*', requireAuth);
 
 // ---------- Cards ----------
+
+// GET /api/v1/cards/:cardId — Get card detail with reactions
+cardsRouter.get('/cards/:cardId', async (c) => {
+  const cardId = c.req.param('cardId');
+  const user = c.get('user');
+
+  if (!uuidParam.safeParse(cardId).success) {
+    return c.json(errRes('VALIDATION_ERROR', 'Invalid card ID'), 422);
+  }
+
+  const card = await cardRepo.findById(cardId);
+  if (!card) {
+    return c.json(errRes('CARD_NOT_FOUND', 'Card not found'), 404);
+  }
+
+  const boardId = card.board_id;
+  const teamId = await boardRepo.getTeamIdForBoard(boardId);
+  if (!teamId) {
+    return c.json(errRes('BOARD_NOT_FOUND', 'Board not found'), 404);
+  }
+
+  const role = await boardRepo.getUserTeamRole(teamId, user.id);
+  if (!role) {
+    return c.json(errRes('FORBIDDEN', 'Not a team member'), 403);
+  }
+
+  // Get author name
+  const [author] = await sql`SELECT display_name FROM users WHERE id = ${card.author_id}`;
+
+  // Get reactions
+  const reactions = await reactionService.getSummaryByCard(cardId, user.id);
+
+  // Get vote counts
+  const voteCount = await voteRepo.getCardVoteCount(cardId);
+  const userVotes = await voteRepo.getUserVotesForCard(cardId, user.id);
+
+  return c.json(okRes({
+    ...card,
+    author_name: author?.display_name || null,
+    vote_count: voteCount,
+    user_votes: userVotes,
+    group_id: card.group_id || null,
+    reactions,
+  }));
+});
 
 // POST /boards/:id/cards — Add card
 cardsRouter.post('/boards/:id/cards', async (c) => {

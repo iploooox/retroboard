@@ -175,18 +175,18 @@ describe('S-025: Advanced System Templates', () => {
 
   it('3.10: Seed is idempotent - running twice does not create duplicates', async () => {
     const countBefore = await sql`
-      SELECT COUNT(*) as count FROM templates WHERE is_system = true
+      SELECT COUNT(*)::int as count FROM templates WHERE is_system = true
     `;
 
     // Run seed again
     await seed();
 
     const countAfter = await sql`
-      SELECT COUNT(*) as count FROM templates WHERE is_system = true
+      SELECT COUNT(*)::int as count FROM templates WHERE is_system = true
     `;
 
-    expect(countAfter[0].count).toBe(countBefore[0].count);
-    expect(countAfter[0].count).toBe(6);
+    expect(Number(countAfter[0].count)).toBe(Number(countBefore[0].count));
+    expect(Number(countAfter[0].count)).toBe(6);
   });
 
   it('3.11: Create board from 4Ls template creates correct columns', async () => {
