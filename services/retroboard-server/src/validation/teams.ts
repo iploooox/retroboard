@@ -16,6 +16,11 @@ export const createTeamSchema = z.object({
     .string()
     .url('Must be a valid URL')
     .max(500, 'Avatar URL must be at most 500 characters')
+    .refine((url) => url.startsWith('https://'), 'Must use https:// protocol')
+    .refine(
+      (url) => !url.startsWith('javascript:') && !url.startsWith('data:') && !url.startsWith('vbscript:'),
+      'Unsafe URL protocol',
+    )
     .nullable()
     .optional()
     .default(null),
@@ -38,6 +43,11 @@ export const updateTeamSchema = z
       .string()
       .url('Must be a valid URL')
       .max(500, 'Avatar URL must be at most 500 characters')
+      .refine((url) => url.startsWith('https://'), 'Must use https:// protocol')
+      .refine(
+        (url) => !url.startsWith('javascript:') && !url.startsWith('data:') && !url.startsWith('vbscript:'),
+        'Unsafe URL protocol',
+      )
       .nullable()
       .optional(),
   })

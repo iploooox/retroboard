@@ -90,6 +90,15 @@ const registerIpRateLimit = rateLimit({
   },
 });
 
+const refreshIpRateLimit = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30,
+  keyGenerator: (c) => {
+    const ip = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || '127.0.0.1';
+    return `refresh:ip:${ip}`;
+  },
+});
+
 // POST /register
 authRouter.post('/register', registerIpRateLimit, async (c) => {
   const body = await c.req.json().catch(() => ({}));
@@ -161,7 +170,7 @@ authRouter.post('/login', loginIpRateLimit, async (c) => {
 });
 
 // POST /refresh
-authRouter.post('/refresh', async (c) => {
+authRouter.post('/refresh', refreshIpRateLimit, async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const parsed = refreshSchema.safeParse(body);
 

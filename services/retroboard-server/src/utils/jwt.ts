@@ -2,7 +2,6 @@ import { SignJWT, jwtVerify, errors } from 'jose';
 import { AppError } from './errors.js';
 
 const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY = '7d';
 
 function getSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
@@ -25,15 +24,6 @@ export async function signAccessToken(payload: { sub: string; email: string }): 
     .setSubject(payload.sub)
     .setIssuedAt()
     .setExpirationTime(ACCESS_TOKEN_EXPIRY)
-    .sign(getSecret());
-}
-
-export async function signRefreshToken(payload: { sub: string; email: string }): Promise<string> {
-  return new SignJWT({ email: payload.email })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setSubject(payload.sub)
-    .setIssuedAt()
-    .setExpirationTime(REFRESH_TOKEN_EXPIRY)
     .sign(getSecret());
 }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { signAccessToken, signRefreshToken, verifyToken } from '../../../src/utils/jwt.js';
+import { signAccessToken, verifyToken } from '../../../src/utils/jwt.js';
 import { SignJWT } from 'jose';
 
 const TEST_SECRET = 'test-secret-must-be-at-least-32-characters-long';
@@ -67,12 +67,6 @@ describe('JWT Utility', () => {
     const payload = await verifyToken(token);
     expect(payload.sub).toBe('my-user-id');
     expect(payload.email).toBe('alice@example.com');
-  });
-
-  it('U-JWT-09: signRefreshToken creates a valid token with 7-day expiry', async () => {
-    const token = await signRefreshToken({ sub: 'user-id', email: 'test@example.com' });
-    const payload = await verifyToken(token);
-    expect(payload.exp! - payload.iat!).toBe(7 * 24 * 60 * 60);
   });
 
   it('E-SEC-11: JWT with alg: none is rejected', async () => {
