@@ -61,7 +61,7 @@ export function BoardColumn({ columnId, name, color, isFacilitator }: BoardColum
   };
 
   return (
-    <div className="flex-shrink-0 w-72 flex flex-col bg-slate-50 rounded-xl border border-slate-200">
+    <div className="flex-shrink-0 w-72 h-full flex flex-col bg-slate-50 rounded-xl border border-slate-200">
       {/* Column header */}
       <div className="px-3 py-2.5 border-b border-slate-200 flex items-center gap-2">
         <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
@@ -70,7 +70,7 @@ export function BoardColumn({ columnId, name, color, isFacilitator }: BoardColum
       </div>
 
       {/* Cards list */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-2 min-h-0" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+      <div className="flex-1 overflow-y-auto p-2 space-y-2 min-h-0">
         {/* Grouped cards */}
         {columnGroups.map((group) => {
           const groupCards = groupedByGroup.get(group.id) ?? [];
