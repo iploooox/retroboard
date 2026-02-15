@@ -168,12 +168,14 @@ Phase 2 builds the core retro board experience. Users can create boards from tem
 | b3d596c | feat(action-items): implement action items CRUD and carry-over |
 | 69cea2d | feat(board): implement cards, voting, and grouping with anonymous mode |
 | ab6e8ce | feat(frontend): implement Phase 2 board UI with cards, voting, groups, action items |
+| 3b6f4c4 | test(e2e): add Phase 2 happy path — full retro ceremony flow |
+| 8bde1c9 | fix: address Phase 2 code review findings — 5 fixes |
 
 ## Test Summary
 
-- Backend: 555 tests passing (196 new for Phase 2)
+- Backend: 556 tests passing (197 new for Phase 2, incl. E2E)
 - Frontend: 59 tests passing (30 new for Phase 2)
-- Total: 614 tests
+- Total: 615 tests
 
 ## Exit Criteria
 
