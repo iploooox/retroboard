@@ -29,8 +29,8 @@ test.describe('Authentication', () => {
     await page.goto('/register');
     await page.getByLabel('Display Name').fill('Another Name');
     await page.getByLabel('Email').fill(email);
-    await page.locator('#register-password').fill(password);
-    await page.getByRole('button', { name: /register|sign up|create account/i }).click();
+    await page.getByLabel('Password').fill(password);
+    await page.getByRole('button', { name: 'Create Account' }).click();
 
     // Should show error
     await expect(page.getByText(/already exists|already registered/i)).toBeVisible();
@@ -50,8 +50,8 @@ test.describe('Authentication', () => {
     // Try to login with wrong password (don't use loginUser — it expects dashboard redirect)
     await page.goto('/login');
     await page.getByLabel('Email').fill(email);
-    await page.getByRole('textbox', { name: 'Password' }).fill('WrongPassword123!');
-    await page.getByRole('button', { name: /log\s?in|sign in/i }).click();
+    await page.getByLabel('Password').fill('WrongPassword123!');
+    await page.getByRole('button', { name: 'Log In' }).click();
 
     // Should show error (we stay on login page)
     await expect(page.getByText(/invalid|incorrect|wrong/i)).toBeVisible({ timeout: 5000 });

@@ -14,8 +14,8 @@ export async function registerUser(
   await page.goto('/register');
   await page.getByLabel('Display Name').fill(options.displayName);
   await page.getByLabel('Email').fill(options.email);
-  await page.locator('#register-password').fill(options.password);
-  await page.getByRole('button', { name: /register|sign up|create account/i }).click();
+  await page.getByLabel('Password').fill(options.password);
+  await page.getByRole('button', { name: 'Create Account' }).click();
   await expect(page).toHaveURL('/dashboard', { timeout: 15000 });
 }
 
@@ -25,8 +25,8 @@ export async function loginUser(
 ): Promise<void> {
   await page.goto('/login');
   await page.getByLabel('Email').fill(options.email);
-  await page.locator('#password').fill(options.password);
-  await page.getByRole('button', { name: /log\s?in|sign in/i }).click();
+  await page.getByLabel('Password').fill(options.password);
+  await page.getByRole('button', { name: 'Log In' }).click();
   await expect(page).toHaveURL('/dashboard', { timeout: 10000 });
 }
 
