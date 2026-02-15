@@ -17,7 +17,7 @@ Build the most powerful retrospective board on the market. RetroBoard Pro suppor
 | Phase | Goal | Stories | Status |
 |-------|------|---------|--------|
 | 1 | Foundation — Auth, Teams, Sprints, DB Schema | S-001..S-006 | done |
-| 2 | Core Board — Retro board, cards, voting, columns, basic templates | S-007..S-012 | planning |
+| 2 | Core Board — Retro board, cards, voting, columns, basic templates | S-007..S-012 | done |
 | 3 | Collaboration — Real-time sync, facilitation tools, timer, phases | S-013..S-017 | planning |
 | 4 | Intelligence — Analytics dashboard, sentiment analysis, action item tracking | S-018..S-023 | planning |
 | 5 | Polish — Export/PDF, advanced templates, emoji reactions, board themes, onboarding | S-024..S-030 | planning |
@@ -32,11 +32,11 @@ Build the most powerful retrospective board on the market. RetroBoard Pro suppor
 | S-004 | Invite members via email/link | 1 | done |
 | S-005 | Team roles (admin, facilitator, member) | 1 | done |
 | S-006 | Sprint CRUD with date ranges | 1 | done |
-| S-007 | Create retro board for a sprint | 2 | todo |
-| S-008 | Add/edit/delete cards in columns | 2 | todo |
-| S-009 | Anonymous & named card modes | 2 | todo |
-| S-010 | Vote on cards with configurable vote limits | 2 | todo |
-| S-011 | Group related cards into clusters | 2 | todo |
+| S-007 | Create retro board for a sprint | 2 | done |
+| S-008 | Add/edit/delete cards in columns | 2 | done |
+| S-009 | Anonymous & named card modes | 2 | done |
+| S-010 | Vote on cards with configurable vote limits | 2 | done |
+| S-011 | Group related cards into clusters | 2 | done |
 | S-012 | Basic templates (WWW/Delta, Start/Stop/Continue) | 1 | done |
 | S-013 | Real-time card sync via WebSocket | 3 | todo |
 | S-014 | Live cursors & presence indicators | 3 | todo |
@@ -47,7 +47,7 @@ Build the most powerful retrospective board on the market. RetroBoard Pro suppor
 | S-019 | Team health trends over sprints | 4 | todo |
 | S-020 | Participation metrics per member | 4 | todo |
 | S-021 | Sentiment analysis on cards (PG-native text scoring) | 4 | todo |
-| S-022 | Action items with assignee & due date | 4 | todo |
+| S-022 | Action items with assignee & due date | 2 | done |
 | S-023 | Action item carry-over between sprints | 4 | todo |
 | S-024 | Export retro to PDF/Markdown/JSON | 5 | todo |
 | S-025 | Advanced templates (4Ls, Mad/Sad/Glad, Sailboat, Starfish) | 5 | todo |

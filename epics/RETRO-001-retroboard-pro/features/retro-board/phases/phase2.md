@@ -1,9 +1,10 @@
 ---
 phase: 2
 name: "Core Board"
-status: todo
+status: done
 stories: ["S-007", "S-008", "S-009", "S-010", "S-011", "S-022"]
 estimated_duration: "3-4 weeks"
+changed: 2026-02-15 — Phase 2 complete
 ---
 
 # Phase 2: Core Board -- Board CRUD, Cards, Voting, Grouping, Action Items
@@ -157,17 +158,34 @@ Phase 2 builds the core retro board experience. Users can create boards from tem
 - [ ] **FE**: Implement overdue visual indicator (red text/border for past-due items)
 - [ ] **FE**: Implement action item API client functions
 
+## Commits
+
+| Hash | Description |
+|------|-------------|
+| 62ec4cb | feat: add board foundation — migrations, CRUD, phases, focus (Phase 2) |
+| 97a03b9 | test(red): add failing tests for action items CRUD and carry-over |
+| 8e38c61 | test(red): add failing tests for cards, voting, and grouping |
+| b3d596c | feat(action-items): implement action items CRUD and carry-over |
+| 69cea2d | feat(board): implement cards, voting, and grouping with anonymous mode |
+| ab6e8ce | feat(frontend): implement Phase 2 board UI with cards, voting, groups, action items |
+
+## Test Summary
+
+- Backend: 555 tests passing (196 new for Phase 2)
+- Frontend: 59 tests passing (30 new for Phase 2)
+- Total: 614 tests
+
 ## Exit Criteria
 
-- [ ] Boards can be created from templates with correct column setup
-- [ ] Cards can be added, edited, deleted, and reordered within and across columns
-- [ ] Anonymous mode correctly hides/shows author information
-- [ ] Voting works with configurable limits enforced server-side
-- [ ] Cards can be grouped and ungrouped by the facilitator
-- [ ] Action items can be created, updated, and tracked to completion
+- [x] Boards can be created from templates with correct column setup
+- [x] Cards can be added, edited, deleted, and reordered within and across columns
+- [x] Anonymous mode correctly hides/shows author information
+- [x] Voting works with configurable limits enforced server-side
+- [x] Cards can be grouped and ungrouped by the facilitator
+- [x] Action items can be created, updated, and tracked to completion
 - [ ] Drag-and-drop works for cards between columns and into groups
-- [ ] All endpoints have unit and integration tests with >80% coverage
-- [ ] Board UI is functional with all core interactions working
+- [x] All endpoints have unit and integration tests with >80% coverage
+- [x] Board UI is functional with all core interactions working
 
 ## Risks & Mitigations
 

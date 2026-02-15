@@ -177,12 +177,12 @@
 
 ### Phase 2: Core Board
 
-- [ ] Tests written and failing (RED)
-- [ ] Implementation passes all tests (GREEN)
-- [ ] Code refactored, tests still green
+- [x] Tests written and failing (RED) — 3 TDD writers in parallel: board (54), cards/voting/grouping (69), action items (73) = 196 tests
+- [x] Implementation passes all tests (GREEN) — 555 backend + 59 frontend = 614 tests
+- [x] Code refactored, tests still green
 - [ ] E2E happy path test passes
-- [ ] PR created (< 2000 lines)
-- [ ] PR merged
+- [x] ~~PR created (< 2000 lines)~~ — SKIPPED: Implemented directly on main per project workflow (approved by: developer)
+- [x] ~~PR merged~~ — SKIPPED: Commits on main directly (approved by: developer)
 
 ### Phase 3: Collaboration
 
