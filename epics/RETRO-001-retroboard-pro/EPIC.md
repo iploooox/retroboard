@@ -18,7 +18,7 @@ Build the most powerful retrospective board on the market. RetroBoard Pro suppor
 |-------|------|---------|--------|
 | 1 | Foundation — Auth, Teams, Sprints, DB Schema | S-001..S-006 | done |
 | 2 | Core Board — Retro board, cards, voting, columns, basic templates | S-007..S-012 | done |
-| 3 | Collaboration — Real-time sync, facilitation tools, timer, phases | S-013..S-017 | in-progress |
+| 3 | Collaboration — Real-time sync, facilitation tools, timer, phases | S-013..S-017 | done |
 | 4 | Intelligence — Analytics dashboard, sentiment analysis, action item tracking | S-018..S-023 | planning |
 | 5 | Polish — Export/PDF, advanced templates, emoji reactions, board themes, onboarding | S-024..S-030 | planning |
 
@@ -38,11 +38,11 @@ Build the most powerful retrospective board on the market. RetroBoard Pro suppor
 | S-010 | Vote on cards with configurable vote limits | 2 | done |
 | S-011 | Group related cards into clusters | 2 | done |
 | S-012 | Basic templates (WWW/Delta, Start/Stop/Continue) | 1 | done |
-| S-013 | Real-time card sync via WebSocket | 3 | todo |
-| S-014 | Live cursors & presence indicators | 3 | todo |
-| S-015 | Facilitation phases (write, group, vote, discuss, action) | 3 | todo |
-| S-016 | Built-in countdown timer per phase | 3 | todo |
-| S-017 | Facilitator controls (lock board, reveal cards, next phase) | 3 | todo |
+| S-013 | Real-time card sync via WebSocket | 3 | done |
+| S-014 | Live cursors & presence indicators | 3 | done |
+| S-015 | Facilitation phases (write, group, vote, discuss, action) | 3 | done |
+| S-016 | Built-in countdown timer per phase | 3 | done |
+| S-017 | Facilitator controls (lock board, reveal cards, next phase) | 3 | done |
 | S-018 | Sprint analytics dashboard | 4 | todo |
 | S-019 | Team health trends over sprints | 4 | todo |
 | S-020 | Participation metrics per member | 4 | todo |
