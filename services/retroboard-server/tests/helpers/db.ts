@@ -1,6 +1,13 @@
 import { sql } from '../../src/db/connection.js';
 
 const TABLES_TO_TRUNCATE = [
+  'action_items',
+  'card_group_members',
+  'card_groups',
+  'card_votes',
+  'cards',
+  'columns',
+  'boards',
   'template_columns',
   'templates',
   'sprints',
@@ -57,3 +64,106 @@ export async function createTestTeam(createdBy: string, overrides: {
 
   return team;
 }
+
+export async function addTeamMember(teamId: string, userId: string, role: string) {
+  await sql`INSERT INTO team_members (team_id, user_id, role) VALUES (${teamId}, ${userId}, ${role})`;
+}
+
+export async function createTestSprint(teamId: string, createdBy: string, overrides: {
+  name?: string;
+  status?: string;
+  startDate?: string;
+} = {}) {
+  const [sprint] = await sql`
+    INSERT INTO sprints (team_id, name, start_date, status, sprint_number, created_by)
+    VALUES (
+      ${teamId},
+      ${overrides.name || 'Test Sprint'},
+      ${overrides.startDate || '2026-03-01'},
+      ${overrides.status || 'active'},
+      (SELECT COALESCE(MAX(sprint_number), 0) + 1 FROM sprints WHERE team_id = ${teamId}),
+      ${createdBy}
+    )
+    RETURNING *
+  `;
+  return sprint;
+}
+
+export async function createTestBoard(sprintId: string, templateId: string, createdBy: string, overrides: {
+  phase?: string;
+  anonymous_mode?: boolean;
+  max_votes_per_user?: number;
+  max_votes_per_card?: number;
+} = {}) {
+  const [board] = await sql`
+    INSERT INTO boards (sprint_id, template_id, phase, anonymous_mode, max_votes_per_user, max_votes_per_card, created_by)
+    VALUES (
+      ${sprintId},
+      ${templateId},
+      ${overrides.phase || 'write'},
+      ${overrides.anonymous_mode ?? false},
+      ${overrides.max_votes_per_user ?? 5},
+      ${overrides.max_votes_per_card ?? 3},
+      ${createdBy}
+    )
+    RETURNING *
+  `;
+
+  // Copy template columns
+  const templateColumns = await sql`
+    SELECT name, color, position FROM template_columns
+    WHERE template_id = ${templateId}
+    ORDER BY position
+  `;
+
+  const columns = [];
+  for (const tc of templateColumns) {
+    const [col] = await sql`
+      INSERT INTO columns (board_id, name, color, position)
+      VALUES (${board.id}, ${tc.name}, ${tc.color}, ${tc.position})
+      RETURNING *
+    `;
+    columns.push(col);
+  }
+
+  return { board, columns };
+}
+
+export async function createTestCard(boardId: string, columnId: string, authorId: string, overrides: {
+  content?: string;
+  position?: number;
+} = {}) {
+  const [maxPos] = await sql`
+    SELECT COALESCE(MAX(position), -1)::int AS max_pos FROM cards WHERE column_id = ${columnId}
+  `;
+  const [card] = await sql`
+    INSERT INTO cards (board_id, column_id, author_id, content, position)
+    VALUES (${boardId}, ${columnId}, ${authorId}, ${overrides.content || 'Test card'}, ${overrides.position ?? (maxPos.max_pos + 1)})
+    RETURNING *
+  `;
+  return card;
+}
+
+export async function createTestGroup(boardId: string, title: string, cardIds: string[] = []) {
+  const [maxPos] = await sql`
+    SELECT COALESCE(MAX(position), -1)::int AS max_pos FROM card_groups WHERE board_id = ${boardId}
+  `;
+  const [group] = await sql`
+    INSERT INTO card_groups (board_id, title, position)
+    VALUES (${boardId}, ${title}, ${maxPos.max_pos + 1})
+    RETURNING *
+  `;
+
+  for (const cardId of cardIds) {
+    await sql`
+      INSERT INTO card_group_members (group_id, card_id) VALUES (${group.id}, ${cardId})
+      ON CONFLICT (card_id) DO UPDATE SET group_id = ${group.id}
+    `;
+  }
+
+  return group;
+}
+
+// The seed creates system templates with known IDs
+export const SYSTEM_TEMPLATE_WWD = '00000000-0000-4000-8000-000000000001';
+export const SYSTEM_TEMPLATE_SSC = '00000000-0000-4000-8000-000000000002';

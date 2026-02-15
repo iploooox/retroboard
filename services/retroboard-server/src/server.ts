@@ -48,11 +48,13 @@ app.get('/api/v1/health', (c) => {
 import { teamsRouter } from './routes/teams.js';
 import { sprintsRouter } from './routes/sprints.js';
 import { templatesRouter } from './routes/templates.js';
+import { boardsRouter } from './routes/boards.js';
 
 app.route('/api/v1/auth', authRouter);
 app.route('/api/v1/teams', teamsRouter);
 app.route('/api/v1/teams/:teamId/sprints', sprintsRouter);
 app.route('/api/v1/templates', templatesRouter);
+app.route('/api/v1', boardsRouter);
 
 // Global error handler
 app.onError((err, c) => {
