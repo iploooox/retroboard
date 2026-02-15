@@ -112,9 +112,44 @@ export class NotifyListener {
         payload = { id: entityId, boardId };
         break;
       case 'vote_added':
-      case 'vote_removed':
-        payload = { id: entityId, boardId };
+      case 'vote_removed': {
+        // Get cardId from board_events.payload (stored by trigger)
+        const [ev] = await sql`SELECT payload FROM board_events WHERE id = ${eventId}`;
+        const p = (ev?.payload as Record<string, string>) ?? {};
+        const cardId = p.cardId;
+
+        if (cardId && actorId) {
+          // Get updated vote count for the card
+          const [voteCount] = await sql`
+            SELECT COUNT(*)::int AS vote_count
+            FROM card_votes WHERE card_id = ${cardId}
+          `;
+
+          // Get user's total votes on this board
+          const [totalVotes] = await sql`
+            SELECT COUNT(*)::int AS total
+            FROM card_votes cv
+            JOIN cards c ON c.id = cv.card_id
+            WHERE c.board_id = ${boardId} AND cv.user_id = ${actorId}
+          `;
+
+          // Get max votes per user from board
+          const [board] = await sql`
+            SELECT max_votes_per_user FROM boards WHERE id = ${boardId}
+          `;
+
+          payload = {
+            cardId,
+            userId: actorId,
+            voteCount: Number(voteCount.vote_count),
+            userRemainingVotes: Number(board.max_votes_per_user) - Number(totalVotes.total),
+          };
+        } else {
+          // Fallback if cardId is missing (shouldn't happen with updated trigger)
+          payload = { id: entityId, boardId };
+        }
         break;
+      }
       case 'group_created':
       case 'group_updated':
       case 'group_deleted':
