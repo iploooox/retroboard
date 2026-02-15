@@ -19,7 +19,7 @@ Build the most powerful retrospective board on the market. RetroBoard Pro suppor
 | 1 | Foundation — Auth, Teams, Sprints, DB Schema | S-001..S-006 | done |
 | 2 | Core Board — Retro board, cards, voting, columns, basic templates | S-007..S-012 | done |
 | 3 | Collaboration — Real-time sync, facilitation tools, timer, phases | S-013..S-017 | done |
-| 4 | Intelligence — Analytics dashboard, sentiment analysis, action item tracking | S-018..S-023 | planning |
+| 4 | Intelligence — Analytics dashboard, sentiment analysis, action item tracking | S-018..S-023 | done |
 | 5 | Polish — Export/PDF, advanced templates, emoji reactions, board themes, onboarding | S-024..S-030 | planning |
 
 ## Stories
@@ -43,12 +43,12 @@ Build the most powerful retrospective board on the market. RetroBoard Pro suppor
 | S-015 | Facilitation phases (write, group, vote, discuss, action) | 3 | done |
 | S-016 | Built-in countdown timer per phase | 3 | done |
 | S-017 | Facilitator controls (lock board, reveal cards, next phase) | 3 | done |
-| S-018 | Sprint analytics dashboard | 4 | todo |
-| S-019 | Team health trends over sprints | 4 | todo |
-| S-020 | Participation metrics per member | 4 | todo |
-| S-021 | Sentiment analysis on cards (PG-native text scoring) | 4 | todo |
+| S-018 | Sprint analytics dashboard | 4 | done |
+| S-019 | Team health trends over sprints | 4 | done |
+| S-020 | Participation metrics per member | 4 | done |
+| S-021 | Sentiment analysis on cards (PG-native text scoring) | 4 | done |
 | S-022 | Action items with assignee & due date | 2 | done |
-| S-023 | Action item carry-over between sprints | 4 | todo |
+| S-023 | Action item carry-over between sprints | 4 | done |
 | S-024 | Export retro to PDF/Markdown/JSON | 5 | todo |
 | S-025 | Advanced templates (4Ls, Mad/Sad/Glad, Sailboat, Starfish) | 5 | todo |
 | S-026 | Emoji reactions on cards | 5 | todo |
