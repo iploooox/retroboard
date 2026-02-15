@@ -11,6 +11,9 @@ export interface BoardRow {
   max_votes_per_card: number;
   focus_item_id: string | null;
   focus_item_type: FocusItemType | null;
+  is_locked: boolean;
+  cards_revealed: boolean;
+  phase_durations: Record<string, number>;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -36,6 +39,9 @@ function formatBoard(row: Record<string, unknown>): BoardRow {
     max_votes_per_card: Number(row.max_votes_per_card),
     focus_item_id: (row.focus_item_id as string) ?? null,
     focus_item_type: (row.focus_item_type as FocusItemType) ?? null,
+    is_locked: row.is_locked as boolean,
+    cards_revealed: row.cards_revealed as boolean,
+    phase_durations: row.phase_durations as Record<string, number>,
     created_by: row.created_by as string,
     created_at: (row.created_at as Date).toISOString(),
     updated_at: (row.updated_at as Date).toISOString(),

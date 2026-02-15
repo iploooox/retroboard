@@ -38,6 +38,11 @@ cardsRouter.post('/boards/:id/cards', async (c) => {
   const role = await boardRepo.getUserTeamRole(teamId, user.id);
   if (!role) return c.json(errRes('FORBIDDEN', 'Not a team member'), 403);
 
+  // Check if board is locked (facilitators can still act)
+  if (board.is_locked && role !== 'admin' && role !== 'facilitator') {
+    return c.json(errRes('FORBIDDEN', 'Board is locked'), 403);
+  }
+
   if (board.phase !== 'write') {
     return c.json(errRes('INVALID_PHASE', 'Cards can only be added during write phase'), 422);
   }

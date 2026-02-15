@@ -5,12 +5,14 @@ import * as boardRepo from '../repositories/board.repository.js';
 import {
   createBoardSchema,
   updateBoardSchema,
-  setPhaseSchema,
   setFocusSchema,
   uuidParam,
-  ALLOWED_TRANSITIONS,
+  BOARD_PHASES,
 } from '../validation/boards.js';
-import type { BoardPhase } from '../validation/boards.js';
+import { FacilitationService } from '../services/facilitation-service.js';
+import { sql } from '../db/connection.js';
+
+const facilitationService = new FacilitationService();
 
 function formatValidationError(error: { issues: Array<{ path: (string | number)[]; message: string }> }) {
   return {
@@ -113,8 +115,8 @@ boardsRouter.get('/sprints/:sprintId/board', async (c) => {
     return c.json(formatErrorResponse('BOARD_NOT_FOUND', 'Board not found for this sprint'), 404);
   }
 
-  // Apply anonymous mode filtering
-  if (result.board.anonymous_mode && role !== 'admin' && role !== 'facilitator') {
+  // Apply anonymous mode filtering (skip if cards have been revealed)
+  if (result.board.anonymous_mode && !result.board.cards_revealed && role !== 'admin' && role !== 'facilitator') {
     for (const col of result.columns) {
       for (const card of col.cards as Array<Record<string, unknown>>) {
         // Card creators can see their own author_id
@@ -226,7 +228,7 @@ boardsRouter.put('/boards/:id', async (c) => {
   return c.json({ ok: true, data: updated });
 });
 
-// PUT /api/v1/boards/:id/phase — Set phase
+// PUT /api/v1/boards/:id/phase — Set phase (facilitation-enhanced: free set, auto-stop timer)
 boardsRouter.put('/boards/:id/phase', async (c) => {
   const boardId = c.req.param('id');
   const user = c.get('user');
@@ -256,43 +258,40 @@ boardsRouter.put('/boards/:id/phase', async (c) => {
 
   // Parse body
   const body = await c.req.json().catch(() => ({}));
-  const parsed = setPhaseSchema.safeParse(body);
-  if (!parsed.success) {
-    return c.json(formatValidationError(parsed.error), 422);
-  }
+  const phase = body?.phase;
 
-  const targetPhase = parsed.data.phase;
-  const currentPhase = board.phase as BoardPhase;
-
-  // Check transition is allowed
-  const allowed = ALLOWED_TRANSITIONS[currentPhase];
-  if (!allowed.includes(targetPhase)) {
+  // Validate phase value
+  if (!phase || !BOARD_PHASES.includes(phase)) {
     return c.json(
-      formatErrorResponse(
-        'INVALID_PHASE',
-        `Cannot transition from ${currentPhase} to ${targetPhase}`,
-      ),
-      422,
+      formatErrorResponse('INVALID_PHASE', `Invalid phase. Must be one of: ${BOARD_PHASES.join(', ')}`),
+      400,
     );
   }
 
-  const updated = await boardRepo.setPhase(boardId, targetPhase);
-  if (!updated) {
-    return c.json(formatErrorResponse('BOARD_NOT_FOUND', 'Board not found'), 404);
+  // Use facilitation service for phase change (handles timer auto-stop)
+  try {
+    const result = await facilitationService.setPhase(boardId, phase, user.id);
+    return c.json({
+      ok: true,
+      data: {
+        phase: result.phase,
+        previous_phase: result.previous_phase,
+        timerStopped: result.timerStopped,
+      },
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : '';
+    if (message === 'NOT_FOUND') {
+      return c.json(formatErrorResponse('BOARD_NOT_FOUND', 'Board not found'), 404);
+    }
+    if (message === 'INVALID_PHASE') {
+      return c.json(formatErrorResponse('INVALID_PHASE', 'Invalid phase'), 400);
+    }
+    throw err;
   }
-
-  return c.json({
-    ok: true,
-    data: {
-      id: updated.id,
-      phase: updated.phase,
-      previous_phase: currentPhase,
-      updated_at: updated.updated_at,
-    },
-  });
 });
 
-// PUT /api/v1/boards/:id/focus — Set focus
+// PUT /api/v1/boards/:id/focus — Set focus (facilitation-enhanced)
 boardsRouter.put('/boards/:id/focus', async (c) => {
   const boardId = c.req.param('id');
   const user = c.get('user');
@@ -343,16 +342,16 @@ boardsRouter.put('/boards/:id/focus', async (c) => {
       const exists = await boardRepo.cardExistsOnBoard(focus_item_id, boardId);
       if (!exists) {
         return c.json(
-          formatErrorResponse('VALIDATION_ERROR', 'Card not found on this board'),
-          422,
+          formatErrorResponse('FOCUS_TARGET_NOT_FOUND', 'Card not found on this board'),
+          404,
         );
       }
     } else if (focus_item_type === 'group') {
       const exists = await boardRepo.groupExistsOnBoard(focus_item_id, boardId);
       if (!exists) {
         return c.json(
-          formatErrorResponse('VALIDATION_ERROR', 'Group not found on this board'),
-          422,
+          formatErrorResponse('FOCUS_TARGET_NOT_FOUND', 'Group not found on this board'),
+          404,
         );
       }
     }
@@ -370,6 +369,184 @@ boardsRouter.put('/boards/:id/focus', async (c) => {
       focus_item_id: updated.focus_item_id,
       focus_item_type: updated.focus_item_type,
       updated_at: updated.updated_at,
+    },
+  });
+});
+
+// PUT /api/v1/boards/:id/lock — Lock/unlock board (facilitator only)
+boardsRouter.put('/boards/:id/lock', async (c) => {
+  const boardId = c.req.param('id');
+  const user = c.get('user');
+
+  if (!uuidParam.safeParse(boardId).success) {
+    return c.json(formatErrorResponse('VALIDATION_ERROR', 'Invalid board ID format'), 422);
+  }
+
+  const board = await boardRepo.findById(boardId);
+  if (!board) {
+    return c.json(formatErrorResponse('BOARD_NOT_FOUND', 'Board not found'), 404);
+  }
+
+  // Auth check
+  const teamId = await boardRepo.getTeamIdForBoard(boardId);
+  if (!teamId) {
+    return c.json(formatErrorResponse('BOARD_NOT_FOUND', 'Board not found'), 404);
+  }
+
+  const role = await boardRepo.getUserTeamRole(teamId, user.id);
+  if (!role) {
+    return c.json(formatErrorResponse('FORBIDDEN', 'You are not a member of this team'), 403);
+  }
+  if (role !== 'admin' && role !== 'facilitator') {
+    return c.json(formatErrorResponse('FORBIDDEN', 'Only admins and facilitators can lock/unlock boards'), 403);
+  }
+
+  // Parse body
+  const body = await c.req.json().catch(() => ({}));
+  const isLocked = body?.isLocked;
+  if (typeof isLocked !== 'boolean') {
+    return c.json(formatErrorResponse('VALIDATION_ERROR', 'isLocked must be a boolean'), 422);
+  }
+
+  // Update lock state
+  const [updated] = await sql`
+    UPDATE boards SET is_locked = ${isLocked} WHERE id = ${boardId} RETURNING *
+  `;
+
+  return c.json({
+    ok: true,
+    data: {
+      id: updated.id as string,
+      is_locked: updated.is_locked as boolean,
+    },
+  });
+});
+
+// PUT /api/v1/boards/:id/reveal — Reveal anonymous cards (facilitator only, one-way)
+boardsRouter.put('/boards/:id/reveal', async (c) => {
+  const boardId = c.req.param('id');
+  const user = c.get('user');
+
+  if (!uuidParam.safeParse(boardId).success) {
+    return c.json(formatErrorResponse('VALIDATION_ERROR', 'Invalid board ID format'), 422);
+  }
+
+  const board = await boardRepo.findById(boardId);
+  if (!board) {
+    return c.json(formatErrorResponse('BOARD_NOT_FOUND', 'Board not found'), 404);
+  }
+
+  // Auth check
+  const teamId = await boardRepo.getTeamIdForBoard(boardId);
+  if (!teamId) {
+    return c.json(formatErrorResponse('BOARD_NOT_FOUND', 'Board not found'), 404);
+  }
+
+  const role = await boardRepo.getUserTeamRole(teamId, user.id);
+  if (!role) {
+    return c.json(formatErrorResponse('FORBIDDEN', 'You are not a member of this team'), 403);
+  }
+  if (role !== 'admin' && role !== 'facilitator') {
+    return c.json(formatErrorResponse('FORBIDDEN', 'Only admins and facilitators can reveal cards'), 403);
+  }
+
+  // Check board is anonymous
+  if (!board.anonymous_mode) {
+    return c.json(formatErrorResponse('NOT_ANONYMOUS', 'Board is not in anonymous mode'), 400);
+  }
+
+  // Check not already revealed
+  if (board.cards_revealed) {
+    return c.json(formatErrorResponse('ALREADY_REVEALED', 'Cards have already been revealed'), 400);
+  }
+
+  // Reveal cards
+  await sql`UPDATE boards SET cards_revealed = true WHERE id = ${boardId}`;
+
+  // Get card-author mapping
+  const cards = await sql`
+    SELECT c.id, c.author_id, u.display_name
+    FROM cards c
+    JOIN users u ON u.id = c.author_id
+    WHERE c.board_id = ${boardId}
+  `;
+
+  const revealedCards = cards.map((c: Record<string, unknown>) => ({
+    cardId: c.id as string,
+    authorId: c.author_id as string,
+    authorName: c.display_name as string,
+  }));
+
+  return c.json({
+    ok: true,
+    data: {
+      cards_revealed: true,
+      revealedCards,
+    },
+  });
+});
+
+// GET /api/v1/boards/:id — Get board by ID
+boardsRouter.get('/boards/:id', async (c) => {
+  const boardId = c.req.param('id');
+  const user = c.get('user');
+
+  if (!uuidParam.safeParse(boardId).success) {
+    return c.json(formatErrorResponse('VALIDATION_ERROR', 'Invalid board ID format'), 422);
+  }
+
+  const board = await boardRepo.findById(boardId);
+  if (!board) {
+    return c.json(formatErrorResponse('BOARD_NOT_FOUND', 'Board not found'), 404);
+  }
+
+  // Auth check
+  const teamId = await boardRepo.getTeamIdForBoard(boardId);
+  if (!teamId) {
+    return c.json(formatErrorResponse('BOARD_NOT_FOUND', 'Board not found'), 404);
+  }
+
+  const role = await boardRepo.getUserTeamRole(teamId, user.id);
+  if (!role) {
+    return c.json(formatErrorResponse('FORBIDDEN', 'You are not a member of this team'), 403);
+  }
+
+  // Get cards with author info
+  const cardsRows = await sql`
+    SELECT c.*, u.display_name AS author_name
+    FROM cards c
+    JOIN users u ON u.id = c.author_id
+    WHERE c.board_id = ${boardId}
+    ORDER BY c.column_id, c.position
+  `;
+
+  const cards = cardsRows.map((c: Record<string, unknown>) => ({
+    id: c.id as string,
+    column_id: c.column_id as string,
+    board_id: c.board_id as string,
+    content: c.content as string,
+    author_id: c.author_id as string,
+    author_name: c.author_name as string,
+    position: Number(c.position),
+    created_at: (c.created_at as Date).toISOString(),
+    updated_at: (c.updated_at as Date).toISOString(),
+  }));
+
+  // Apply anonymous mode filtering (skip if cards have been revealed)
+  if (board.anonymous_mode && !board.cards_revealed && role !== 'admin' && role !== 'facilitator') {
+    for (const card of cards) {
+      if (card.author_id !== user.id) {
+        (card as Record<string, unknown>).author_id = null;
+        (card as Record<string, unknown>).author_name = null;
+      }
+    }
+  }
+
+  return c.json({
+    ok: true,
+    data: {
+      ...board,
+      cards,
     },
   });
 });

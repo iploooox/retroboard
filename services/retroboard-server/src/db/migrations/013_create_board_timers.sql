@@ -8,7 +8,7 @@ CREATE TABLE board_timers (
   duration_seconds   INTEGER NOT NULL CHECK (duration_seconds > 0 AND duration_seconds <= 3600),
   started_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   paused_at          TIMESTAMPTZ,
-  remaining_seconds  INTEGER NOT NULL CHECK (remaining_seconds >= 0),
+  remaining_seconds  INTEGER NOT NULL CHECK (remaining_seconds >= 0 AND remaining_seconds <= duration_seconds),
   started_by         UUID NOT NULL REFERENCES users(id),
   created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
