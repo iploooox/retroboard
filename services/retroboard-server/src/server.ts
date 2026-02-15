@@ -45,6 +45,10 @@ app.get('/api/v1/health', (c) => {
   return c.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Public stats endpoint (must be before other /api/v1 routes to avoid auth middleware)
+import { statsRouter } from './routes/stats.js';
+app.route('/api/v1', statsRouter);
+
 import { teamsRouter } from './routes/teams.js';
 import { sprintsRouter } from './routes/sprints.js';
 import { templatesRouter } from './routes/templates.js';

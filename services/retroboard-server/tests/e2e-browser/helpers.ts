@@ -14,7 +14,8 @@ export async function registerUser(
   await page.goto('/register');
   await page.getByLabel('Display Name').fill(options.displayName);
   await page.getByLabel('Email').fill(options.email);
-  await page.getByLabel('Password').fill(options.password);
+  // Use explicit ID selector to avoid matching the "Show password" button
+  await page.locator('#register-password').fill(options.password);
   await page.getByRole('button', { name: 'Create Account' }).click();
   await expect(page).toHaveURL('/dashboard', { timeout: 15000 });
 }

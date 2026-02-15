@@ -8,6 +8,7 @@ import { TeamDetailPage } from '@/pages/TeamDetailPage';
 import { BoardPage } from '@/pages/BoardPage';
 import { InvitePage } from '@/pages/InvitePage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
+import { LandingPage } from '@/pages/LandingPage';
 import { Spinner } from '@/components/ui/Spinner';
 
 function ProtectedRoute() {
@@ -50,6 +51,24 @@ function PublicRoute() {
   return <Outlet />;
 }
 
+function PublicOrDashboard() {
+  const { isAuthenticated, isLoading } = useAuthStore();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Spinner className="h-8 w-8 text-indigo-600" />
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <LandingPage />;
+}
+
 export const router = createBrowserRouter([
   {
     element: <PublicRoute />,
@@ -68,6 +87,6 @@ export const router = createBrowserRouter([
   },
   { path: '/invite/:token', element: <InvitePage /> },
   { path: '/join/:token', element: <InvitePage /> },
-  { path: '/', element: <Navigate to="/dashboard" replace /> },
+  { path: '/', element: <PublicOrDashboard /> },
   { path: '*', element: <NotFoundPage /> },
 ]);

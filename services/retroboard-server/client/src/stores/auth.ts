@@ -30,6 +30,7 @@ interface AuthState {
 }
 
 const REFRESH_TOKEN_KEY = 'retroboard_refresh_token';
+let refreshPromise: Promise<boolean> | null = null;
 
 export const useAuthStore = create<AuthState>((set, get) => {
   // Configure API auth hooks
@@ -155,31 +156,39 @@ export const useAuthStore = create<AuthState>((set, get) => {
     },
 
     refreshTokens: async () => {
+      if (refreshPromise) return refreshPromise;
+
       const refreshToken = get().refreshToken || localStorage.getItem(REFRESH_TOKEN_KEY);
       if (!refreshToken) return false;
 
-      try {
-        const data = await api.post<{
-          access_token: string;
-          refresh_token: string;
-        }>('/auth/refresh', { refresh_token: refreshToken });
+      refreshPromise = (async () => {
+        try {
+          const data = await api.post<{
+            access_token: string;
+            refresh_token: string;
+          }>('/auth/refresh', { refresh_token: refreshToken });
 
-        localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
-        set({
-          accessToken: data.access_token,
-          refreshToken: data.refresh_token,
-        });
-        return true;
-      } catch {
-        localStorage.removeItem(REFRESH_TOKEN_KEY);
-        set({
-          user: null,
-          accessToken: null,
-          refreshToken: null,
-          isAuthenticated: false,
-        });
-        return false;
-      }
+          localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
+          set({
+            accessToken: data.access_token,
+            refreshToken: data.refresh_token,
+          });
+          return true;
+        } catch {
+          localStorage.removeItem(REFRESH_TOKEN_KEY);
+          set({
+            user: null,
+            accessToken: null,
+            refreshToken: null,
+            isAuthenticated: false,
+          });
+          return false;
+        } finally {
+          refreshPromise = null;
+        }
+      })();
+
+      return refreshPromise;
     },
 
     clearErrors: () => {
