@@ -18,7 +18,7 @@ Build the most powerful retrospective board on the market. RetroBoard Pro suppor
 |-------|------|---------|--------|
 | 1 | Foundation — Auth, Teams, Sprints, DB Schema | S-001..S-006 | done |
 | 2 | Core Board — Retro board, cards, voting, columns, basic templates | S-007..S-012 | done |
-| 3 | Collaboration — Real-time sync, facilitation tools, timer, phases | S-013..S-017 | planning |
+| 3 | Collaboration — Real-time sync, facilitation tools, timer, phases | S-013..S-017 | in-progress |
 | 4 | Intelligence — Analytics dashboard, sentiment analysis, action item tracking | S-018..S-023 | planning |
 | 5 | Polish — Export/PDF, advanced templates, emoji reactions, board themes, onboarding | S-024..S-030 | planning |
 

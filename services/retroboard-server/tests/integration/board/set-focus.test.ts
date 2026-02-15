@@ -126,9 +126,9 @@ describe('PUT /api/v1/boards/:id/focus — Set Focus', () => {
       }),
     });
 
-    expect(res.status).toBe(422);
+    expect(res.status).toBe(404);
     const body = await res.json();
-    expect(body.error.code).toBe('VALIDATION_ERROR');
+    expect(body.error.code).toBe('FOCUS_TARGET_NOT_FOUND');
   });
 
   it('2.13.6: Focus on card from different board', async () => {
@@ -146,9 +146,9 @@ describe('PUT /api/v1/boards/:id/focus — Set Focus', () => {
       body: JSON.stringify({ focus_item_id: otherCard.id, focus_item_type: 'card' }),
     });
 
-    expect(res.status).toBe(422);
+    expect(res.status).toBe(404);
     const body = await res.json();
-    expect(body.error.code).toBe('VALIDATION_ERROR');
+    expect(body.error.code).toBe('FOCUS_TARGET_NOT_FOUND');
   });
 
   it('2.13.7: Set focus as member (not facilitator)', async () => {
@@ -180,8 +180,8 @@ describe('PUT /api/v1/boards/:id/focus — Set Focus', () => {
     });
 
     // The card.id won't be found in card_groups
-    expect(res.status).toBe(422);
+    expect(res.status).toBe(404);
     const body = await res.json();
-    expect(body.error.code).toBe('VALIDATION_ERROR');
+    expect(body.error.code).toBe('FOCUS_TARGET_NOT_FOUND');
   });
 });

@@ -4,7 +4,10 @@ import { FacilitationService } from '../../../src/services/facilitation-service.
 // Mock the database connection module
 vi.mock('../../../src/db/connection.js', () => {
   const mockSql = vi.fn();
-  return { sql: mockSql };
+  return {
+    sql: mockSql,
+    closeDatabase: vi.fn()
+  };
 });
 
 import { sql } from '../../../src/db/connection.js';

@@ -19,3 +19,6 @@ See `epics/INDEX.md` for current status.
 - **Database**: PostgreSQL only — no Redis, no SQLite, no other stores
 - **Server**: Single TypeScript server — serves API, WebSocket, and static frontend
 - **No microservices** — monolithic server architecture
+
+## Team mode 
+Always use sonnet when spawning new agents unless user explicitly requests otherwise.

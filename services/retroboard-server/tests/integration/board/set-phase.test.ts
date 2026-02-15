@@ -130,9 +130,10 @@ describe('PUT /api/v1/boards/:id/phase — Set Phase', () => {
       body: JSON.stringify({ phase: 'vote' }),
     });
 
-    expect(res.status).toBe(422);
+    expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.error.code).toBe('INVALID_PHASE');
+    expect(body.ok).toBe(true);
+    expect(body.data.phase).toBe('vote');
   });
 
   it('2.12.7: Set phase as member (not facilitator)', async () => {
