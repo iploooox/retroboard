@@ -52,6 +52,7 @@ import { boardsRouter } from './routes/boards.js';
 import { cardsRouter } from './routes/cards.js';
 import { actionItemsRouter } from './routes/action-items.js';
 import { timerRouter } from './routes/timer.js';
+import { analyticsRouter } from './routes/analytics.js';
 
 app.route('/api/v1/auth', authRouter);
 app.route('/api/v1/teams', teamsRouter);
@@ -61,6 +62,7 @@ app.route('/api/v1', boardsRouter);
 app.route('/api/v1', cardsRouter);
 app.route('/api/v1', actionItemsRouter);
 app.route('/api/v1', timerRouter);
+app.route('/api/v1', analyticsRouter);
 
 // Global error handler
 app.onError((err, c) => {

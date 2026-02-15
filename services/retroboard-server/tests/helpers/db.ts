@@ -215,3 +215,9 @@ export async function setBoardPhase(boardId: string, phase: string) {
 // The seed creates system templates with known IDs
 export const SYSTEM_TEMPLATE_WWD = '00000000-0000-4000-8000-000000000001';
 export const SYSTEM_TEMPLATE_SSC = '00000000-0000-4000-8000-000000000002';
+
+export async function refreshAnalyticsMaterializedViews() {
+  await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY mv_sprint_health`;
+  await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY mv_participation_stats`;
+  await sql`REFRESH MATERIALIZED VIEW CONCURRENTLY mv_word_frequency`;
+}
