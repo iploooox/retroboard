@@ -77,7 +77,25 @@ test.describe('Onboarding Flow (S-029)', () => {
     // Wait for team creation
     await page.waitForTimeout(1000);
 
-    // Step 3 - Create Sprint (invite-members step is skipped in implementation)
+    // Step 3 - Invite Members
+    await expect(page.getByRole('heading', { name: /invite your team/i })).toBeVisible();
+
+    // Verify invite link is displayed (or fallback message if generation failed)
+    const inviteInput = page.locator('input[type="text"][readonly]').first();
+    const hasInviteLink = await inviteInput.isVisible().catch(() => false);
+
+    if (hasInviteLink) {
+      // Verify copy button exists
+      await expect(page.getByRole('button', { name: 'Copy' })).toBeVisible();
+    } else {
+      // Verify fallback message if invite generation failed
+      await expect(page.getByText(/unable to generate invite link/i)).toBeVisible();
+    }
+
+    // Click Continue to proceed to next step
+    await page.getByRole('button', { name: 'Continue' }).click();
+
+    // Step 4 - Create Sprint
     await expect(page.getByRole('heading', { name: /create your sprint/i })).toBeVisible();
     await page.locator('#sprint-name').fill(sprintName);
     await page.getByRole('button', { name: 'Create Sprint' }).click();
@@ -85,7 +103,7 @@ test.describe('Onboarding Flow (S-029)', () => {
     // Wait for sprint creation
     await page.waitForTimeout(1000);
 
-    // Step 4 - Start Retro (completion step)
+    // Step 5 - Start Retro (completion step)
     await expect(page.getByRole('heading', { name: /you're all set/i })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Start First Retro' })).toBeVisible();
 

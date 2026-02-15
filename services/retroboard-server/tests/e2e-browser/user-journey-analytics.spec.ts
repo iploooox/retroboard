@@ -65,6 +65,71 @@ async function completeFullRetro(
 }
 
 test.describe('Analytics Dashboard Journey', () => {
+  // Helper function to create a completed sprint
+  async function createCompletedSprint(
+    page: Page,
+    teamId: string,
+    sprintName: string,
+    cards: string[]
+  ): Promise<string> {
+    await page.goto(`/teams/${teamId}`);
+
+    // Create sprint
+    await page.getByRole('button', { name: /create sprint|new sprint/i }).click();
+    await page.getByLabel(/sprint name/i).fill(sprintName);
+    await page.getByRole('button', { name: /create|save/i }).click();
+    await page.waitForTimeout(500);
+
+    // Activate sprint
+    await page.getByRole('button', { name: /activate/i }).click();
+    await page.waitForTimeout(300);
+
+    // Navigate to board
+    await page.getByRole('link', { name: /board/i }).click();
+
+    // Start retro
+    await page.getByRole('button', { name: /start retro/i }).click();
+    await page.locator('[data-template]').first().click();
+    await page.getByRole('button', { name: /create board|start/i }).click();
+    await page.waitForTimeout(1000);
+
+    // Extract sprint ID from URL
+    const url = page.url();
+    const sprintIdMatch = url.match(/\/sprints\/([^/]+)\/board/);
+    const sprintId = sprintIdMatch?.[1] || '';
+
+    // Add cards
+    for (const cardText of cards) {
+      await page.getByRole('button', { name: /add a card/i }).first().click();
+      await page.getByPlaceholder(/what.*mind/i).fill(cardText);
+      await page.keyboard.press('Enter');
+      await page.waitForTimeout(400);
+    }
+
+    // Move through phases to complete
+    await page.getByRole('button', { name: /next phase|vote/i }).click();
+    await page.waitForTimeout(500);
+
+    // Vote on first card
+    const voteButtons = page.getByRole('button', { name: /^vote$/i });
+    if (await voteButtons.first().isVisible()) {
+      await voteButtons.first().click();
+      await page.waitForTimeout(300);
+    }
+
+    await page.getByRole('button', { name: /next phase|discuss/i }).click();
+    await page.waitForTimeout(500);
+
+    await page.getByRole('button', { name: /next phase|action/i }).click();
+    await page.waitForTimeout(500);
+
+    await page.getByRole('button', { name: /complete|finish/i }).click();
+    await page.waitForTimeout(500);
+
+    return sprintId;
+  }
+
+test.describe('Analytics Dashboard Journey', () => {
   test('full journey: view analytics with real data from 3 completed retros', async ({ page }) => {
     const email = generateUniqueEmail();
     const displayName = 'Analytics Lead';
