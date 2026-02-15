@@ -20,21 +20,21 @@ export class FacilitationService {
     const board = boardResult[0];
     const previousPhase = board.phase as string;
 
-    // Check for running timer and stop it using timer service
+    // Check for running timer and stop it
     let timerStopped = false;
-    if (this.timerService) {
-      const timerState = this.timerService.getState(boardId);
-      if (timerState) {
-        await this.timerService.stop(boardId, 'phase_change');
-        timerStopped = true;
-      }
-    } else {
-      // Fallback: direct DB delete if timer service not available
-      const timerResult = await sql`SELECT * FROM board_timers WHERE board_id = ${boardId}`;
-      if (timerResult && timerResult.length > 0) {
-        await sql`DELETE FROM board_timers WHERE board_id = ${boardId}`;
-        timerStopped = true;
-      }
+
+    // Check both in-memory (timer service) and DB for timers
+    const inMemoryTimer = this.timerService?.getState(boardId);
+    const dbTimer = await sql`SELECT * FROM board_timers WHERE board_id = ${boardId}`;
+
+    if (inMemoryTimer && this.timerService) {
+      // Timer is running in memory - use timer service to stop it properly
+      await this.timerService.stop(boardId, 'phase_change');
+      timerStopped = true;
+    } else if (dbTimer && dbTimer.length > 0) {
+      // Timer exists in DB but not in memory - clean up DB directly
+      await sql`DELETE FROM board_timers WHERE board_id = ${boardId}`;
+      timerStopped = true;
     }
 
     // Update phase

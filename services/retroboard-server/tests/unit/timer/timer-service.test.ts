@@ -344,7 +344,10 @@ describe('TimerService — Unit Tests', () => {
     expect(state!.remainingSeconds).toBe(299);
     expect(mockBroadcast).toHaveBeenCalledWith(
       boardId,
-      expect.objectContaining({ type: 'timer_tick', remainingSeconds: 299 }),
+      expect.objectContaining({
+        type: 'timer_tick',
+        payload: expect.objectContaining({ remainingSeconds: 299 })
+      }),
     );
   });
 
@@ -371,7 +374,10 @@ describe('TimerService — Unit Tests', () => {
     expect(state).toBeNull();
     expect(mockBroadcast).toHaveBeenCalledWith(
       boardId,
-      expect.objectContaining({ type: 'timer_stopped', reason: 'expired' }),
+      expect.objectContaining({
+        type: 'timer_stopped',
+        payload: expect.objectContaining({ reason: 'expired' })
+      }),
     );
   });
 
