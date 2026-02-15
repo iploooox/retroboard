@@ -74,13 +74,18 @@ export async function createTestSprint(teamId: string, createdBy: string, overri
   status?: string;
   startDate?: string;
 } = {}) {
+  const status = overrides.status || 'active';
+  // Auto-deactivate existing active sprint to avoid unique constraint violation
+  if (status === 'active') {
+    await sql`UPDATE sprints SET status = 'completed' WHERE team_id = ${teamId} AND status = 'active'`;
+  }
   const [sprint] = await sql`
     INSERT INTO sprints (team_id, name, start_date, status, sprint_number, created_by)
     VALUES (
       ${teamId},
       ${overrides.name || 'Test Sprint'},
       ${overrides.startDate || '2026-03-01'},
-      ${overrides.status || 'active'},
+      ${status},
       (SELECT COALESCE(MAX(sprint_number), 0) + 1 FROM sprints WHERE team_id = ${teamId}),
       ${createdBy}
     )
