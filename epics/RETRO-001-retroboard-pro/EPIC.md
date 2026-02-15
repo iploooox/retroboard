@@ -20,7 +20,7 @@ Build the most powerful retrospective board on the market. RetroBoard Pro suppor
 | 2 | Core Board — Retro board, cards, voting, columns, basic templates | S-007..S-012 | done |
 | 3 | Collaboration — Real-time sync, facilitation tools, timer, phases | S-013..S-017 | done |
 | 4 | Intelligence — Analytics dashboard, sentiment analysis, action item tracking | S-018..S-023 | done |
-| 5 | Polish — Export/PDF, advanced templates, emoji reactions, board themes, onboarding | S-024..S-030 | planning |
+| 5 | Polish — Export/PDF, advanced templates, emoji reactions, board themes, onboarding | S-024..S-030 | done |
 
 ## Stories
 
@@ -49,13 +49,13 @@ Build the most powerful retrospective board on the market. RetroBoard Pro suppor
 | S-021 | Sentiment analysis on cards (PG-native text scoring) | 4 | done |
 | S-022 | Action items with assignee & due date | 2 | done |
 | S-023 | Action item carry-over between sprints | 4 | done |
-| S-024 | Export retro to PDF/Markdown/JSON | 5 | todo |
-| S-025 | Advanced templates (4Ls, Mad/Sad/Glad, Sailboat, Starfish) | 5 | todo |
-| S-026 | Emoji reactions on cards | 5 | todo |
-| S-027 | Board color themes per team | 5 | todo |
-| S-028 | Icebreaker generator | 5 | todo |
-| S-029 | Onboarding flow for new teams | 5 | todo |
-| S-030 | Keyboard shortcuts & accessibility | 5 | todo |
+| S-024 | Export retro to PDF/Markdown/JSON | 5 | done |
+| S-025 | Advanced templates (4Ls, Mad/Sad/Glad, Sailboat, Starfish) | 5 | done |
+| S-026 | Emoji reactions on cards | 5 | done |
+| S-027 | Board color themes per team | 5 | done |
+| S-028 | Icebreaker generator | 5 | done |
+| S-029 | Onboarding flow for new teams | 5 | done |
+| S-030 | Keyboard shortcuts & accessibility | 5 | done |
 
 ## Bugs
 
