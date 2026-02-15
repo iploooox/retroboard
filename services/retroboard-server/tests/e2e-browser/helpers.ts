@@ -12,11 +12,11 @@ export async function registerUser(
   options: { email: string; password: string; displayName: string }
 ): Promise<void> {
   await page.goto('/register');
-  await page.getByPlaceholder('Email').fill(options.email);
-  await page.getByPlaceholder('Password').fill(options.password);
-  await page.getByPlaceholder('Display Name').fill(options.displayName);
-  await page.getByRole('button', { name: /register|sign up/i }).click();
-  await expect(page).toHaveURL('/dashboard');
+  await page.getByLabel('Display Name').fill(options.displayName);
+  await page.getByLabel('Email').fill(options.email);
+  await page.locator('#register-password').fill(options.password);
+  await page.getByRole('button', { name: /register|sign up|create account/i }).click();
+  await expect(page).toHaveURL('/dashboard', { timeout: 15000 });
 }
 
 export async function loginUser(
@@ -24,10 +24,24 @@ export async function loginUser(
   options: { email: string; password: string }
 ): Promise<void> {
   await page.goto('/login');
-  await page.getByPlaceholder('Email').fill(options.email);
-  await page.getByPlaceholder('Password').fill(options.password);
-  await page.getByRole('button', { name: /login|sign in/i }).click();
-  await expect(page).toHaveURL('/dashboard');
+  await page.getByLabel('Email').fill(options.email);
+  await page.locator('#password').fill(options.password);
+  await page.getByRole('button', { name: /log\s?in|sign in/i }).click();
+  await expect(page).toHaveURL('/dashboard', { timeout: 10000 });
+}
+
+export async function logoutUser(page: Page): Promise<void> {
+  // Click the avatar button in the header (button containing rounded-full div with initials)
+  await page.locator('header button').filter({ has: page.locator('.rounded-full') }).click();
+
+  // Wait for dropdown menu to be visible
+  await page.locator('div.absolute.right-0').filter({ hasText: 'Log out' }).waitFor({ state: 'visible' });
+
+  // Click "Log out" button in the dropdown
+  await page.getByRole('button', { name: /log out/i }).click();
+
+  // Wait for navigation to login page
+  await expect(page).toHaveURL('/login', { timeout: 5000 });
 }
 
 export async function createTeamAndBoard(
@@ -36,9 +50,9 @@ export async function createTeamAndBoard(
 ): Promise<{ teamName: string; sprintName: string }> {
   // Assumes we're already on the dashboard
   // Create team
-  await page.getByRole('button', { name: /create team|new team/i }).click();
-  await page.getByPlaceholder(/team name/i).fill(options.teamName);
-  await page.getByRole('button', { name: /create|save/i }).click();
+  await page.getByRole('button', { name: 'Create Team' }).first().click();
+  await page.getByLabel(/team name/i).fill(options.teamName);
+  await page.getByRole('button', { name: 'Create Team' }).nth(1).click();
 
   // Wait for team to be created and selected
   await page.waitForTimeout(500);
@@ -46,7 +60,7 @@ export async function createTeamAndBoard(
   // Create sprint
   await page.getByRole('button', { name: /create sprint|new sprint/i }).click();
   const sprintName = `Sprint ${Date.now()}`;
-  await page.getByPlaceholder(/sprint name/i).fill(sprintName);
+  await page.getByLabel(/sprint name/i).fill(sprintName);
   await page.getByRole('button', { name: /create|save/i }).click();
 
   // Wait for sprint to be created

@@ -33,21 +33,21 @@ export const facilitationApi = {
 
   // Timer management
   startTimer: (boardId: string, durationSeconds: number, phase?: BoardPhase) =>
-    api.post<TimerState>(`/boards/${boardId}/timer`, {
+    api.post<TimerState>(`/boards/${boardId}/timer/start`, {
       durationSeconds,
       ...(phase && { phase }),
     }),
 
   pauseTimer: (boardId: string) =>
-    api.put<TimerState>(`/boards/${boardId}/timer`, { action: 'pause' }),
+    api.post<TimerState>(`/boards/${boardId}/timer/pause`, {}),
 
   resumeTimer: (boardId: string) =>
-    api.put<TimerState>(`/boards/${boardId}/timer`, { action: 'resume' }),
+    api.post<TimerState>(`/boards/${boardId}/timer/resume`, {}),
 
   stopTimer: (boardId: string) =>
-    api.delete<{
+    api.post<{
       reason: string;
-    }>(`/boards/${boardId}/timer`),
+    }>(`/boards/${boardId}/timer/reset`, {}),
 
   getTimer: (boardId: string) =>
     api.get<TimerState | { data: null }>(`/boards/${boardId}/timer`),

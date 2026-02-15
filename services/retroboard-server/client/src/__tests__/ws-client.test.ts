@@ -67,10 +67,10 @@ describe('WSClient', () => {
     client.connect('board-123', 'token-abc');
 
     // Simulate connection open
-    const ws = (client as never)['ws'];
+    const ws = (client as any)['ws'];
     if (ws) {
       (ws as MockWebSocket).readyState = MockWebSocket.OPEN;
-      (client as never)['state'] = 'CONNECTED';
+      (client as any)['state'] = 'CONNECTED';
     }
 
     expect(() => client.send('ping', {})).not.toThrow();

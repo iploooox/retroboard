@@ -158,11 +158,25 @@ analyticsRouter.get('/sprints/:sprintId/analytics', async (c) => {
     return c.json({ error: 'FORBIDDEN', message: 'Access denied' }, 403);
   }
 
-  const result = await analyticsService.getSprintAnalytics(sprintId);
+  // Try to get analytics
+  let result = await analyticsService.getSprintAnalytics(sprintId);
+
+  // If no data found, refresh materialized views and retry once
+  if (!result) {
+    try {
+      await analyticsRepo.refreshMaterializedViews();
+      result = await analyticsService.getSprintAnalytics(sprintId);
+    } catch (err) {
+      console.error('Failed to refresh materialized views:', err);
+      // Continue with null result if refresh fails
+    }
+  }
+
   if (!result) {
     return c.json({ error: 'NOT_FOUND', message: 'Sprint not found' }, 404);
   }
 
+  // Return analytics data (may include noDataReason if sprint has no board yet)
   return c.json(result);
 });
 

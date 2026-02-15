@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { generateUniqueEmail, registerUser, loginUser } from './helpers';
+import { generateUniqueEmail, registerUser, loginUser, logoutUser } from './helpers';
 
 test.describe('Authentication', () => {
   test('E2E-AUTH-1: Register with valid credentials succeeds', async ({ page }) => {
@@ -23,14 +23,14 @@ test.describe('Authentication', () => {
     await registerUser(page, { email, password, displayName });
 
     // Logout
-    await page.getByRole('button', { name: /logout|sign out/i }).click();
+    await logoutUser(page);
 
     // Try to register again with same email
     await page.goto('/register');
-    await page.getByPlaceholder('Email').fill(email);
-    await page.getByPlaceholder('Password').fill(password);
-    await page.getByPlaceholder('Display Name').fill('Another Name');
-    await page.getByRole('button', { name: /register|sign up/i }).click();
+    await page.getByLabel('Display Name').fill('Another Name');
+    await page.getByLabel('Email').fill(email);
+    await page.locator('#register-password').fill(password);
+    await page.getByRole('button', { name: /register|sign up|create account/i }).click();
 
     // Should show error
     await expect(page.getByText(/already exists|already registered/i)).toBeVisible();
@@ -45,16 +45,16 @@ test.describe('Authentication', () => {
     await registerUser(page, { email, password, displayName });
 
     // Logout
-    await page.getByRole('button', { name: /logout|sign out/i }).click();
+    await logoutUser(page);
 
-    // Try to login with wrong password
+    // Try to login with wrong password (don't use loginUser — it expects dashboard redirect)
     await page.goto('/login');
-    await page.getByPlaceholder('Email').fill(email);
-    await page.getByPlaceholder('Password').fill('WrongPassword');
-    await page.getByRole('button', { name: /login|sign in/i }).click();
+    await page.getByLabel('Email').fill(email);
+    await page.getByRole('textbox', { name: 'Password' }).fill('WrongPassword123!');
+    await page.getByRole('button', { name: /log\s?in|sign in/i }).click();
 
-    // Should show error
-    await expect(page.getByText(/invalid|incorrect|wrong/i)).toBeVisible();
+    // Should show error (we stay on login page)
+    await expect(page.getByText(/invalid|incorrect|wrong/i)).toBeVisible({ timeout: 5000 });
   });
 
   test('E2E-AUTH-4: Login with valid credentials succeeds', async ({ page }) => {
@@ -66,7 +66,7 @@ test.describe('Authentication', () => {
     await registerUser(page, { email, password, displayName });
 
     // Logout
-    await page.getByRole('button', { name: /logout|sign out/i }).click();
+    await logoutUser(page);
 
     // Login
     await loginUser(page, { email, password });
@@ -85,7 +85,7 @@ test.describe('Authentication', () => {
     await registerUser(page, { email, password, displayName });
 
     // Logout
-    await page.getByRole('button', { name: /logout|sign out/i }).click();
+    await logoutUser(page);
 
     // Should be redirected to login
     await expect(page).toHaveURL('/login');

@@ -44,7 +44,7 @@ export class ReactionService {
       INSERT INTO card_reactions (card_id, user_id, emoji)
       VALUES (${cardId}, ${userId}, ${emoji})
       ON CONFLICT (card_id, user_id, emoji) DO UPDATE
-        SET card_id = EXCLUDED.card_id
+        SET created_at = NOW()
       RETURNING (xmax = 0) AS inserted
     `;
 

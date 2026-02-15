@@ -19,18 +19,7 @@ export default defineConfig({
     },
   ],
 
-  webServer: [
-    {
-      command: 'DATABASE_URL=postgres://localhost:5432/retroboard JWT_SECRET=dev-secret-must-be-at-least-32-characters-long npm run start',
-      url: 'http://localhost:3000',
-      reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
-    },
-    {
-      command: 'cd client && npx vite --port 5173',
-      url: 'http://localhost:5173',
-      reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
-    },
-  ],
+  // NOTE: webServer config removed - start servers manually before running tests:
+  // Backend: DATABASE_URL=postgres://localhost:5432/retroboard JWT_SECRET=dev-secret-must-be-at-least-32-characters-long npm run dev
+  // Frontend: cd client && npm run dev
 });

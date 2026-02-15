@@ -4,7 +4,7 @@ import { Plus, Users, AlertCircle, Clock } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth';
 import { Button } from '@/components/ui/Button';
-import { Spinner } from '@/components/ui/Spinner';
+// Spinner component not currently used
 import { CreateTeamModal } from '@/components/teams/CreateTeamModal';
 
 interface Team {

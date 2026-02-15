@@ -12,7 +12,7 @@ export function InvitePage() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
-  const [isJoining, setIsJoining] = useState(false);
+  const [_isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleJoin = async () => {

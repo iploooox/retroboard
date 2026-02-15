@@ -67,6 +67,7 @@ export const router = createBrowserRouter([
     ],
   },
   { path: '/invite/:token', element: <InvitePage /> },
+  { path: '/join/:token', element: <InvitePage /> },
   { path: '/', element: <Navigate to="/dashboard" replace /> },
   { path: '*', element: <NotFoundPage /> },
 ]);

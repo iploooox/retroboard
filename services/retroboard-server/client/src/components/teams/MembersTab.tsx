@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Plus, AlertCircle, Copy, Trash2, Users } from 'lucide-react';
+import { Plus, AlertCircle, Copy, Trash2 } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { useAuthStore } from '@/stores/auth';

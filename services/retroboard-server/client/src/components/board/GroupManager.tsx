@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { useBoardStore } from '@/stores/board';
 import { Button } from '@/components/ui/Button';
 

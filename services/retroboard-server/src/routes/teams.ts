@@ -33,12 +33,23 @@ function formatTeam(team: Record<string, unknown>) {
   };
 }
 
-function formatInvitation(inv: Record<string, unknown>) {
+function formatInvitation(inv: Record<string, unknown>, requestOrigin?: string) {
+  let appBaseUrl = process.env.APP_BASE_URL;
+
+  if (!appBaseUrl) {
+    // In development, if request comes from backend port (3000), use frontend port (5173)
+    if (requestOrigin?.includes('localhost:3000') || requestOrigin?.includes('127.0.0.1:3000')) {
+      appBaseUrl = 'http://localhost:5173';
+    } else {
+      appBaseUrl = requestOrigin || 'http://localhost:5173';
+    }
+  }
+
   return {
     id: inv.id,
     team_id: inv.team_id,
     code: inv.code,
-    invite_url: `${process.env.APP_BASE_URL || 'https://retroboard.example.com'}/join/${inv.code}`,
+    invite_url: `${appBaseUrl}/join/${inv.code}`,
     created_by: inv.created_by,
     expires_at: inv.expires_at,
     max_uses: inv.max_uses ?? null,
@@ -325,15 +336,17 @@ teamsRouter.post('/:id/invitations', requireTeamRole(['admin', 'facilitator']), 
     role: role ?? 'member',
   });
 
-  return c.json({ invitation: formatInvitation(invitation) }, 201);
+  const origin = new URL(c.req.url).origin;
+  return c.json({ invitation: formatInvitation(invitation, origin) }, 201);
 });
 
 // GET /api/v1/teams/:id/invitations — List active invitations
 teamsRouter.get('/:id/invitations', requireTeamRole(['admin', 'facilitator']), async (c) => {
   const teamId = c.req.param('id');
   const invitations = await invitationRepository.findActiveByTeam(teamId);
+  const origin = new URL(c.req.url).origin;
   return c.json({
-    invitations: invitations.map(formatInvitation),
+    invitations: invitations.map((inv) => formatInvitation(inv, origin)),
   });
 });
 

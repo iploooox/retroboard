@@ -21,5 +21,6 @@ See `epics/INDEX.md` for current status.
 - **No microservices** — monolithic server architecture
 
 ## Team mode 
+When the user says "send agent" you should always use the team mode instead of task mode.
 Always use sonnet when spawning new agents unless user explicitly requests otherwise.
 Exception: reviewer should use opus.
