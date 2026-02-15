@@ -20,7 +20,7 @@ Build the most powerful retrospective board on the market. RetroBoard Pro suppor
 | 2 | Core Board — Retro board, cards, voting, columns, basic templates | S-007..S-012 | done |
 | 3 | Collaboration — Real-time sync, facilitation tools, timer, phases | S-013..S-017 | done |
 | 4 | Intelligence — Analytics dashboard, sentiment analysis, action item tracking | S-018..S-023 | done |
-| 5 | Polish — Export/PDF, advanced templates, emoji reactions, board themes, onboarding | S-024..S-030 | done |
+| 5 | Polish — Export/PDF, advanced templates, emoji reactions, board themes, onboarding | S-024..S-030 | in-progress |
 
 ## Stories
 
@@ -55,7 +55,7 @@ Build the most powerful retrospective board on the market. RetroBoard Pro suppor
 | S-027 | Board color themes per team | 5 | done |
 | S-028 | Icebreaker generator | 5 | done |
 | S-029 | Onboarding flow for new teams | 5 | done |
-| S-030 | Keyboard shortcuts & accessibility | 5 | done |
+| S-030 | Keyboard shortcuts & accessibility | 5 | deferred (FE-only) |
 
 ## Bugs
 
