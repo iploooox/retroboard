@@ -48,6 +48,12 @@ cardsRouter.post('/boards/:id/cards', async (c) => {
     return c.json(errRes('VALIDATION_ERROR', 'Validation failed'), 422);
   }
 
+  // Validate column belongs to this board
+  const columnValid = await boardRepo.columnExistsOnBoard(parsed.data.column_id, boardId);
+  if (!columnValid) {
+    return c.json(errRes('VALIDATION_ERROR', 'Column does not belong to this board'), 422);
+  }
+
   const card = await cardRepo.create(boardId, parsed.data.column_id, user.id, parsed.data.content);
 
   return c.json(okRes({
@@ -94,6 +100,14 @@ cardsRouter.put('/boards/:id/cards/:cardId', async (c) => {
   const parsed = updateCardSchema.safeParse(body);
   if (!parsed.success) {
     return c.json(errRes('VALIDATION_ERROR', 'Validation failed'), 422);
+  }
+
+  // Validate column belongs to this board (if changing column)
+  if (parsed.data.column_id) {
+    const columnValid = await boardRepo.columnExistsOnBoard(parsed.data.column_id, boardId);
+    if (!columnValid) {
+      return c.json(errRes('VALIDATION_ERROR', 'Column does not belong to this board'), 422);
+    }
   }
 
   const updated = await cardRepo.update(cardId, parsed.data);

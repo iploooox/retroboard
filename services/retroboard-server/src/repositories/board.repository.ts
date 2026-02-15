@@ -286,6 +286,13 @@ export async function setFocus(
   return row ? formatBoard(row) : null;
 }
 
+export async function columnExistsOnBoard(columnId: string, boardId: string): Promise<boolean> {
+  const [row] = await sql`
+    SELECT 1 FROM columns WHERE id = ${columnId} AND board_id = ${boardId}
+  `;
+  return !!row;
+}
+
 export async function cardExistsOnBoard(cardId: string, boardId: string): Promise<boolean> {
   const [row] = await sql`
     SELECT 1 FROM cards WHERE id = ${cardId} AND board_id = ${boardId}
@@ -298,6 +305,32 @@ export async function groupExistsOnBoard(groupId: string, boardId: string): Prom
     SELECT 1 FROM card_groups WHERE id = ${groupId} AND board_id = ${boardId}
   `;
   return !!row;
+}
+
+export async function getVoteUsage(boardId: string): Promise<{ maxPerUser: number; maxPerCard: number }> {
+  const [row] = await sql`
+    SELECT
+      COALESCE((
+        SELECT MAX(cnt)::int FROM (
+          SELECT COUNT(*) AS cnt
+          FROM card_votes cv JOIN cards c ON c.id = cv.card_id
+          WHERE c.board_id = ${boardId}
+          GROUP BY cv.user_id
+        ) u
+      ), 0) AS max_per_user,
+      COALESCE((
+        SELECT MAX(cnt)::int FROM (
+          SELECT COUNT(*) AS cnt
+          FROM card_votes cv JOIN cards c ON c.id = cv.card_id
+          WHERE c.board_id = ${boardId}
+          GROUP BY cv.card_id
+        ) v
+      ), 0) AS max_per_card
+  `;
+  return {
+    maxPerUser: Number(row.max_per_user),
+    maxPerCard: Number(row.max_per_card),
+  };
 }
 
 export async function templateExists(templateId: string): Promise<boolean> {

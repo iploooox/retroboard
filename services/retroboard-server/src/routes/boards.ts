@@ -195,6 +195,29 @@ boardsRouter.put('/boards/:id', async (c) => {
     );
   }
 
+  // Prevent lowering vote limits below current usage
+  if (parsed.data.max_votes_per_user !== undefined || parsed.data.max_votes_per_card !== undefined) {
+    const usage = await boardRepo.getVoteUsage(boardId);
+    if (parsed.data.max_votes_per_user !== undefined && usage.maxPerUser > parsed.data.max_votes_per_user) {
+      return c.json(
+        formatErrorResponse(
+          'VALIDATION_ERROR',
+          `Cannot lower max_votes_per_user to ${parsed.data.max_votes_per_user} — a user has already cast ${usage.maxPerUser} votes`,
+        ),
+        422,
+      );
+    }
+    if (parsed.data.max_votes_per_card !== undefined && usage.maxPerCard > parsed.data.max_votes_per_card) {
+      return c.json(
+        formatErrorResponse(
+          'VALIDATION_ERROR',
+          `Cannot lower max_votes_per_card to ${parsed.data.max_votes_per_card} — a card already has ${usage.maxPerCard} votes`,
+        ),
+        422,
+      );
+    }
+  }
+
   const updated = await boardRepo.updateSettings(boardId, parsed.data);
   if (!updated) {
     return c.json(formatErrorResponse('BOARD_NOT_FOUND', 'Board not found'), 404);

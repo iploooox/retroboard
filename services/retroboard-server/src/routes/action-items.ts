@@ -176,6 +176,13 @@ actionItemsRouter.put('/action-items/:id', async (c) => {
     return c.json({ error: 'VALIDATION_ERROR' }, 400);
   }
 
+  // Validate date format (if setting to non-null)
+  if ('dueDate' in body && body.dueDate !== null && body.dueDate !== undefined) {
+    if (!isValidDate(body.dueDate)) {
+      return c.json({ error: 'INVALID_DATE' }, 400);
+    }
+  }
+
   // Validate assignee is team member (if setting to non-null)
   if ('assigneeId' in body && body.assigneeId !== null && body.assigneeId !== undefined) {
     const assigneeOk = await actionItemRepo.isTeamMember(itemInfo.teamId, body.assigneeId);
