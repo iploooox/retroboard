@@ -2,6 +2,7 @@ import { sql } from '../db/connection.js';
 import { BOARD_PHASES } from '../validation/boards.js';
 import type { BoardPhase } from '../validation/boards.js';
 import type { TimerService } from './timer-service.js';
+import * as analyticsRepo from '../repositories/analytics.repository.js';
 
 export class FacilitationService {
   constructor(private timerService?: TimerService) {}
@@ -47,6 +48,14 @@ export class FacilitationService {
       RETURNING *
     `;
     const updated = updateResult?.[0];
+
+    // Refresh materialized views when entering 'action' phase (final phase)
+    // This is fire-and-forget to avoid blocking the response
+    if (phase === 'action') {
+      analyticsRepo.refreshMaterializedViews().catch((err) => {
+        console.error('Failed to refresh materialized views after phase change:', err);
+      });
+    }
 
     return {
       phase: (updated?.phase as string) ?? phase,

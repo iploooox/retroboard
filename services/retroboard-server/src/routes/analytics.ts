@@ -3,9 +3,13 @@ import { requireAuth } from '../middleware/auth.js';
 import { formatErrorResponse } from '../utils/errors.js';
 import { analyticsService } from '../services/analytics-service.js';
 import * as analyticsRepo from '../repositories/analytics.repository.js';
+import { z } from 'zod';
 
 const analyticsRouter = new Hono();
 analyticsRouter.use('*', requireAuth);
+
+// UUID validator
+const uuidParam = z.string().uuid();
 
 // GET /api/v1/teams/:teamId/analytics/health
 analyticsRouter.get('/teams/:teamId/analytics/health', async (c) => {
@@ -21,13 +25,13 @@ analyticsRouter.get('/teams/:teamId/analytics/health', async (c) => {
   // Check team exists
   const exists = await analyticsRepo.teamExists(teamId);
   if (!exists) {
-    return c.json({ error: 'NOT_FOUND' }, 404);
+    return c.json({ error: 'NOT_FOUND', message: 'Team not found' }, 404);
   }
 
   // Check user is team member
   const isMember = await analyticsRepo.isTeamMember(teamId, user.id);
   if (!isMember) {
-    return c.json({ error: 'FORBIDDEN' }, 403);
+    return c.json({ error: 'FORBIDDEN', message: 'Access denied' }, 403);
   }
 
   const result = await analyticsService.getHealthTrend(teamId, limit, offset);
@@ -40,16 +44,29 @@ analyticsRouter.get('/teams/:teamId/analytics/participation', async (c) => {
   const user = c.get('user');
   const sprintId = c.req.query('sprintId');
 
+  // Validate sprintId UUID format if provided
+  if (sprintId && !uuidParam.safeParse(sprintId).success) {
+    return c.json({ error: 'VALIDATION_ERROR', message: 'Invalid sprint ID format' }, 422);
+  }
+
   // Check team exists
   const exists = await analyticsRepo.teamExists(teamId);
   if (!exists) {
-    return c.json({ error: 'NOT_FOUND' }, 404);
+    return c.json({ error: 'NOT_FOUND', message: 'Team not found' }, 404);
   }
 
   // Check user is team member
   const isMember = await analyticsRepo.isTeamMember(teamId, user.id);
   if (!isMember) {
-    return c.json({ error: 'FORBIDDEN' }, 403);
+    return c.json({ error: 'FORBIDDEN', message: 'Access denied' }, 403);
+  }
+
+  // Validate sprint ownership if sprintId provided
+  if (sprintId) {
+    const sprint = await analyticsRepo.getSprintInfo(sprintId);
+    if (!sprint || sprint.teamId !== teamId) {
+      return c.json({ error: 'NOT_FOUND', message: 'Sprint not found' }, 404);
+    }
   }
 
   const result = await analyticsService.getParticipation(teamId, sprintId);
@@ -70,13 +87,13 @@ analyticsRouter.get('/teams/:teamId/analytics/sentiment', async (c) => {
   // Check team exists
   const exists = await analyticsRepo.teamExists(teamId);
   if (!exists) {
-    return c.json({ error: 'NOT_FOUND' }, 404);
+    return c.json({ error: 'NOT_FOUND', message: 'Team not found' }, 404);
   }
 
   // Check user is team member
   const isMember = await analyticsRepo.isTeamMember(teamId, user.id);
   if (!isMember) {
-    return c.json({ error: 'FORBIDDEN' }, 403);
+    return c.json({ error: 'FORBIDDEN', message: 'Access denied' }, 403);
   }
 
   const result = await analyticsService.getSentimentTrend(teamId, limit, offset);
@@ -89,6 +106,11 @@ analyticsRouter.get('/teams/:teamId/analytics/word-cloud', async (c) => {
   const user = c.get('user');
   const sprintId = c.req.query('sprintId');
 
+  // Validate sprintId UUID format if provided
+  if (sprintId && !uuidParam.safeParse(sprintId).success) {
+    return c.json({ error: 'VALIDATION_ERROR', message: 'Invalid sprint ID format' }, 422);
+  }
+
   // Parse query params
   const limitParam = c.req.query('limit');
   const minFrequencyParam = c.req.query('minFrequency');
@@ -98,13 +120,21 @@ analyticsRouter.get('/teams/:teamId/analytics/word-cloud', async (c) => {
   // Check team exists
   const exists = await analyticsRepo.teamExists(teamId);
   if (!exists) {
-    return c.json({ error: 'NOT_FOUND' }, 404);
+    return c.json({ error: 'NOT_FOUND', message: 'Team not found' }, 404);
   }
 
   // Check user is team member
   const isMember = await analyticsRepo.isTeamMember(teamId, user.id);
   if (!isMember) {
-    return c.json({ error: 'FORBIDDEN' }, 403);
+    return c.json({ error: 'FORBIDDEN', message: 'Access denied' }, 403);
+  }
+
+  // Validate sprint ownership if sprintId provided
+  if (sprintId) {
+    const sprint = await analyticsRepo.getSprintInfo(sprintId);
+    if (!sprint || sprint.teamId !== teamId) {
+      return c.json({ error: 'NOT_FOUND', message: 'Sprint not found' }, 404);
+    }
   }
 
   const result = await analyticsService.getWordCloud(teamId, sprintId, limit, minFrequency);
@@ -119,18 +149,18 @@ analyticsRouter.get('/sprints/:sprintId/analytics', async (c) => {
   // Get sprint info (includes team check)
   const sprintInfo = await analyticsRepo.getSprintInfo(sprintId);
   if (!sprintInfo) {
-    return c.json({ error: 'NOT_FOUND' }, 404);
+    return c.json({ error: 'NOT_FOUND', message: 'Sprint not found' }, 404);
   }
 
   // Check user is team member
   const isMember = await analyticsRepo.isTeamMember(sprintInfo.teamId, user.id);
   if (!isMember) {
-    return c.json({ error: 'FORBIDDEN' }, 403);
+    return c.json({ error: 'FORBIDDEN', message: 'Access denied' }, 403);
   }
 
   const result = await analyticsService.getSprintAnalytics(sprintId);
   if (!result) {
-    return c.json({ error: 'NOT_FOUND' }, 404);
+    return c.json({ error: 'NOT_FOUND', message: 'Sprint not found' }, 404);
   }
 
   return c.json(result);
