@@ -295,6 +295,11 @@ export function ActionItemsPanel({ open, onClose, isFacilitator, teamId, initial
                             Due: {item.dueDate}
                           </span>
                         )}
+                        {item.status === 'done' && item.completedAt && (
+                          <span className="text-xs text-green-600 font-medium">
+                            Completed {new Date(item.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                        )}
                         {item.carriedFromSprintName && (
                           <span className="text-xs text-amber-500">from {item.carriedFromSprintName}</span>
                         )}

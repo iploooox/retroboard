@@ -29,7 +29,22 @@ interface TeamMember {
 }
 
 // Theme definitions with CSS custom properties
+// Theme names match DB constraint: default, ocean, sunset, forest, midnight, lavender, coral, monochrome
+// All themes validated for WCAG AA contrast (4.5:1 for normal text, 3:1 for large text)
 const THEME_STYLES: Record<string, Record<string, string>> = {
+  default: {
+    '--theme-bg': '#f8fafc',
+    '--theme-column-bg': '#f1f5f9',
+    '--theme-column-border': '#cbd5e1',
+    '--theme-card-bg': '#ffffff',
+    '--theme-card-border': '#e2e8f0',
+    '--theme-header-text': '#475569',
+    '--theme-text-primary': '#1e293b',
+    '--theme-text-secondary': '#475569',
+    '--theme-text-muted': '#64748b',
+    '--theme-accent': '#6366f1',
+    '--theme-accent-hover': '#4f46e5',
+  },
   ocean: {
     '--theme-bg': '#eff6ff',
     '--theme-column-bg': '#dbeafe',
@@ -37,6 +52,9 @@ const THEME_STYLES: Record<string, Record<string, string>> = {
     '--theme-card-bg': '#ffffff',
     '--theme-card-border': '#bfdbfe',
     '--theme-header-text': '#1e40af',
+    '--theme-text-primary': '#1e293b',
+    '--theme-text-secondary': '#334155',
+    '--theme-text-muted': '#64748b',
     '--theme-accent': '#3b82f6',
     '--theme-accent-hover': '#2563eb',
   },
@@ -46,7 +64,10 @@ const THEME_STYLES: Record<string, Record<string, string>> = {
     '--theme-column-border': '#fdba74',
     '--theme-card-bg': '#ffffff',
     '--theme-card-border': '#fed7aa',
-    '--theme-header-text': '#c2410c',
+    '--theme-header-text': '#9a3412',
+    '--theme-text-primary': '#1c1917',
+    '--theme-text-secondary': '#44403c',
+    '--theme-text-muted': '#78716c',
     '--theme-accent': '#f97316',
     '--theme-accent-hover': '#ea580c',
   },
@@ -57,8 +78,24 @@ const THEME_STYLES: Record<string, Record<string, string>> = {
     '--theme-card-bg': '#ffffff',
     '--theme-card-border': '#bbf7d0',
     '--theme-header-text': '#15803d',
+    '--theme-text-primary': '#14532d',
+    '--theme-text-secondary': '#166534',
+    '--theme-text-muted': '#4d7c0f',
     '--theme-accent': '#22c55e',
     '--theme-accent-hover': '#16a34a',
+  },
+  midnight: {
+    '--theme-bg': '#0f172a',
+    '--theme-column-bg': '#1e293b',
+    '--theme-column-border': '#334155',
+    '--theme-card-bg': '#1e293b',
+    '--theme-card-border': '#475569',
+    '--theme-header-text': '#e2e8f0',
+    '--theme-text-primary': '#f1f5f9',
+    '--theme-text-secondary': '#cbd5e1',
+    '--theme-text-muted': '#94a3b8',
+    '--theme-accent': '#818cf8',
+    '--theme-accent-hover': '#6366f1',
   },
   lavender: {
     '--theme-bg': '#faf5ff',
@@ -66,49 +103,38 @@ const THEME_STYLES: Record<string, Record<string, string>> = {
     '--theme-column-border': '#d8b4fe',
     '--theme-card-bg': '#ffffff',
     '--theme-card-border': '#e9d5ff',
-    '--theme-header-text': '#7e22ce',
+    '--theme-header-text': '#6b21a8',
+    '--theme-text-primary': '#1e293b',
+    '--theme-text-secondary': '#4c1d95',
+    '--theme-text-muted': '#6b21a8',
     '--theme-accent': '#a855f7',
     '--theme-accent-hover': '#9333ea',
   },
-  slate: {
-    '--theme-bg': '#f8fafc',
-    '--theme-column-bg': '#f1f5f9',
-    '--theme-column-border': '#cbd5e1',
-    '--theme-card-bg': '#ffffff',
-    '--theme-card-border': '#e2e8f0',
-    '--theme-header-text': '#475569',
-    '--theme-accent': '#64748b',
-    '--theme-accent-hover': '#475569',
-  },
-  rose: {
+  coral: {
     '--theme-bg': '#fff1f2',
     '--theme-column-bg': '#ffe4e6',
     '--theme-column-border': '#fda4af',
     '--theme-card-bg': '#ffffff',
     '--theme-card-border': '#fecdd3',
-    '--theme-header-text': '#be123c',
+    '--theme-header-text': '#9f1239',
+    '--theme-text-primary': '#1c1917',
+    '--theme-text-secondary': '#881337',
+    '--theme-text-muted': '#be123c',
     '--theme-accent': '#f43f5e',
     '--theme-accent-hover': '#e11d48',
   },
-  amber: {
-    '--theme-bg': '#fffbeb',
-    '--theme-column-bg': '#fef3c7',
-    '--theme-column-border': '#fcd34d',
+  monochrome: {
+    '--theme-bg': '#fafafa',
+    '--theme-column-bg': '#f5f5f5',
+    '--theme-column-border': '#d4d4d4',
     '--theme-card-bg': '#ffffff',
-    '--theme-card-border': '#fde68a',
-    '--theme-header-text': '#b45309',
-    '--theme-accent': '#f59e0b',
-    '--theme-accent-hover': '#d97706',
-  },
-  emerald: {
-    '--theme-bg': '#ecfdf5',
-    '--theme-column-bg': '#d1fae5',
-    '--theme-column-border': '#6ee7b7',
-    '--theme-card-bg': '#ffffff',
-    '--theme-card-border': '#a7f3d0',
-    '--theme-header-text': '#047857',
-    '--theme-accent': '#10b981',
-    '--theme-accent-hover': '#059669',
+    '--theme-card-border': '#e5e5e5',
+    '--theme-header-text': '#171717',
+    '--theme-text-primary': '#0a0a0a',
+    '--theme-text-secondary': '#262626',
+    '--theme-text-muted': '#525252',
+    '--theme-accent': '#404040',
+    '--theme-accent-hover': '#262626',
   },
 };
 
@@ -134,7 +160,7 @@ export function BoardPage() {
   const [userRole, setUserRole] = useState<string>('member');
   const [boardNotFound, setBoardNotFound] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
-  const [teamTheme, setTeamTheme] = useState<string>('ocean');
+  const [teamTheme, setTeamTheme] = useState<string>('default');
   const [showIcebreaker, setShowIcebreaker] = useState(true);
   const [actionItemInitialCardId, setActionItemInitialCardId] = useState<string | undefined>();
   const [actionItemInitialTitle, setActionItemInitialTitle] = useState<string | undefined>();
@@ -288,7 +314,7 @@ export function BoardPage() {
   };
 
   // Get theme styles
-  const themeStyles = THEME_STYLES[teamTheme] || THEME_STYLES.ocean;
+  const themeStyles = THEME_STYLES[teamTheme] || THEME_STYLES.default;
 
   return (
     <div className="flex flex-col h-[calc(100vh-56px)]" style={themeStyles as React.CSSProperties}>
@@ -332,7 +358,7 @@ export function BoardPage() {
 
       {/* Icebreaker (write phase only) */}
       {board.phase === 'write' && showIcebreaker && teamId && (
-        <IcebreakerCard teamId={teamId} onDismiss={() => setShowIcebreaker(false)} />
+        <IcebreakerCard teamId={teamId} boardId={board.id} onDismiss={() => setShowIcebreaker(false)} />
       )}
 
       {/* Columns */}
@@ -371,7 +397,7 @@ export function BoardPage() {
           open={showExport}
           onClose={() => setShowExport(false)}
           boardId={board.id}
-          boardName={`Sprint ${board.sprint_id}`}
+          boardName="Retrospective Board"
         />
       )}
 

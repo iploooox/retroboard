@@ -225,6 +225,74 @@ test.describe('Board Enhancements Journey', () => {
       // Verify action item is removed
       await expect(page.getByText(actionTitle)).not.toBeVisible();
     });
+
+    test('completed_at: verify completion date appears when marked done', async ({ page }) => {
+      const email = generateUniqueEmail();
+      await registerUser(page, {
+        email,
+        password: 'SecurePass123!',
+        displayName: 'Completion Test User',
+      });
+
+      await createTeamAndBoard(page, { teamName: 'Completion Team' });
+
+      // Open action items panel
+      await page.getByRole('button', { name: /action items/i }).click();
+
+      // Create a simple action item
+      await page.getByRole('button', { name: /new/i }).click();
+      const actionTitle = 'Test completion date feature';
+      await page.getByPlaceholder(/action item title/i).fill(actionTitle);
+      await page.getByRole('button', { name: /^create$/i }).click();
+
+      await page.waitForTimeout(500);
+
+      // Find the action item row
+      const actionItemRow = page.locator('div', { hasText: actionTitle }).first();
+      await expect(actionItemRow).toBeVisible();
+
+      // Verify no completion date is shown initially (status is 'open')
+      await expect(actionItemRow.getByText(/Completed/i)).not.toBeVisible();
+
+      // Find the status button (first button in the row)
+      const statusButton = actionItemRow.locator('button').first();
+
+      // Click once to change status to 'in_progress'
+      await statusButton.click();
+      await page.waitForTimeout(300);
+
+      // Still no completion date
+      await expect(actionItemRow.getByText(/Completed/i)).not.toBeVisible();
+
+      // Click again to change status to 'done'
+      await statusButton.click();
+      await page.waitForTimeout(500);
+
+      // Verify completion date appears with green text
+      const completionDate = actionItemRow.locator('span.text-green-600').filter({ hasText: /Completed/ });
+      await expect(completionDate).toBeVisible();
+
+      // Verify the date format is like "Completed Feb 15" or "Completed Jan 1"
+      const completionText = await completionDate.textContent();
+      expect(completionText).toMatch(/^Completed (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{1,2}$/);
+
+      // Verify the title is now crossed out (line-through)
+      await expect(
+        actionItemRow.locator('p.line-through', { hasText: actionTitle })
+      ).toBeVisible();
+
+      // Click status button again to cycle back to 'open'
+      await statusButton.click();
+      await page.waitForTimeout(500);
+
+      // Verify completion date disappears
+      await expect(actionItemRow.getByText(/Completed/i)).not.toBeVisible();
+
+      // Verify title is no longer crossed out
+      await expect(
+        actionItemRow.locator('p.line-through', { hasText: actionTitle })
+      ).not.toBeVisible();
+    });
   });
 
   test.describe('Export (S-024)', () => {
@@ -457,6 +525,157 @@ test.describe('Board Enhancements Journey', () => {
       if (isButtonVisible) {
         await expect(addReactionButton).toBeDisabled();
       }
+    });
+  });
+
+  test.describe('Sentiment Lexicon Management (S-021)', () => {
+    test('full journey: add, edit, and delete custom sentiment words', async ({ page }) => {
+      const email = generateUniqueEmail();
+      const displayName = 'Sentiment Manager';
+      await registerUser(page, {
+        email,
+        password: 'SecurePass123!',
+        displayName,
+      });
+
+      await createTeamAndBoard(page, { teamName: 'Sentiment Team' });
+
+      // Open board settings modal
+      await page.getByRole('button', { name: 'Board settings' }).click();
+
+      // Verify sentiment lexicon section is visible
+      await expect(page.getByText('Custom Sentiment Words')).toBeVisible();
+      await expect(
+        page.getByText(/Add custom words with sentiment scores/i)
+      ).toBeVisible();
+
+      // Add a custom word with positive score
+      const customWord1 = 'amazing';
+      const score1 = '4.5';
+      await page.getByPlaceholder('Word').fill(customWord1);
+      await page.getByPlaceholder('Score').fill(score1);
+      await page.locator('button').filter({ has: page.locator('svg').first() }).click(); // Plus button
+
+      // Wait for word to be added
+      await page.waitForTimeout(500);
+
+      // Verify word appears in the list with green color (positive score)
+      await expect(page.getByText(customWord1)).toBeVisible();
+      await expect(page.getByText('+4.5')).toBeVisible();
+      const scoreBadge1 = page.locator('span.bg-green-100').filter({ hasText: '+4.5' });
+      await expect(scoreBadge1).toBeVisible();
+
+      // Add another word with negative score
+      const customWord2 = 'terrible';
+      const score2 = '-3.0';
+      await page.getByPlaceholder('Word').fill(customWord2);
+      await page.getByPlaceholder('Score').fill(score2);
+      await page.locator('button').filter({ has: page.locator('svg').first() }).click(); // Plus button
+
+      await page.waitForTimeout(500);
+
+      // Verify word appears with red color (negative score)
+      await expect(page.getByText(customWord2)).toBeVisible();
+      await expect(page.getByText('-3.0')).toBeVisible();
+      const scoreBadge2 = page.locator('span.bg-red-100').filter({ hasText: '-3.0' });
+      await expect(scoreBadge2).toBeVisible();
+
+      // Edit the first word's score
+      const wordRow1 = page.locator('div.bg-slate-50').filter({ hasText: customWord1 }).first();
+      const editButton = wordRow1.getByRole('button').filter({ has: page.locator('svg') }).nth(0); // Edit2 icon
+      await editButton.click();
+
+      // Verify edit mode is active (input field appears)
+      const editInput = wordRow1.locator('input[type="number"]');
+      await expect(editInput).toBeVisible();
+      await editInput.fill('5.0');
+
+      // Save the edit
+      const saveButton = wordRow1.getByRole('button').filter({ has: page.locator('svg') }).first(); // Check icon
+      await saveButton.click();
+
+      await page.waitForTimeout(500);
+
+      // Verify updated score is displayed
+      await expect(page.getByText('+5.0')).toBeVisible();
+
+      // Delete the second word
+      const wordRow2 = page.locator('div.bg-slate-50').filter({ hasText: customWord2 }).first();
+      const deleteButton = wordRow2.getByRole('button').filter({ has: page.locator('svg') }).nth(1); // Trash2 icon
+
+      // Setup dialog handler for confirmation
+      page.on('dialog', dialog => dialog.accept());
+      await deleteButton.click();
+
+      await page.waitForTimeout(500);
+
+      // Verify word is removed
+      await expect(page.getByText(customWord2)).not.toBeVisible();
+
+      // Verify first word still exists
+      await expect(page.getByText(customWord1)).toBeVisible();
+      await expect(page.getByText('+5.0')).toBeVisible();
+
+      // Close settings modal
+      await page.getByRole('button', { name: 'Cancel' }).click();
+    });
+
+    test('empty state: no custom words yet', async ({ page }) => {
+      const email = generateUniqueEmail();
+      await registerUser(page, {
+        email,
+        password: 'SecurePass123!',
+        displayName: 'Empty State User',
+      });
+
+      await createTeamAndBoard(page, { teamName: 'Empty Sentiment Team' });
+
+      // Open board settings
+      await page.getByRole('button', { name: 'Board settings' }).click();
+
+      // Verify empty state message
+      await expect(
+        page.getByText(/No custom words yet. Add one above to get started./i)
+      ).toBeVisible();
+
+      // Close modal
+      await page.getByRole('button', { name: 'Cancel' }).click();
+    });
+
+    test('validation: reject invalid scores', async ({ page }) => {
+      const email = generateUniqueEmail();
+      await registerUser(page, {
+        email,
+        password: 'SecurePass123!',
+        displayName: 'Validation User',
+      });
+
+      await createTeamAndBoard(page, { teamName: 'Validation Team' });
+
+      // Open settings
+      await page.getByRole('button', { name: 'Board settings' }).click();
+
+      // Try to add word with score > 5.0
+      await page.getByPlaceholder('Word').fill('invalid');
+      await page.getByPlaceholder('Score').fill('10');
+      await page.locator('button').filter({ has: page.locator('svg').first() }).click();
+
+      // Verify error toast appears
+      await expect(page.getByText(/Score must be between -5.0 and 5.0/i)).toBeVisible({
+        timeout: 3000,
+      });
+
+      // Try to add word with score < -5.0
+      await page.getByPlaceholder('Score').fill('-10');
+      await page.locator('button').filter({ has: page.locator('svg').first() }).click();
+
+      // Verify error toast appears
+      await expect(page.getByText(/Score must be between -5.0 and 5.0/i)).toBeVisible({
+        timeout: 3000,
+      });
+
+      // Close modal
+      await page.getByRole('button', { name: 'Cancel' }).click();
     });
   });
 });

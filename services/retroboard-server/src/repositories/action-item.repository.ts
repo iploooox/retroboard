@@ -20,6 +20,7 @@ export function formatActionItem(row: Record<string, unknown>) {
     assigneeName: (row.assignee_name as string) ?? null,
     dueDate: formatDate(row.due_date),
     status: row.status as string,
+    completedAt: row.completed_at ? (row.completed_at as Date).toISOString() : null,
     carriedFromId: (row.carried_from_id as string) ?? null,
     carriedFromSprintName: (row.carried_from_sprint_name as string) ?? null,
     createdBy: row.created_by as string,

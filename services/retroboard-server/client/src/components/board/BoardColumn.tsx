@@ -81,7 +81,7 @@ export function BoardColumn({ columnId, name, color, isFacilitator, onCreateActi
         >
           {name}
         </h3>
-        <span className="text-xs text-slate-400 ml-auto">{columnCards.length}</span>
+        <span className="text-xs ml-auto" style={{ color: 'var(--theme-text-muted, #64748b)' }}>{columnCards.length}</span>
       </div>
 
       {/* Cards list */}
@@ -92,11 +92,11 @@ export function BoardColumn({ columnId, name, color, isFacilitator, onCreateActi
           return (
             <div key={group.id} className="rounded-lg border-2 border-dashed border-slate-300 p-2 space-y-2 bg-white/50">
               <div className="flex items-center justify-between px-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
+                <span className="text-xs font-semibold uppercase tracking-wider truncate" style={{ color: 'var(--theme-text-secondary, #475569)' }}>
                   {group.title}
                 </span>
                 {group.total_votes > 0 && (
-                  <span className="text-xs font-medium text-slate-400">{group.total_votes} votes</span>
+                  <span className="text-xs font-medium" style={{ color: 'var(--theme-text-muted, #64748b)' }}>{group.total_votes} votes</span>
                 )}
               </div>
               {groupCards.map((card) => (
@@ -158,7 +158,8 @@ export function BoardColumn({ columnId, name, color, isFacilitator, onCreateActi
                 <button
                   type="button"
                   onClick={() => { setIsAdding(false); setNewCardContent(''); }}
-                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium hover:bg-slate-100 transition-colors"
+                  style={{ color: 'var(--theme-text-secondary, #475569)' }}
                 >
                   Cancel
                 </button>
@@ -167,9 +168,10 @@ export function BoardColumn({ columnId, name, color, isFacilitator, onCreateActi
           ) : (
             <button
               onClick={() => setIsAdding(true)}
-              className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-sm text-slate-500 transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-sm transition-colors"
               style={{
                 borderColor: 'var(--theme-column-border, #cbd5e1)',
+                color: 'var(--theme-text-muted, #64748b)',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = 'var(--theme-accent, #3b82f6)';
@@ -177,7 +179,7 @@ export function BoardColumn({ columnId, name, color, isFacilitator, onCreateActi
                 e.currentTarget.style.backgroundColor = 'var(--theme-bg, #eff6ff)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#64748b';
+                e.currentTarget.style.color = 'var(--theme-text-muted, #64748b)';
                 e.currentTarget.style.borderColor = 'var(--theme-column-border, #cbd5e1)';
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}

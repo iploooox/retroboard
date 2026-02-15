@@ -9,9 +9,10 @@ interface HealthDataPoint {
 
 interface HealthTrendChartProps {
   data: HealthDataPoint[];
+  onSprintClick?: (sprintId: string) => void;
 }
 
-export function HealthTrendChart({ data }: HealthTrendChartProps) {
+export function HealthTrendChart({ data, onSprintClick }: HealthTrendChartProps) {
   if (data.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-slate-400">
@@ -79,11 +80,21 @@ export function HealthTrendChart({ data }: HealthTrendChartProps) {
             const x = data.length === 1 ? 400 : (i / (data.length - 1)) * 800;
             const y = 256 - (d.healthScore * 256) / 100;
             return (
-              <circle key={d.sprintId} cx={x} cy={y} r="4" fill="#6366f1">
+              <circle
+                key={d.sprintId}
+                cx={x}
+                cy={y}
+                r="4"
+                fill="#6366f1"
+                onClick={onSprintClick ? () => onSprintClick(d.sprintId) : undefined}
+                className={onSprintClick ? 'cursor-pointer hover:fill-indigo-700 transition-colors' : ''}
+                style={{ cursor: onSprintClick ? 'pointer' : 'default' }}
+              >
                 <title>
                   {d.sprintName}: {d.healthScore.toFixed(1)}
                   {'\n'}
                   {d.cardCount} cards, {d.activeMembers}/{d.totalMembers} members
+                  {onSprintClick ? '\n(Click to view sprint details)' : ''}
                 </title>
               </circle>
             );

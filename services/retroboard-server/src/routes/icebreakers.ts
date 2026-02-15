@@ -3,6 +3,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { icebreakerService } from '../services/icebreaker-service.js';
 import { sql } from '../db/connection.js';
 import { z } from 'zod';
+import { broadcastToBoard } from '../ws/index.js';
 
 function okRes(data: unknown) {
   return { ok: true, data };
@@ -15,10 +16,11 @@ function errRes(code: string, message: string) {
 const icebreakersRouter = new Hono();
 icebreakersRouter.use('*', requireAuth);
 
-// GET /api/v1/icebreakers/random?teamId=X&category=Y
+// GET /api/v1/icebreakers/random?teamId=X&category=Y&boardId=Z
 icebreakersRouter.get('/icebreakers/random', async (c) => {
   const teamId = c.req.query('teamId');
   const category = c.req.query('category');
+  const boardId = c.req.query('boardId');
   const user = c.get('user');
 
   if (!teamId) {
@@ -40,6 +42,18 @@ icebreakersRouter.get('/icebreakers/random', async (c) => {
   }
 
   const icebreaker = await icebreakerService.getRandom(teamId, category);
+
+  // If boardId is provided, broadcast the icebreaker to all board participants
+  if (boardId) {
+    broadcastToBoard(boardId, {
+      type: 'icebreaker_update',
+      payload: {
+        question: icebreaker.question,
+        category: icebreaker.category,
+        id: icebreaker.id,
+      },
+    });
+  }
 
   return c.json(okRes(icebreaker));
 });

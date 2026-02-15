@@ -103,3 +103,103 @@ export async function getSentimentByColumn(sprintId: string) {
     neutralCards: Number(r.neutral),
   }));
 }
+
+/**
+ * Custom sentiment lexicon CRUD operations
+ */
+
+export interface CustomSentimentWord {
+  word: string;
+  score: number;
+  teamId: string;
+  isCustom: boolean;
+}
+
+/**
+ * List all custom sentiment words for a team
+ */
+export async function listCustomWords(teamId: string): Promise<CustomSentimentWord[]> {
+  const rows = await sql`
+    SELECT word, score, team_id, is_custom
+    FROM sentiment_lexicon
+    WHERE team_id = ${teamId}
+    ORDER BY word ASC
+  `;
+
+  return rows.map((r) => ({
+    word: r.word as string,
+    score: Number(r.score),
+    teamId: r.team_id as string,
+    isCustom: r.is_custom as boolean,
+  }));
+}
+
+/**
+ * Add a custom sentiment word for a team
+ */
+export async function addCustomWord(
+  teamId: string,
+  word: string,
+  score: number,
+): Promise<CustomSentimentWord> {
+  const normalizedWord = word.toLowerCase().trim();
+
+  const [row] = await sql`
+    INSERT INTO sentiment_lexicon (word, score, team_id, is_custom)
+    VALUES (${normalizedWord}, ${score}, ${teamId}, true)
+    RETURNING word, score, team_id, is_custom
+  `;
+
+  return {
+    word: row.word as string,
+    score: Number(row.score),
+    teamId: row.team_id as string,
+    isCustom: row.is_custom as boolean,
+  };
+}
+
+/**
+ * Update a custom sentiment word's score
+ */
+export async function updateCustomWord(
+  teamId: string,
+  word: string,
+  score: number,
+): Promise<CustomSentimentWord | null> {
+  const normalizedWord = word.toLowerCase().trim();
+
+  const [row] = await sql`
+    UPDATE sentiment_lexicon
+    SET score = ${score}
+    WHERE word = ${normalizedWord}
+      AND team_id = ${teamId}
+      AND is_custom = true
+    RETURNING word, score, team_id, is_custom
+  `;
+
+  if (!row) return null;
+
+  return {
+    word: row.word as string,
+    score: Number(row.score),
+    teamId: row.team_id as string,
+    isCustom: row.is_custom as boolean,
+  };
+}
+
+/**
+ * Delete a custom sentiment word
+ */
+export async function deleteCustomWord(teamId: string, word: string): Promise<boolean> {
+  const normalizedWord = word.toLowerCase().trim();
+
+  const result = await sql`
+    DELETE FROM sentiment_lexicon
+    WHERE word = ${normalizedWord}
+      AND team_id = ${teamId}
+      AND is_custom = true
+    RETURNING word
+  `;
+
+  return result.length > 0;
+}

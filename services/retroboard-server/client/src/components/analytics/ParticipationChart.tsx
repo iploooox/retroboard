@@ -78,6 +78,9 @@ export function ParticipationChart({ members, teamAverages, teamId }: Participat
   const displayMembers = selectedSprint === 'all' ? members : sprintMembers;
   const maxValue = Math.max(...displayMembers.map((m) => m.totals.cardsSubmitted + m.totals.votesCast));
 
+  // Calculate total sprints for participation rate
+  const totalSprints = sprints.length;
+
   return (
     <div>
       {/* Sprint selector */}
@@ -103,6 +106,10 @@ export function ParticipationChart({ members, teamAverages, teamId }: Participat
           const voteWidth = (member.totals.votesCast / maxValue) * 100;
           const engagementScore = member.totals.cardsSubmitted + member.totals.votesCast + (member.totals.actionItemsOwned * 2);
 
+          // Calculate participation rate (% of retros participated in)
+          const sprintsParticipated = member.perSprint?.length || 0;
+          const participationRate = totalSprints > 0 ? (sprintsParticipated / totalSprints) * 100 : 0;
+
           return (
             <div key={member.userId}>
               <div className="flex items-center justify-between text-sm mb-1">
@@ -110,7 +117,7 @@ export function ParticipationChart({ members, teamAverages, teamId }: Participat
                   {member.userName}
                 </span>
                 <span className="text-slate-500 text-xs">
-                  {member.totals.cardsSubmitted}c + {member.totals.votesCast}v | Score: {engagementScore}
+                  {member.totals.cardsSubmitted}c + {member.totals.votesCast}v | Score: {engagementScore} | {participationRate.toFixed(0)}% participation
                 </span>
               </div>
               <div className="flex gap-1">

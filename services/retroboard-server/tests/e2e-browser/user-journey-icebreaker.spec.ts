@@ -145,14 +145,10 @@ test.describe('Icebreaker Generator (S-028)', () => {
     await expect(page.getByText('🎲 Icebreaker Question')).not.toBeVisible();
   });
 
-  test.skip('E2E-ICEBREAKER-REALTIME: Icebreaker is displayed to all participants in real-time', async ({ page, context }) => {
-    // TODO: This test requires real-time sync implementation for icebreakers
-    // The current IcebreakerCard shows icebreakers but doesn't broadcast them to all users
-    // This would need WebSocket events: icebreaker:shown, icebreaker:dismissed
-    // Acceptance criteria: "Selected icebreaker is displayed to all board participants in real-time"
-    // Status: Backend API exists, frontend component exists, but real-time broadcast not implemented
+  test('E2E-ICEBREAKER-REALTIME: Icebreaker broadcasts to all participants when facilitator refreshes', async ({ page, context }) => {
+    // This test verifies WebSocket real-time sync for icebreaker updates
+    // When facilitator refreshes icebreaker, all participants see the same new question
 
-    // This test requires two browser contexts (facilitator + participant)
     const facilitatorEmail = generateUniqueEmail();
     const participantEmail = generateUniqueEmail();
     const password = 'SecurePass123!';
@@ -172,6 +168,10 @@ test.describe('Icebreaker Generator (S-028)', () => {
     const inviteLink = await page.locator('input[value*="/invite/"]').inputValue();
     const inviteCode = inviteLink.split('/invite/')[1];
 
+    // Close invite modal
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
+
     // Setup participant in new context
     const participantPage = await context.newPage();
     await participantPage.goto('/register');
@@ -184,18 +184,59 @@ test.describe('Icebreaker Generator (S-028)', () => {
     // Join team via invite
     await participantPage.goto(`/invite/${inviteCode}`);
     await participantPage.getByRole('button', { name: /join team/i }).click();
+    await participantPage.waitForTimeout(1000);
 
     // Navigate to board
     await participantPage.goto(page.url()); // Same board URL as facilitator
+    await participantPage.waitForTimeout(1000);
 
-    // Both should see icebreaker cards independently (not synced)
+    // Both should see icebreaker cards
     await expect(page.getByText('🎲 Icebreaker Question')).toBeVisible({ timeout: 5000 });
     await expect(participantPage.getByText('🎲 Icebreaker Question')).toBeVisible({ timeout: 5000 });
 
-    // TODO: When real-time sync is implemented, verify:
-    // 1. Facilitator can "share" current icebreaker with all participants
-    // 2. Participants see the same question in real-time
-    // 3. When facilitator dismisses, all participants see it dismissed
+    // Get initial questions from both users
+    const facilitatorCard = page.locator('div').filter({ hasText: '🎲 Icebreaker Question' }).first();
+    const participantCard = participantPage.locator('div').filter({ hasText: '🎲 Icebreaker Question' }).first();
+
+    const initialFacilitatorQuestion = await facilitatorCard.locator('p.text-lg').textContent();
+    const initialParticipantQuestion = await participantCard.locator('p.text-lg').textContent();
+
+    // Questions might be different initially (each user gets a random one on load)
+    expect(initialFacilitatorQuestion).toBeTruthy();
+    expect(initialParticipantQuestion).toBeTruthy();
+
+    // Facilitator clicks "New Question" to refresh icebreaker
+    await page.getByRole('button', { name: 'New Question' }).click();
+
+    // Wait for WebSocket broadcast to propagate
+    await page.waitForTimeout(1500);
+
+    // Get new questions from both users
+    const newFacilitatorQuestion = await facilitatorCard.locator('p.text-lg').textContent();
+    const newParticipantQuestion = await participantCard.locator('p.text-lg').textContent();
+
+    // Verify facilitator's question changed
+    expect(newFacilitatorQuestion).toBeTruthy();
+    expect(newFacilitatorQuestion).not.toBe('Loading icebreaker...');
+
+    // CRITICAL: Verify participant sees the EXACT SAME question as facilitator
+    expect(newParticipantQuestion).toBe(newFacilitatorQuestion);
+
+    // Verify both see the same category badge
+    const facilitatorCategory = await facilitatorCard.locator('span.bg-indigo-100').textContent();
+    const participantCategory = await participantCard.locator('span.bg-indigo-100').textContent();
+    expect(participantCategory).toBe(facilitatorCategory);
+
+    // Refresh again to verify it continues working
+    await page.getByRole('button', { name: 'New Question' }).click();
+    await page.waitForTimeout(1500);
+
+    const secondFacilitatorQuestion = await facilitatorCard.locator('p.text-lg').textContent();
+    const secondParticipantQuestion = await participantCard.locator('p.text-lg').textContent();
+
+    // Both should see the same question again
+    expect(secondParticipantQuestion).toBe(secondFacilitatorQuestion);
+    expect(secondFacilitatorQuestion).not.toBe(newFacilitatorQuestion); // Question should have changed
   });
 
   test('E2E-ICEBREAKER-CUSTOM: User can add custom icebreaker questions', async ({ page }) => {

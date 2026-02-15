@@ -3,9 +3,11 @@ import { RefreshCw, X, Plus } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { toast } from '@/lib/toast';
+import { getWSClient } from '@/lib/ws-client';
 
 interface IcebreakerCardProps {
   teamId: string;
+  boardId: string;
   onDismiss: () => void;
 }
 
@@ -17,7 +19,7 @@ interface Icebreaker {
 
 const CATEGORIES = ['Fun', 'Team-Building', 'Reflective', 'Creative', 'Quick'] as const;
 
-export function IcebreakerCard({ teamId, onDismiss }: IcebreakerCardProps) {
+export function IcebreakerCard({ teamId, boardId, onDismiss }: IcebreakerCardProps) {
   const [icebreaker, setIcebreaker] = useState<Icebreaker | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,7 +31,10 @@ export function IcebreakerCard({ teamId, onDismiss }: IcebreakerCardProps) {
   const fetchIcebreaker = async (category?: string) => {
     setIsLoading(true);
     try {
-      const query = category ? `?teamId=${teamId}&category=${category}` : `?teamId=${teamId}`;
+      let query = `?teamId=${teamId}&boardId=${boardId}`;
+      if (category) {
+        query += `&category=${category}`;
+      }
       const response = await api.get<{ ok: boolean; data: Icebreaker }>(`/icebreakers/random${query}`);
       setIcebreaker(response.data);
     } catch (err) {
@@ -42,6 +47,24 @@ export function IcebreakerCard({ teamId, onDismiss }: IcebreakerCardProps) {
   useEffect(() => {
     fetchIcebreaker();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Listen for WebSocket icebreaker updates
+  useEffect(() => {
+    const ws = getWSClient();
+
+    const handleIcebreakerUpdate = (msg: { payload: Record<string, unknown> }) => {
+      const { question, category, id } = msg.payload;
+      if (typeof question === 'string' && typeof category === 'string' && typeof id === 'string') {
+        setIcebreaker({ id, question, category });
+      }
+    };
+
+    ws.on('icebreaker_update', handleIcebreakerUpdate);
+
+    return () => {
+      ws.off('icebreaker_update', handleIcebreakerUpdate);
+    };
   }, []);
 
   const handleCategoryChange = (category: string | null) => {

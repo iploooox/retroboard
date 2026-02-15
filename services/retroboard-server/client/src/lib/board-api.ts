@@ -87,6 +87,7 @@ export interface ActionItem {
   assigneeName: string | null;
   dueDate: string | null;
   status: 'open' | 'in_progress' | 'done';
+  completedAt: string | null;
   carriedFromId: string | null;
   carriedFromSprintName: string | null;
   createdBy: string;

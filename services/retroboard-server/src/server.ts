@@ -61,6 +61,7 @@ import { exportRouter } from './routes/export-routes.js';
 import { reactionsRouter } from './routes/reactions.js';
 import { icebreakersRouter } from './routes/icebreakers.js';
 import { onboardingRouter } from './routes/onboarding.js';
+import { sentimentLexiconRouter } from './routes/sentiment-lexicon.js';
 
 app.route('/api/v1/auth', authRouter);
 app.route('/api/v1/teams', teamsRouter);
@@ -75,6 +76,7 @@ app.route('/api/v1', exportRouter);
 app.route('/api/v1', reactionsRouter);
 app.route('/api/v1', icebreakersRouter);
 app.route('/api/v1', onboardingRouter);
+app.route('/api/v1', sentimentLexiconRouter);
 
 // Global error handler
 app.onError((err, c) => {

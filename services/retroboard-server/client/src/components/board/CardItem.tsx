@@ -4,6 +4,7 @@ import { useBoardStore } from '@/stores/board';
 import { useAuthStore } from '@/stores/auth';
 import { boardApi } from '@/lib/board-api';
 import { toast } from '@/lib/toast';
+import { calculateSentiment, getSentimentColor, getSentimentLabel } from '@/lib/sentiment';
 import type { BoardCard } from '@/lib/board-api';
 
 const REACTION_EMOJIS = ['👍', '👎', '❤️', '😂', '🎉', '🤔', '🔥', '👏', '✅', '❌', '💡', '🚀'];
@@ -60,6 +61,10 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
   const authorDisplay = board.anonymous_mode && !isOwner && !isFacilitator
     ? 'Anonymous'
     : (card.author_name ?? 'Anonymous');
+
+  const sentiment = calculateSentiment(card.content);
+  const sentimentColor = getSentimentColor(sentiment);
+  const sentimentLabel = getSentimentLabel(sentiment);
 
   const handleSaveEdit = async () => {
     if (editContent.trim() && editContent.trim() !== card.content) {
@@ -161,7 +166,12 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
         </div>
       ) : (
         <>
-          <p className="text-sm text-slate-800 whitespace-pre-wrap break-words">{card.content}</p>
+          <p
+            className="text-sm whitespace-pre-wrap break-words"
+            style={{ color: 'var(--theme-text-primary, #1e293b)' }}
+          >
+            {card.content}
+          </p>
 
           {/* Reactions */}
           {(card.reactions && card.reactions.length > 0) || !isLocked ? (
@@ -220,7 +230,14 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
           ) : null}
 
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
-            <span className="text-xs text-slate-400">{authorDisplay}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs" style={{ color: 'var(--theme-text-muted, #64748b)' }}>{authorDisplay}</span>
+              <div
+                className={`h-1.5 w-1.5 rounded-full ${sentimentColor}`}
+                title={sentimentLabel}
+                aria-label={sentimentLabel}
+              />
+            </div>
             <div className="flex items-center gap-1">
               {(isVotePhase || card.vote_count > 0) && (
                 <div className="flex items-center gap-1">
@@ -243,7 +260,7 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
                     </button>
                   )}
                   {card.vote_count > 0 && (
-                    <span className="text-xs font-medium text-slate-500 ml-0.5">
+                    <span className="text-xs font-medium ml-0.5" style={{ color: 'var(--theme-text-secondary, #475569)' }}>
                       {card.vote_count}
                     </span>
                   )}

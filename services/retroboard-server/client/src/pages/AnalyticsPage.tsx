@@ -9,9 +9,11 @@ import { HealthTrendChart } from '@/components/analytics/HealthTrendChart';
 import { ParticipationChart } from '@/components/analytics/ParticipationChart';
 import { SentimentChart } from '@/components/analytics/SentimentChart';
 import { WordCloudViz } from '@/components/analytics/WordCloudViz';
+import { RecurringThemes } from '@/components/analytics/RecurringThemes';
 import { CardDistributionChart } from '@/components/analytics/CardDistributionChart';
 import { TopVotedCards } from '@/components/analytics/TopVotedCards';
 import { ActionItemsSummary } from '@/components/analytics/ActionItemsSummary';
+import { VoteDistributionChart } from '@/components/analytics/VoteDistributionChart';
 
 interface HealthDataPoint {
   sprintId: string;
@@ -89,11 +91,11 @@ export function AnalyticsPage() {
   const [teamName, setTeamName] = useState<string>('');
   const [viewMode, setViewMode] = useState<ViewMode>('team');
   const [selectedSprintId, setSelectedSprintId] = useState<string | null>(null);
-  // TODO: Implement sprint comparison feature
-  // const [comparisonSprintIds, setComparisonSprintIds] = useState<[string | null, string | null]>([null, null]);
+  // DEFERRED: Sprint comparison view — approved for post-MVP by PO (2026-02-15)
+  // Reason: Requires significant new UI (side-by-side charts, dual sprint selector, overlay rendering)
+  // Workaround: Users can open two browser tabs to compare sprints
 
   const [sprintRange, setSprintRange] = useState<SprintRangeOption>('10');
-  const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null);
 
   const [healthData, setHealthData] = useState<HealthDataPoint[]>([]);
   const [healthError, setHealthError] = useState<string | null>(null);
@@ -118,6 +120,13 @@ export function AnalyticsPage() {
   const [topVotedCards, setTopVotedCards] = useState<TopCard[]>([]);
   const [actionItems, setActionItems] = useState<ActionItems | null>(null);
   const [sprintName, setSprintName] = useState<string>('');
+
+  // Sprint click handler
+  const handleSprintClick = (sprintId: string) => {
+    setSearchParams({ sprint: sprintId });
+    setSelectedSprintId(sprintId);
+    setViewMode('sprint');
+  };
 
   const handleExportCSV = () => {
     try {
@@ -482,8 +491,6 @@ export function AnalyticsPage() {
           onExportCSV={handleExportCSV}
           sprintRange={sprintRange}
           onSprintRangeChange={viewMode === 'team' ? setSprintRange : undefined}
-          dateRange={dateRange}
-          onDateRangeChange={viewMode === 'team' ? setDateRange : undefined}
         />
       )}
 
@@ -517,6 +524,10 @@ export function AnalyticsPage() {
 
           <ChartCard title="Top Voted Cards" helpText="Cards with the most votes">
             <TopVotedCards cards={topVotedCards} limit={10} />
+          </ChartCard>
+
+          <ChartCard title="Vote Distribution" helpText="How votes are spread across all cards">
+            <VoteDistributionChart cards={topVotedCards} totalCards={cardDistribution.reduce((sum, col) => sum + col.count, 0)} />
           </ChartCard>
 
           <ChartCard title="Action Items Summary" helpText="Status and completion of action items">
@@ -578,7 +589,7 @@ export function AnalyticsPage() {
                 </div>
               </div>
             ) : (
-              <HealthTrendChart data={healthData} />
+              <HealthTrendChart data={healthData} onSprintClick={viewMode === 'team' ? handleSprintClick : undefined} />
             )}
           </ChartCard>
 
@@ -620,7 +631,6 @@ export function AnalyticsPage() {
 
           <ChartCard
             title="Word Cloud"
-            span="full"
             helpText="Most frequently mentioned words from retrospective cards"
           >
             {wordCloudError ? (
@@ -632,6 +642,22 @@ export function AnalyticsPage() {
               </div>
             ) : (
               <WordCloudViz words={wordCloudData} totalCards={totalCards} />
+            )}
+          </ChartCard>
+
+          <ChartCard
+            title="Recurring Themes"
+            helpText="Topics that appear frequently across your retrospectives"
+          >
+            {wordCloudError ? (
+              <div className="flex items-center justify-center h-64 text-red-500">
+                <div className="text-center">
+                  <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                  <p>{wordCloudError}</p>
+                </div>
+              </div>
+            ) : (
+              <RecurringThemes words={wordCloudData} totalSprints={healthData.length} />
             )}
           </ChartCard>
         </div>
