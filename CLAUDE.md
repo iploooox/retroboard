@@ -22,3 +22,4 @@ See `epics/INDEX.md` for current status.
 
 ## Team mode 
 Always use sonnet when spawning new agents unless user explicitly requests otherwise.
+Exception: reviewer should use opus.

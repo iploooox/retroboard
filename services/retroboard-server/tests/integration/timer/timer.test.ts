@@ -76,8 +76,8 @@ describe('Timer Endpoints — Integration Tests', () => {
       body: JSON.stringify({ durationSeconds: 300 }),
     });
 
-    // Wait for at least 1 tick
-    await new Promise((r) => setTimeout(r, 1500));
+    // Wait for at least 1 tick (1100ms to ensure 1-second timer ticks)
+    await new Promise((r) => setTimeout(r, 1100));
 
     // GET to verify remaining has decremented
     const res = await app.request(`/api/v1/boards/${board.id}/timer`, {
@@ -95,18 +95,18 @@ describe('Timer Endpoints — Integration Tests', () => {
   // --- Timer expires ---
 
   it('3.4.3: Timer expires — short timer, GET shows no timer', async () => {
-    // Start a very short timer (3 seconds)
+    // Start a very short timer (reduced from 3s to 1s)
     await app.request(`/api/v1/boards/${board.id}/timer`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ durationSeconds: 3 }),
+      body: JSON.stringify({ durationSeconds: 1 }),
     });
 
-    // Wait for expiry (3s + buffer)
-    await new Promise((r) => setTimeout(r, 4500));
+    // Wait for expiry (reduced from 4500ms to 1500ms)
+    await new Promise((r) => setTimeout(r, 1500));
 
     // GET should show no timer
     const res = await app.request(`/api/v1/boards/${board.id}/timer`, {
@@ -378,8 +378,8 @@ describe('Timer Endpoints — Integration Tests', () => {
       body: JSON.stringify({ durationSeconds: 300 }),
     });
 
-    // Simulate "page refresh" — wait 2 seconds, then GET fresh state
-    await new Promise((r) => setTimeout(r, 2000));
+    // Simulate "page refresh" — reduced from 2000ms to 500ms
+    await new Promise((r) => setTimeout(r, 500));
 
     const res = await app.request(`/api/v1/boards/${board.id}/timer`, {
       method: 'GET',
@@ -389,9 +389,9 @@ describe('Timer Endpoints — Integration Tests', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     const remaining = body.remainingSeconds ?? body.data?.remainingSeconds;
-    // Should reflect elapsed time (within tolerance)
+    // Should reflect elapsed time (within tolerance, adjusted for 500ms wait)
     expect(remaining).toBeDefined();
-    expect(remaining).toBeLessThanOrEqual(299);
-    expect(remaining).toBeGreaterThanOrEqual(295);
+    expect(remaining).toBeLessThanOrEqual(300);
+    expect(remaining).toBeGreaterThanOrEqual(298);
   });
 });

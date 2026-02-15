@@ -16,6 +16,10 @@ interface BoardState {
   userVotesRemaining: number;
   userCardVotes: Record<string, number>;
 
+  // Phase 3 state
+  isLocked: boolean;
+  cardsRevealed: boolean;
+
   // UI state
   isLoading: boolean;
   error: string | null;
@@ -70,6 +74,8 @@ function loadBoardData(data: BoardData) {
     userVotesCast: data.user_total_votes_cast,
     userVotesRemaining: data.user_votes_remaining,
     userCardVotes,
+    isLocked: (data as BoardData & { is_locked?: boolean }).is_locked || false,
+    cardsRevealed: (data as BoardData & { cards_revealed?: boolean }).cards_revealed || false,
     isLoading: false,
     error: null,
   };
@@ -84,6 +90,8 @@ const initialState = {
   userVotesCast: 0,
   userVotesRemaining: 0,
   userCardVotes: {},
+  isLocked: false,
+  cardsRevealed: false,
   isLoading: true,
   error: null,
   actionItemsLoading: false,

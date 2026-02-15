@@ -4,6 +4,7 @@ import { formatErrorResponse } from '../utils/errors.js';
 import * as boardRepo from '../repositories/board.repository.js';
 import * as timerRepo from '../repositories/timer.repository.js';
 import { TimerService } from '../services/timer-service.js';
+import { broadcastToBoard } from '../ws/index.js';
 
 const repo = {
   create: timerRepo.create,
@@ -12,8 +13,8 @@ const repo = {
   delete: timerRepo.remove,
 };
 
-const broadcast = (_boardId: string, _event: Record<string, unknown>) => {
-  // WebSocket broadcast will be integrated in a later task
+const broadcast = (boardId: string, event: Record<string, unknown>) => {
+  broadcastToBoard(boardId, event as { type: string; payload: Record<string, unknown> });
 };
 
 export const timerService = new TimerService(repo, broadcast);

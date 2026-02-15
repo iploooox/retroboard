@@ -75,6 +75,17 @@ export class TimerService {
     const intervalId = setInterval(() => this.tick(boardId), 1000);
     this.activeTimers.set(boardId, { state, intervalId });
 
+    // Broadcast timer_started event
+    this.broadcast(boardId, {
+      type: 'timer_started',
+      payload: {
+        phase,
+        durationSeconds,
+        remainingSeconds: durationSeconds,
+        startedBy: userId,
+      },
+    });
+
     return { ...state };
   }
 
@@ -94,6 +105,14 @@ export class TimerService {
     await this.repo.update(boardId, {
       remaining_seconds: active.state.remainingSeconds,
       paused_at: new Date(),
+    });
+
+    // Broadcast timer_paused event
+    this.broadcast(boardId, {
+      type: 'timer_paused',
+      payload: {
+        remainingSeconds: active.state.remainingSeconds,
+      },
     });
 
     return { ...active.state };

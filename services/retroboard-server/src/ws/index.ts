@@ -285,3 +285,18 @@ function handleStaleClient(clientId: string): void {
     // The 'close' event handler will clean up room/presence/heartbeat
   }
 }
+
+/** Export broadcast function for manual WebSocket event broadcasting (e.g., timer events) */
+export function broadcastToBoard(boardId: string, event: { type: string; payload: Record<string, unknown> }): void {
+  if (!roomManager) {
+    console.warn('RoomManager not initialized, cannot broadcast');
+    return;
+  }
+  const message = {
+    type: event.type,
+    payload: event.payload,
+    timestamp: new Date().toISOString(),
+    eventId: randomUUID(),
+  };
+  roomManager.broadcast(boardId, message);
+}
