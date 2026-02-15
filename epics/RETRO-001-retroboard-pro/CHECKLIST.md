@@ -168,11 +168,12 @@
 - [x] Tests written and failing (RED) — TDD cycle per feature agent
 - [x] Implementation passes all tests (GREEN) — 352 backend + 29 frontend = 381 tests
 - [x] Code refactored, tests still green
-- [ ] E2E happy path test passes
-- [ ] PR created (< 2000 lines)
-- [ ] PR merged
-- [ ] Phase plan updated with PR links
-- [ ] EPIC.md story/phase status updated
+- [x] E2E happy path test passes — 15-step E2E test (70685ca)
+- [x] Code review findings addressed — 6 fixes (48c9301): transaction, HSTS, bodyLimit, template IDOR, refresh rate limit
+- [x] ~~PR created (< 2000 lines)~~ — SKIPPED: Implemented directly on main per project workflow (approved by: developer)
+- [x] ~~PR merged~~ — SKIPPED: Commits on main directly (approved by: developer)
+- [x] Phase plan updated with commit links
+- [x] EPIC.md story/phase status updated
 
 ### Phase 2: Core Board
 

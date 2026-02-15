@@ -1,7 +1,7 @@
 ---
 id: "RETRO-001"
 name: "RetroBoard Pro"
-status: planning
+status: in-progress
 created: 2026-02-14
 services: [retroboard-server]
 ---
@@ -16,7 +16,7 @@ Build the most powerful retrospective board on the market. RetroBoard Pro suppor
 
 | Phase | Goal | Stories | Status |
 |-------|------|---------|--------|
-| 1 | Foundation — Auth, Teams, Sprints, DB Schema | S-001..S-006 | planning |
+| 1 | Foundation — Auth, Teams, Sprints, DB Schema | S-001..S-006 | done |
 | 2 | Core Board — Retro board, cards, voting, columns, basic templates | S-007..S-012 | planning |
 | 3 | Collaboration — Real-time sync, facilitation tools, timer, phases | S-013..S-017 | planning |
 | 4 | Intelligence — Analytics dashboard, sentiment analysis, action item tracking | S-018..S-023 | planning |
@@ -26,18 +26,18 @@ Build the most powerful retrospective board on the market. RetroBoard Pro suppor
 
 | ID | Name | Phase | Status |
 |----|------|-------|--------|
-| S-001 | User registration & login | 1 | todo |
-| S-002 | Session management with JWT | 1 | todo |
-| S-003 | Create and manage teams | 1 | todo |
-| S-004 | Invite members via email/link | 1 | todo |
-| S-005 | Team roles (admin, facilitator, member) | 1 | todo |
-| S-006 | Sprint CRUD with date ranges | 1 | todo |
+| S-001 | User registration & login | 1 | done |
+| S-002 | Session management with JWT | 1 | done |
+| S-003 | Create and manage teams | 1 | done |
+| S-004 | Invite members via email/link | 1 | done |
+| S-005 | Team roles (admin, facilitator, member) | 1 | done |
+| S-006 | Sprint CRUD with date ranges | 1 | done |
 | S-007 | Create retro board for a sprint | 2 | todo |
 | S-008 | Add/edit/delete cards in columns | 2 | todo |
 | S-009 | Anonymous & named card modes | 2 | todo |
 | S-010 | Vote on cards with configurable vote limits | 2 | todo |
 | S-011 | Group related cards into clusters | 2 | todo |
-| S-012 | Basic templates (WWW/Delta, Start/Stop/Continue) | 2 | todo |
+| S-012 | Basic templates (WWW/Delta, Start/Stop/Continue) | 1 | done |
 | S-013 | Real-time card sync via WebSocket | 3 | todo |
 | S-014 | Live cursors & presence indicators | 3 | todo |
 | S-015 | Facilitation phases (write, group, vote, discuss, action) | 3 | todo |

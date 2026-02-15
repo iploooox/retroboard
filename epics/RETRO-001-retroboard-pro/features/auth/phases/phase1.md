@@ -1,10 +1,10 @@
 ---
 phase: 1
 name: "Foundation"
-status: todo
+status: done
 stories: ["S-001", "S-002", "S-003", "S-004", "S-005", "S-006", "S-012"]
 estimated_duration: "3-4 weeks"
-changed: 2026-02-14 — Spec Review Gate
+changed: 2026-02-15 — Phase 1 complete
 ---
 
 # Phase 1: Foundation -- Auth, Teams, Sprints, Database Setup
@@ -175,3 +175,17 @@ Phase 1 establishes the foundational infrastructure for RetroBoard Pro. This inc
 | Database schema changes later | Design with extensibility (JSONB settings fields, nullable FKs) |
 | JWT security vulnerabilities | Use well-tested libraries, short access token TTL, token rotation |
 | Invite link abuse | Rate limiting, max uses, expiration, team-level invite limits |
+
+## Commits
+
+| Commit | Description |
+|--------|-------------|
+| f51aca6 | Project scaffolding, database migrations, test infrastructure |
+| 3d68c90 | Auth endpoints with TDD (91 tests) |
+| b074452 | Team management, invites, RBAC with TDD (128 tests) |
+| 1ae696a | Sprint lifecycle and template listing with TDD (112 tests) |
+| 72cc196 | Frontend Phase 1 UI — auth, teams, sprints, templates (29 tests) |
+| 08d906d | Fix: exclude client tests from root vitest config |
+| 3649009 | Checklist update — Phase 1 TDD complete |
+| 70685ca | E2E happy path integration test (15 steps) |
+| 48c9301 | Fix: code review + security findings (6 fixes) |
