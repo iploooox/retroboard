@@ -1,7 +1,38 @@
+import { createServer, type Server } from 'node:http';
 import WebSocket from 'ws';
 import { getAuthToken } from './auth.js';
 
 const TEST_PORT = Number(process.env.TEST_PORT) || 3001;
+
+// Lazy HTTP+WS server: starts once on first WS client creation
+// Cleanup stored on globalThis so setup.ts afterAll can access it
+let serverReady: Promise<void> | null = null;
+
+declare global {
+  var __wsServerCleanup: (() => Promise<void>) | undefined;
+}
+
+async function ensureServerStarted(): Promise<void> {
+  if (serverReady) return serverReady;
+  serverReady = (async () => {
+    const { getRequestListener } = await import('@hono/node-server');
+    const { app } = await import('../../src/server.js');
+    const { setupWebSocket } = await import('../../src/ws/index.js');
+
+    const server = createServer(getRequestListener(app.fetch));
+    const cleanup = setupWebSocket(server);
+
+    await new Promise<void>((resolve) => {
+      server.listen(TEST_PORT, resolve);
+    });
+
+    globalThis.__wsServerCleanup = async () => {
+      await cleanup();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    };
+  })();
+  return serverReady;
+}
 
 export interface TestWSClient {
   ws: WebSocket;
@@ -18,6 +49,7 @@ export async function createTestWSClient(options: {
   token?: string;
   lastEventId?: string;
 }): Promise<TestWSClient> {
+  await ensureServerStarted();
   const token = options.token ?? (await getAuthToken()).token;
   let url = `ws://localhost:${TEST_PORT}/ws?token=${token}&boardId=${options.boardId}`;
   if (options.lastEventId) url += `&lastEventId=${options.lastEventId}`;

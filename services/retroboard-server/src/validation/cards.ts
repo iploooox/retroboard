@@ -1,9 +1,13 @@
 import { z } from 'zod';
 
 export const addCardSchema = z.object({
-  column_id: z.string().uuid('Invalid column_id format'),
+  column_id: z.string().uuid('Invalid column_id format').optional(),
+  columnId: z.string().uuid('Invalid columnId format').optional(),
   content: z.string().trim().min(1, 'Content is required').max(2000, 'Content must be at most 2000 characters'),
-});
+}).transform((data) => ({
+  column_id: data.column_id ?? data.columnId!,
+  content: data.content,
+})).refine((data) => !!data.column_id, { message: 'column_id or columnId is required' });
 
 export const updateCardSchema = z.object({
   content: z.string().trim().min(1, 'Content cannot be empty').max(2000, 'Content must be at most 2000 characters').optional(),

@@ -86,11 +86,17 @@ const isMainModule = process.argv[1] &&
 
 if (isMainModule) {
   console.log(`Starting server on port ${env.PORT}...`);
-  serve({
+  const httpServer = serve({
     fetch: app.fetch,
     port: env.PORT,
   }, (info) => {
     console.log(`Server running at http://localhost:${info.port}`);
+  });
+
+  // Attach WebSocket server
+  import('./ws/index.js').then(({ setupWebSocket }) => {
+    setupWebSocket(httpServer);
+    console.log('WebSocket server attached');
   });
 }
 

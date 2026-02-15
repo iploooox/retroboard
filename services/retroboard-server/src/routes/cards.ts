@@ -69,8 +69,8 @@ cardsRouter.post('/boards/:id/cards', async (c) => {
   }), 201);
 });
 
-// PUT /boards/:id/cards/:cardId — Edit card
-cardsRouter.put('/boards/:id/cards/:cardId', async (c) => {
+// PUT/PATCH /boards/:id/cards/:cardId — Edit card
+const updateCardHandler: Parameters<typeof cardsRouter.put>[1] = async (c) => {
   const boardId = c.req.param('id');
   const cardId = c.req.param('cardId');
   const user = c.get('user');
@@ -117,7 +117,9 @@ cardsRouter.put('/boards/:id/cards/:cardId', async (c) => {
 
   const updated = await cardRepo.update(cardId, parsed.data);
   return c.json(okRes(updated));
-});
+};
+cardsRouter.put('/boards/:id/cards/:cardId', updateCardHandler);
+cardsRouter.patch('/boards/:id/cards/:cardId', updateCardHandler);
 
 // DELETE /boards/:id/cards/:cardId — Delete card
 cardsRouter.delete('/boards/:id/cards/:cardId', async (c) => {
@@ -157,8 +159,8 @@ cardsRouter.delete('/boards/:id/cards/:cardId', async (c) => {
 
 // ---------- Votes ----------
 
-// POST /boards/:id/cards/:cardId/vote — Cast vote
-cardsRouter.post('/boards/:id/cards/:cardId/vote', async (c) => {
+// POST /boards/:id/cards/:cardId/vote(s) — Cast vote
+const castVoteHandler: Parameters<typeof cardsRouter.post>[1] = async (c) => {
   const boardId = c.req.param('id');
   const cardId = c.req.param('cardId');
   const user = c.get('user');
@@ -192,10 +194,12 @@ cardsRouter.post('/boards/:id/cards/:cardId/vote', async (c) => {
   }
 
   return c.json(okRes(result.data), 201);
-});
+};
+cardsRouter.post('/boards/:id/cards/:cardId/vote', castVoteHandler);
+cardsRouter.post('/boards/:id/cards/:cardId/votes', castVoteHandler);
 
-// DELETE /boards/:id/cards/:cardId/vote — Remove vote
-cardsRouter.delete('/boards/:id/cards/:cardId/vote', async (c) => {
+// DELETE /boards/:id/cards/:cardId/vote(s) — Remove vote
+const removeVoteHandler: Parameters<typeof cardsRouter.delete>[1] = async (c) => {
   const boardId = c.req.param('id');
   const cardId = c.req.param('cardId');
   const user = c.get('user');
@@ -223,7 +227,9 @@ cardsRouter.delete('/boards/:id/cards/:cardId/vote', async (c) => {
   }
 
   return c.json(okRes(result.data));
-});
+};
+cardsRouter.delete('/boards/:id/cards/:cardId/vote', removeVoteHandler);
+cardsRouter.delete('/boards/:id/cards/:cardId/votes', removeVoteHandler);
 
 // ---------- Groups ----------
 

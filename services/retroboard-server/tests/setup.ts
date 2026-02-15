@@ -24,6 +24,11 @@ await migrate(testDbUrl);
 await seed(testDbUrl);
 
 afterAll(async () => {
+  // Shut down WS server if it was started (by integration tests)
+  if (globalThis.__wsServerCleanup) {
+    await globalThis.__wsServerCleanup();
+  }
+
   // Close lazy connection if it was opened
   const { closeDatabase } = await import('../src/db/connection.js');
   await closeDatabase();

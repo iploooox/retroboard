@@ -57,13 +57,24 @@ export const setPhaseSchema = z.object({
 });
 
 export const setFocusSchema = z.object({
-  focus_item_id: z.string().uuid('Invalid focus_item_id format').nullable(),
+  focus_item_id: z.string().uuid('Invalid focus_item_id format').nullable().optional(),
   focus_item_type: z
     .enum(FOCUS_ITEM_TYPES, {
       errorMap: () => ({ message: `Type must be one of: ${FOCUS_ITEM_TYPES.join(', ')}` }),
     })
-    .nullable(),
-}).refine(
+    .nullable()
+    .optional(),
+  focusId: z.string().uuid('Invalid focusId format').nullable().optional(),
+  focusType: z
+    .enum(FOCUS_ITEM_TYPES, {
+      errorMap: () => ({ message: `Type must be one of: ${FOCUS_ITEM_TYPES.join(', ')}` }),
+    })
+    .nullable()
+    .optional(),
+}).transform((data) => ({
+  focus_item_id: data.focus_item_id ?? data.focusId ?? null,
+  focus_item_type: data.focus_item_type ?? data.focusType ?? null,
+})).refine(
   (data) =>
     (data.focus_item_id === null && data.focus_item_type === null) ||
     (data.focus_item_id !== null && data.focus_item_type !== null),
