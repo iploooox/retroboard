@@ -286,8 +286,8 @@ test.describe('Board Operations', () => {
 
     // Create team
     await page.getByRole('button', { name: /create team|new team/i }).click();
-    await page.getByPlaceholder(/team name/i).fill('Template Test Team');
-    await page.getByRole('button', { name: /create|save/i }).click();
+    await page.getByLabel('Team Name').fill('Template Test Team');
+    await page.getByRole('button', { name: /create team/i }).click();
     await page.waitForTimeout(500);
 
     // Create sprint

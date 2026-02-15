@@ -70,19 +70,19 @@ test.describe.serial('User Journey: Analytics and Export', () => {
 
     // Card 1 - Positive column
     await addButtons[0].click();
-    await page.getByPlaceholder(/enter your card|card content/i).fill('Great collaboration on the API design');
+    await page.getByPlaceholder(/what.*your mind/i).fill('Great collaboration on the API design');
     await page.keyboard.press('Enter');
     await expect(page.getByText('Great collaboration on the API design')).toBeVisible();
 
     // Card 2 - Negative/Improvement column
     await addButtons[1].click();
-    await page.getByPlaceholder(/enter your card|card content/i).fill('Need better documentation');
+    await page.getByPlaceholder(/what.*your mind/i).fill('Need better documentation');
     await page.keyboard.press('Enter');
     await expect(page.getByText('Need better documentation')).toBeVisible();
 
     // Card 3 - Action items column
     await addButtons[2].click();
-    await page.getByPlaceholder(/enter your card|card content/i).fill('Update testing guidelines');
+    await page.getByPlaceholder(/what.*your mind/i).fill('Update testing guidelines');
     await page.keyboard.press('Enter');
     await expect(page.getByText('Update testing guidelines')).toBeVisible();
 
