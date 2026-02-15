@@ -32,8 +32,8 @@ export function IcebreakerCard({ teamId, onDismiss }: IcebreakerCardProps) {
       const query = category ? `?teamId=${teamId}&category=${category}` : `?teamId=${teamId}`;
       const response = await api.get<{ ok: boolean; data: Icebreaker }>(`/icebreakers/random${query}`);
       setIcebreaker(response.data);
-    } catch {
-      // Silent fail - keep previous icebreaker
+    } catch (err) {
+      toast.error('Failed to load icebreaker question');
     } finally {
       setIsLoading(false);
     }

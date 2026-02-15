@@ -198,28 +198,40 @@ test.describe('Icebreaker Generator (S-028)', () => {
     // 3. When facilitator dismisses, all participants see it dismissed
   });
 
-  test.skip('E2E-ICEBREAKER-CUSTOM: Team admin can add custom icebreaker questions', async ({ page }) => {
-    // TODO: This test requires custom icebreaker UI implementation
-    // Acceptance criteria: "Custom icebreaker questions can be added by team admin"
-    // Backend endpoint exists: POST /api/v1/teams/:teamId/icebreakers/custom
-    // Frontend UI not implemented: need team settings page with custom icebreaker input
+  test('E2E-ICEBREAKER-CUSTOM: User can add custom icebreaker questions', async ({ page }) => {
     const email = generateUniqueEmail();
     const password = 'SecurePass123!';
     const displayName = 'Custom Icebreaker Admin';
     const teamName = `Custom Icebreaker Team ${Date.now()}`;
+    const customQuestion = `What is your favorite debugging technique? (${Date.now()})`;
 
     await registerUser(page, { email, password, displayName });
     await createTeamAndBoard(page, { teamName });
+    await expect(page.locator('text=What went well?')).toBeVisible({ timeout: 10000 });
 
-    // Navigate to dashboard to access team settings
-    await page.goto('/dashboard');
-    await page.getByText(teamName).click();
+    // Wait for icebreaker card to appear
+    await expect(page.getByText('🎲 Icebreaker Question')).toBeVisible({ timeout: 5000 });
 
-    // TODO: Add custom icebreaker input in team settings
-    // Expected UI: Input field + "Add Custom Icebreaker" button
-    // await page.getByLabel(/custom icebreaker|add question/i).fill('What is your favorite debugging technique?');
-    // await page.getByRole('button', { name: /add custom icebreaker|save/i }).click();
-    // await expect(page.getByText('Custom icebreaker added')).toBeVisible();
+    // Click "Add Custom" button to show the custom question form
+    await page.getByRole('button', { name: 'Add Custom' }).click();
+
+    // Verify form is visible
+    await expect(page.getByPlaceholder(/enter your custom icebreaker/i)).toBeVisible();
+
+    // Fill in custom question
+    await page.getByPlaceholder(/enter your custom icebreaker/i).fill(customQuestion);
+
+    // Select category (default is "Fun", so optionally change it)
+    await page.locator('select').filter({ hasText: /Fun|Team-Building/i }).selectOption('Team-Building');
+
+    // Click "Add" button
+    await page.getByRole('button', { name: /^Add$/i }).click();
+
+    // Verify success toast appears
+    await expect(page.getByText(/custom icebreaker.*added/i)).toBeVisible({ timeout: 3000 });
+
+    // Verify form is hidden after submission
+    await expect(page.getByPlaceholder(/enter your custom icebreaker/i)).not.toBeVisible();
   });
 
   test.skip('E2E-ICEBREAKER-HISTORY: Icebreaker history prevents recent repeats', async ({ page }) => {

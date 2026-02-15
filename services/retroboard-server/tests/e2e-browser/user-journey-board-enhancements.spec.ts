@@ -102,7 +102,7 @@ test.describe('Board Enhancements Journey', () => {
       ).not.toBeVisible();
     });
 
-    test('create action item from card context menu', async ({ page }) => {
+    test('create action item from card with pre-filled title', async ({ page }) => {
       const email = generateUniqueEmail();
       await registerUser(page, {
         email,
@@ -123,13 +123,9 @@ test.describe('Board Enhancements Journey', () => {
       const cardElement = page.locator('.rounded-lg.border', { hasText: cardText }).first();
       await expect(cardElement).toBeVisible();
 
-      // Open card context menu (More options button - three dots or similar)
-      // NOTE: This feature is being implemented by board-dev-2
-      const moreOptionsButton = cardElement.getByRole('button', { name: /more options|card actions/i });
-      await moreOptionsButton.click();
-
-      // Click "Create Action Item" in the menu
-      await page.getByRole('menuitem', { name: /create action item/i }).click();
+      // Click the FileCheck icon button to create action item from card
+      const createActionButton = cardElement.getByRole('button', { name: /create action item from card/i });
+      await createActionButton.click();
 
       // Verify action items panel opens
       await expect(page.getByRole('heading', { name: /action items/i })).toBeVisible();
@@ -137,12 +133,59 @@ test.describe('Board Enhancements Journey', () => {
       // Verify the action item form is shown with pre-filled title from card
       await expect(page.getByPlaceholder(/action item title/i)).toHaveValue(cardText);
 
+      // Verify "📎 Linked to card" badge is visible
+      await expect(page.getByText(/📎.*linked to card/i)).toBeVisible();
+
       // Complete the action item creation
       await page.getByRole('button', { name: /^create$/i }).click();
       await page.waitForTimeout(500);
 
       // Verify action item appears in the list with the card's text
       await expect(page.getByText(cardText)).toBeVisible();
+    });
+
+    test('overdue action item shows red warning indicator', async ({ page }) => {
+      const email = generateUniqueEmail();
+      const displayName = 'Overdue Test User';
+      await registerUser(page, {
+        email,
+        password: 'SecurePass123!',
+        displayName,
+      });
+
+      await createTeamAndBoard(page, { teamName: 'Overdue Team' });
+
+      // Open action items panel
+      await page.getByRole('button', { name: /action items/i }).click();
+      await expect(page.getByRole('heading', { name: /action items/i })).toBeVisible();
+
+      // Create action item with overdue date (yesterday)
+      await page.getByRole('button', { name: /new/i }).click();
+
+      const actionTitle = 'Overdue task from last week';
+      await page.getByPlaceholder(/action item title/i).fill(actionTitle);
+
+      // Set due date to yesterday
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0]; // YYYY-MM-DD
+      await page.getByLabel(/due date/i).fill(yesterdayStr);
+
+      // Create the action item
+      await page.getByRole('button', { name: /^create$/i }).click();
+      await page.waitForTimeout(500);
+
+      // Find the action item row
+      const actionItemRow = page.locator('div', { hasText: actionTitle }).first();
+      await expect(actionItemRow).toBeVisible();
+
+      // Verify the due date shows in red with ⚠️ emoji
+      const dueDateElement = actionItemRow.locator('text=⚠️');
+      await expect(dueDateElement).toBeVisible();
+
+      // Verify the date text has red styling
+      const dueDateText = actionItemRow.getByText(yesterdayStr);
+      await expect(dueDateText).toHaveClass(/text-red/);
     });
 
     test('delete action item', async ({ page }) => {

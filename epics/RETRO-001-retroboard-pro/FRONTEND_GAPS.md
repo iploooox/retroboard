@@ -11,14 +11,14 @@
 | S-019 | partial | 4 | Yes — no comparison, no filter, no drill-down |
 | S-020 | partial | 7 | Yes — no CSV export, no per-sprint breakdown |
 | S-021 | partial | 3 | Medium — missing per-column sentiment, card indicators |
-| S-022 | partial | 3 | Medium — missing "create from card", overdue indicator |
+| S-022 | partial | ~~3~~ 1 blocked | **2 FIXED** — create from card ✓, overdue indicator ✓. 1 blocked (completion date needs backend) |
 | S-024 | done | 1 | Low — boardName shows UUID |
 | S-026 | done | ~~1~~ 0 | **FIXED** — `board.is_locked` → `useBoardStore((s) => s.isLocked)` |
 | S-027 | partial | ~~3~~ 2 | **CSS FIXED** — themes now visually apply. 2 medium remain (theme names, WCAG) |
-| S-028 | partial | 3 | Medium — no custom icebreaker UI, no real-time sync |
+| S-028 | partial | ~~3~~ 2 (1 blocked) | **1 FIXED** — custom UI ✓. 1 blocked (WS sync needs backend), 1 low (error handling) |
 | S-029 | done | 3 deferred | Low — guided tour, demo board, dashboard suggestions deferred |
 
-**Total: 32 gaps across 10 stories. 2 stories have critical gaps. S-029 fixed after PO review. S-026 isLocked bug fixed by board-dev. S-027 CSS gap fixed by themes-dev.**
+**Total: ~~32~~ 28 frontend-fixable gaps, 2 backend-blocked. 2 stories have critical gaps. S-022: 2/3 fixed. S-028: 1/3 fixed, 1 blocked.**
 
 ---
 
