@@ -22,8 +22,8 @@ export const timerService = new TimerService(repo, broadcast);
 const timerRouter = new Hono();
 timerRouter.use('*', requireAuth);
 
-// POST /boards/:id/timer — Start timer (facilitator/admin only)
-timerRouter.post('/boards/:id/timer', async (c) => {
+// POST /boards/:id/timer/start — Start timer (facilitator/admin only)
+timerRouter.post('/boards/:id/timer/start', async (c) => {
   const boardId = c.req.param('id');
   const user = c.get('user');
 
@@ -52,8 +52,8 @@ timerRouter.post('/boards/:id/timer', async (c) => {
   return c.json(state, 201);
 });
 
-// PUT /boards/:id/timer — Pause/Resume (facilitator/admin only)
-timerRouter.put('/boards/:id/timer', async (c) => {
+// POST /boards/:id/timer/pause — Pause timer (facilitator/admin only)
+timerRouter.post('/boards/:id/timer/pause', async (c) => {
   const boardId = c.req.param('id');
   const user = c.get('user');
 
@@ -70,22 +70,34 @@ timerRouter.put('/boards/:id/timer', async (c) => {
     return c.json(formatErrorResponse('FORBIDDEN', 'Only facilitators can manage timers'), 403);
   }
 
-  const body = await c.req.json().catch(() => ({}));
-  const { action } = body;
-
-  if (action === 'pause') {
-    const state = await timerService.pause(boardId, user.id);
-    return c.json(state);
-  } else if (action === 'resume') {
-    const state = await timerService.resume(boardId, user.id);
-    return c.json(state);
-  }
-
-  return c.json(formatErrorResponse('VALIDATION_ERROR', 'Action must be "pause" or "resume"'), 400);
+  const state = await timerService.pause(boardId, user.id);
+  return c.json(state);
 });
 
-// DELETE /boards/:id/timer — Stop timer (facilitator/admin only)
-timerRouter.delete('/boards/:id/timer', async (c) => {
+// POST /boards/:id/timer/resume — Resume timer (facilitator/admin only)
+timerRouter.post('/boards/:id/timer/resume', async (c) => {
+  const boardId = c.req.param('id');
+  const user = c.get('user');
+
+  const teamId = await boardRepo.getTeamIdForBoard(boardId);
+  if (!teamId) {
+    return c.json(formatErrorResponse('BOARD_NOT_FOUND', 'Board not found'), 404);
+  }
+
+  const role = await boardRepo.getUserTeamRole(teamId, user.id);
+  if (!role) {
+    return c.json(formatErrorResponse('FORBIDDEN', 'Not a team member'), 403);
+  }
+  if (role !== 'admin' && role !== 'facilitator') {
+    return c.json(formatErrorResponse('FORBIDDEN', 'Only facilitators can manage timers'), 403);
+  }
+
+  const state = await timerService.resume(boardId, user.id);
+  return c.json(state);
+});
+
+// POST /boards/:id/timer/reset — Reset/stop timer (facilitator/admin only)
+timerRouter.post('/boards/:id/timer/reset', async (c) => {
   const boardId = c.req.param('id');
   const user = c.get('user');
 

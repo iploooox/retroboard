@@ -155,7 +155,7 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       // ========== WRITE PHASE: Timer + Cards ==========
 
       // Alice starts write timer (30 seconds to avoid expiration during test)
-      const startTimerRes = await app.request(`/api/v1/boards/${boardId}/timer`, {
+      const startTimerRes = await app.request(`/api/v1/boards/${boardId}/timer/start`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ durationSeconds: 30 }),

@@ -3,14 +3,18 @@ import { AppError } from '../utils/errors.js';
 
 export class ReactionService {
   static readonly CURATED_EMOJIS = [
-    'thumbsup',
-    'thumbsdown',
-    'heart',
-    'fire',
-    'thinking',
-    'laughing',
-    'hundred',
-    'eyes',
+    '👍', // thumbsup
+    '👎', // thumbsdown
+    '❤️', // heart
+    '🔥', // fire
+    '🤔', // thinking
+    '😂', // laughing
+    '💯', // hundred
+    '👀', // eyes
+    '🎉', // party
+    '✅', // check
+    '😀', // smile
+    '🚀', // rocket
   ];
 
   async toggle(cardId: string, userId: string, emoji: string) {

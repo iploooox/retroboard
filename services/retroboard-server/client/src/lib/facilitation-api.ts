@@ -23,13 +23,13 @@ export const facilitationApi = {
   // Phase management
   setPhase: (boardId: string, phase: BoardPhase) =>
     api.put<{
-      id: string;
-      phase: BoardPhase;
-      previousPhase: BoardPhase;
-      changedBy: string;
-      changedAt: string;
-      timerStopped: boolean;
-    }>(`/boards/${boardId}/phase`, { phase }),
+      ok: true;
+      data: {
+        phase: BoardPhase;
+        previous_phase: BoardPhase;
+        timerStopped: boolean;
+      };
+    }>(`/boards/${boardId}/phase`, { phase }).then(r => r.data),
 
   // Timer management
   startTimer: (boardId: string, durationSeconds: number, phase?: BoardPhase) =>
@@ -46,47 +46,43 @@ export const facilitationApi = {
 
   stopTimer: (boardId: string) =>
     api.delete<{
-      boardId: string;
-      stoppedAt: string;
       reason: string;
-      remainingSeconds: number;
     }>(`/boards/${boardId}/timer`),
 
   getTimer: (boardId: string) =>
-    api.get<TimerResponse>(`/boards/${boardId}/timer`),
+    api.get<TimerState | { data: null }>(`/boards/${boardId}/timer`),
 
   // Board control
   lockBoard: (boardId: string, isLocked: boolean) =>
     api.put<{
-      id: string;
-      isLocked: boolean;
-      lockedBy?: string;
-      lockedAt?: string;
-      unlockedBy?: string;
-      unlockedAt?: string;
-    }>(`/boards/${boardId}/lock`, { isLocked }),
+      ok: true;
+      data: {
+        id: string;
+        is_locked: boolean;
+      };
+    }>(`/boards/${boardId}/lock`, { isLocked }).then(r => r.data),
 
   revealCards: (boardId: string) =>
     api.put<{
-      id: string;
-      cardsRevealed: boolean;
-      revealedBy: string;
-      revealedAt: string;
-      revealedCards: Array<{
-        cardId: string;
-        authorId: string;
-        authorName: string;
-      }>;
-    }>(`/boards/${boardId}/reveal`, {}),
+      ok: true;
+      data: {
+        cards_revealed: boolean;
+        revealedCards: Array<{
+          cardId: string;
+          authorId: string;
+          authorName: string;
+        }>;
+      };
+    }>(`/boards/${boardId}/reveal`, {}).then(r => r.data),
 
   setFocus: (boardId: string, focusType: 'card' | 'group' | null, focusId: string | null) =>
     api.put<{
-      id: string;
-      focusType: 'card' | 'group' | null;
-      focusId: string | null;
-      focusTitle: string | null;
-      focusVoteCount: number | null;
-      changedBy: string;
-      changedAt: string;
-    }>(`/boards/${boardId}/focus`, { focusType, focusId }),
+      ok: true;
+      data: {
+        id: string;
+        focus_item_id: string | null;
+        focus_item_type: 'card' | 'group' | null;
+        updated_at: string;
+      };
+    }>(`/boards/${boardId}/focus`, { focus_item_type: focusType, focus_item_id: focusId }).then(r => r.data),
 };

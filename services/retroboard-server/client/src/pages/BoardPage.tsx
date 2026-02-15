@@ -78,7 +78,8 @@ export function BoardPage() {
       reset();
       resetPresence();
     };
-  }, [sprintId, fetchBoard, reset, resetPresence]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sprintId]); // Only sprintId — Zustand store functions are stable
 
   // Connect to WebSocket when board loads
   useEffect(() => {
@@ -160,18 +161,20 @@ export function BoardPage() {
   if (!board) return null;
 
   const handlePhaseChange = (phase: BoardPhase) => {
-    // Phase change is handled by WebSocket sync
-    console.log('Phase changed to:', phase);
+    // Update store directly for immediate UI feedback
+    useBoardStore.setState((state) => ({
+      board: state.board ? { ...state.board, phase } : null,
+    }));
   };
 
   const handleLockToggle = (locked: boolean) => {
-    // Lock state is handled by WebSocket sync
-    console.log('Board lock toggled:', locked);
+    // Update store directly for immediate UI feedback
+    useBoardStore.setState({ isLocked: locked });
   };
 
   const handleRevealCards = () => {
-    // Reveal state is handled by WebSocket sync
-    console.log('Cards revealed');
+    // Update store directly for immediate UI feedback
+    useBoardStore.setState({ cardsRevealed: true });
   };
 
   return (

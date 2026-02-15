@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { BoardPhase } from '@/lib/board-api';
 import { Play, Pause, RotateCcw, Lock, Unlock, Eye, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -41,6 +41,24 @@ export function FacilitatorToolbar({
   const [isStartingTimer, setIsStartingTimer] = useState(false);
   const [showPhaseConfirm, setShowPhaseConfirm] = useState(false);
   const [pendingPhase, setPendingPhase] = useState<BoardPhase | null>(null);
+
+  // Client-side countdown interval
+  useEffect(() => {
+    if (!timerRunning || timerPaused) return;
+
+    const interval = setInterval(() => {
+      setTimerRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setTimerRunning(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timerRunning, timerPaused]);
 
   const currentPhaseIndex = PHASES.findIndex((p) => p.key === currentPhase);
   const nextPhase = currentPhaseIndex < PHASES.length - 1 ? PHASES[currentPhaseIndex + 1] : null;

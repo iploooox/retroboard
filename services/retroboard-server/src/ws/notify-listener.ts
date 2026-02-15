@@ -80,21 +80,30 @@ export class NotifyListener {
       case 'card_created':
       case 'card_updated': {
         const [card] = await sql`
-          SELECT c.*, u.display_name as author_name
+          SELECT
+            c.*,
+            u.display_name as author_name,
+            COALESCE((SELECT COUNT(*) FROM card_votes WHERE card_id = c.id), 0) as vote_count
           FROM cards c
-          JOIN users u ON u.id = c.author_id
+          LEFT JOIN users u ON u.id = c.author_id
           WHERE c.id = ${entityId}
         `;
         if (card) {
           payload = {
-            id: card.id,
-            boardId: card.board_id,
-            columnId: card.column_id,
-            content: card.content,
-            text: card.content,
-            authorId: card.author_id,
-            authorName: card.author_name,
-            position: Number(card.position),
+            card: {
+              id: card.id,
+              board_id: card.board_id,
+              column_id: card.column_id,
+              content: card.content,
+              author_id: card.author_id,
+              author_name: card.author_name || null,
+              position: Number(card.position),
+              vote_count: Number(card.vote_count),
+              user_votes: 0, // Not tracked in WS events
+              group_id: card.group_id || null,
+              created_at: card.created_at,
+              updated_at: card.updated_at,
+            },
           };
         }
         break;

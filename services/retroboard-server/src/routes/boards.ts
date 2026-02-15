@@ -229,6 +229,92 @@ boardsRouter.put('/boards/:id', async (c) => {
   return c.json({ ok: true, data: updated });
 });
 
+// PATCH /api/v1/boards/:id — Update board settings (alias for PUT)
+boardsRouter.patch('/boards/:id', async (c) => {
+  const boardId = c.req.param('id');
+  const user = c.get('user');
+
+  if (!uuidParam.safeParse(boardId).success) {
+    return c.json(formatErrorResponse('VALIDATION_ERROR', 'Invalid board ID format'), 422);
+  }
+
+  // Get board
+  const board = await boardRepo.findById(boardId);
+  if (!board) {
+    return c.json(formatErrorResponse('BOARD_NOT_FOUND', 'Board not found'), 404);
+  }
+
+  // Auth check
+  const teamId = await boardRepo.getTeamIdForBoard(boardId);
+  if (!teamId) {
+    return c.json(formatErrorResponse('BOARD_NOT_FOUND', 'Board not found'), 404);
+  }
+
+  const role = await boardRepo.getUserTeamRole(teamId, user.id);
+  if (!role) {
+    return c.json(formatErrorResponse('FORBIDDEN', 'You are not a member of this team'), 403);
+  }
+  if (role !== 'admin' && role !== 'facilitator') {
+    return c.json(formatErrorResponse('FORBIDDEN', 'Only admins and facilitators can update board settings'), 403);
+  }
+
+  // Parse body
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = updateBoardSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(formatValidationError(parsed.error), 422);
+  }
+
+  // Phase restrictions
+  if (parsed.data.anonymous_mode !== undefined && board.phase !== 'write') {
+    return c.json(
+      formatErrorResponse('INVALID_PHASE', 'Anonymous mode can only be changed during write phase'),
+      422,
+    );
+  }
+
+  if (
+    (parsed.data.max_votes_per_user !== undefined || parsed.data.max_votes_per_card !== undefined) &&
+    board.phase !== 'write' &&
+    board.phase !== 'group'
+  ) {
+    return c.json(
+      formatErrorResponse('INVALID_PHASE', 'Vote limits can only be changed during write or group phase'),
+      422,
+    );
+  }
+
+  // Prevent lowering vote limits below current usage
+  if (parsed.data.max_votes_per_user !== undefined || parsed.data.max_votes_per_card !== undefined) {
+    const usage = await boardRepo.getVoteUsage(boardId);
+    if (parsed.data.max_votes_per_user !== undefined && usage.maxPerUser > parsed.data.max_votes_per_user) {
+      return c.json(
+        formatErrorResponse(
+          'VALIDATION_ERROR',
+          `Cannot lower max_votes_per_user to ${parsed.data.max_votes_per_user} — a user has already cast ${usage.maxPerUser} votes`,
+        ),
+        422,
+      );
+    }
+    if (parsed.data.max_votes_per_card !== undefined && usage.maxPerCard > parsed.data.max_votes_per_card) {
+      return c.json(
+        formatErrorResponse(
+          'VALIDATION_ERROR',
+          `Cannot lower max_votes_per_card to ${parsed.data.max_votes_per_card} — a card already has ${usage.maxPerCard} votes`,
+        ),
+        422,
+      );
+    }
+  }
+
+  const updated = await boardRepo.updateSettings(boardId, parsed.data);
+  if (!updated) {
+    return c.json(formatErrorResponse('BOARD_NOT_FOUND', 'Board not found'), 404);
+  }
+
+  return c.json({ ok: true, data: updated });
+});
+
 // PUT /api/v1/boards/:id/phase — Set phase (facilitation-enhanced: free set, auto-stop timer)
 boardsRouter.put('/boards/:id/phase', async (c) => {
   const boardId = c.req.param('id');
@@ -512,6 +598,9 @@ boardsRouter.get('/boards/:id', async (c) => {
     return c.json(formatErrorResponse('FORBIDDEN', 'You are not a member of this team'), 403);
   }
 
+  // Get columns
+  const columns = await boardRepo.getColumns(boardId);
+
   // Get cards with author info
   const cardsRows = await sql`
     SELECT c.*, u.display_name AS author_name
@@ -554,6 +643,7 @@ boardsRouter.get('/boards/:id', async (c) => {
     ok: true,
     data: {
       ...board,
+      columns,
       cards,
       team: teamData ? {
         id: teamData.id as string,

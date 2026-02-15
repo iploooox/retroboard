@@ -54,17 +54,17 @@ describe('S-026: POST /api/v1/cards/:cardId/reactions — Toggle Reaction', () =
         'Authorization': `Bearer ${adminToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ emoji: 'thumbsup' }),
+      body: JSON.stringify({ emoji: '👍' }),
     });
 
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.ok).toBe(true);
     expect(body.data.added).toBe(true);
-    expect(body.data.emoji).toBe('thumbsup');
+    expect(body.data.emoji).toBe('👍');
     expect(body.data.reactions).toBeDefined();
     expect(body.data.reactions).toHaveLength(1);
-    expect(body.data.reactions[0].emoji).toBe('thumbsup');
+    expect(body.data.reactions[0].emoji).toBe('👍');
     expect(body.data.reactions[0].count).toBe(1);
   });
 
@@ -76,7 +76,7 @@ describe('S-026: POST /api/v1/cards/:cardId/reactions — Toggle Reaction', () =
         'Authorization': `Bearer ${adminToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ emoji: 'heart' }),
+      body: JSON.stringify({ emoji: '❤️' }),
     });
 
     // Remove reaction
@@ -86,7 +86,7 @@ describe('S-026: POST /api/v1/cards/:cardId/reactions — Toggle Reaction', () =
         'Authorization': `Bearer ${adminToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ emoji: 'heart' }),
+      body: JSON.stringify({ emoji: '❤️' }),
     });
 
     expect(res.status).toBe(200);
@@ -102,7 +102,7 @@ describe('S-026: POST /api/v1/cards/:cardId/reactions — Toggle Reaction', () =
         'Authorization': `Bearer ${adminToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ emoji: 'not_valid' }),
+      body: JSON.stringify({ emoji: '🦄' }),
     });
 
     expect(res.status).toBe(400);
@@ -117,7 +117,7 @@ describe('S-026: POST /api/v1/cards/:cardId/reactions — Toggle Reaction', () =
         'Authorization': `Bearer ${adminToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ emoji: 'thumbsup' }),
+      body: JSON.stringify({ emoji: '👍' }),
     });
 
     expect(res.status).toBe(404);
@@ -134,7 +134,7 @@ describe('S-026: POST /api/v1/cards/:cardId/reactions — Toggle Reaction', () =
         'Authorization': `Bearer ${outsiderAuth.token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ emoji: 'thumbsup' }),
+      body: JSON.stringify({ emoji: '👍' }),
     });
 
     expect(res.status).toBe(403);
@@ -148,7 +148,7 @@ describe('S-026: POST /api/v1/cards/:cardId/reactions — Toggle Reaction', () =
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ emoji: 'thumbsup' }),
+      body: JSON.stringify({ emoji: '👍' }),
     });
 
     expect(res.status).toBe(401);
@@ -163,7 +163,7 @@ describe('S-026: POST /api/v1/cards/:cardId/reactions — Toggle Reaction', () =
         'Authorization': `Bearer ${adminToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ emoji: 'thumbsup' }),
+      body: JSON.stringify({ emoji: '👍' }),
     });
 
     expect(res.status).toBe(403);
@@ -178,7 +178,7 @@ describe('S-026: POST /api/v1/cards/:cardId/reactions — Toggle Reaction', () =
         'Authorization': `Bearer ${adminToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ emoji: 'fire' }),
+      body: JSON.stringify({ emoji: '🔥' }),
     });
 
     const res = await app.request(`/api/v1/cards/${cardId}/reactions`, {
@@ -187,7 +187,7 @@ describe('S-026: POST /api/v1/cards/:cardId/reactions — Toggle Reaction', () =
         'Authorization': `Bearer ${memberToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ emoji: 'fire' }),
+      body: JSON.stringify({ emoji: '🔥' }),
     });
 
     expect(res.status).toBe(200);
@@ -202,7 +202,7 @@ describe('S-026: POST /api/v1/cards/:cardId/reactions — Toggle Reaction', () =
         'Authorization': `Bearer ${adminToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ emoji: 'thumbsup' }),
+      body: JSON.stringify({ emoji: '👍' }),
     });
 
     const res = await app.request(`/api/v1/cards/${cardId}/reactions`, {
@@ -211,7 +211,7 @@ describe('S-026: POST /api/v1/cards/:cardId/reactions — Toggle Reaction', () =
         'Authorization': `Bearer ${adminToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ emoji: 'heart' }),
+      body: JSON.stringify({ emoji: '❤️' }),
     });
 
     expect(res.status).toBe(200);
@@ -226,7 +226,7 @@ describe('S-026: POST /api/v1/cards/:cardId/reactions — Toggle Reaction', () =
         'Authorization': `Bearer ${adminToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ emoji: 'thumbsup' }),
+      body: JSON.stringify({ emoji: '👍' }),
     });
 
     const res = await app.request(`/api/v1/cards/${cardId}/reactions`, {
@@ -235,14 +235,14 @@ describe('S-026: POST /api/v1/cards/:cardId/reactions — Toggle Reaction', () =
         'Authorization': `Bearer ${memberToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ emoji: 'thumbsup' }),
+      body: JSON.stringify({ emoji: '👍' }),
     });
 
     const body = await res.json();
     expect(body.data.reactions[0]).toHaveProperty('emoji');
     expect(body.data.reactions[0]).toHaveProperty('count');
     expect(body.data.reactions[0]).toHaveProperty('reacted');
-    expect(body.data.reactions[0].emoji).toBe('thumbsup');
+    expect(body.data.reactions[0].emoji).toBe('👍');
     expect(body.data.reactions[0].count).toBe(2);
     expect(body.data.reactions[0].reacted).toBe(true); // member reacted
   });
@@ -254,7 +254,7 @@ describe('S-026: POST /api/v1/cards/:cardId/reactions — Toggle Reaction', () =
         'Authorization': `Bearer ${adminToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ emoji: 'heart' }),
+      body: JSON.stringify({ emoji: '❤️' }),
     });
 
     const res = await app.request(`/api/v1/cards/${cardId}`, {
@@ -267,7 +267,7 @@ describe('S-026: POST /api/v1/cards/:cardId/reactions — Toggle Reaction', () =
     const body = await res.json();
     expect(body.data.reactions).toBeDefined();
     expect(body.data.reactions).toHaveLength(1);
-    expect(body.data.reactions[0].emoji).toBe('heart');
+    expect(body.data.reactions[0].emoji).toBe('❤️');
   });
 
   it('5.12: Card delete cascades reactions', async () => {
@@ -277,7 +277,7 @@ describe('S-026: POST /api/v1/cards/:cardId/reactions — Toggle Reaction', () =
         'Authorization': `Bearer ${adminToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ emoji: 'thumbsup' }),
+      body: JSON.stringify({ emoji: '👍' }),
     });
 
     // Delete card

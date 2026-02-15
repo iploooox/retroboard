@@ -46,7 +46,7 @@ describe('Timer Endpoints — Integration Tests', () => {
   // --- Start timer ---
 
   it('3.4.1: Start timer — POST 201, timer started', async () => {
-    const res = await app.request(`/api/v1/boards/${board.id}/timer`, {
+    const res = await app.request(`/api/v1/boards/${board.id}/timer/start`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
@@ -67,7 +67,7 @@ describe('Timer Endpoints — Integration Tests', () => {
 
   it('3.4.2: Timer ticks — GET shows remaining decremented', async () => {
     // Start a timer
-    await app.request(`/api/v1/boards/${board.id}/timer`, {
+    await app.request(`/api/v1/boards/${board.id}/timer/start`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
@@ -96,7 +96,7 @@ describe('Timer Endpoints — Integration Tests', () => {
 
   it('3.4.3: Timer expires — short timer, GET shows no timer', async () => {
     // Start a very short timer (reduced from 3s to 1s)
-    await app.request(`/api/v1/boards/${board.id}/timer`, {
+    await app.request(`/api/v1/boards/${board.id}/timer/start`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
@@ -123,9 +123,9 @@ describe('Timer Endpoints — Integration Tests', () => {
 
   // --- Pause timer ---
 
-  it('3.4.4: Pause timer — PUT { action: "pause" } → 200', async () => {
+  it('3.4.4: Pause timer — POST → 200', async () => {
     // Start timer first
-    await app.request(`/api/v1/boards/${board.id}/timer`, {
+    await app.request(`/api/v1/boards/${board.id}/timer/start`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
@@ -134,13 +134,11 @@ describe('Timer Endpoints — Integration Tests', () => {
       body: JSON.stringify({ durationSeconds: 300 }),
     });
 
-    const res = await app.request(`/api/v1/boards/${board.id}/timer`, {
-      method: 'PUT',
+    const res = await app.request(`/api/v1/boards/${board.id}/timer/pause`, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
-        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ action: 'pause' }),
     });
 
     expect(res.status).toBe(200);
@@ -150,9 +148,9 @@ describe('Timer Endpoints — Integration Tests', () => {
 
   // --- Resume timer ---
 
-  it('3.4.5: Resume timer — PUT { action: "resume" } → 200', async () => {
+  it('3.4.5: Resume timer — POST → 200', async () => {
     // Start and pause first
-    await app.request(`/api/v1/boards/${board.id}/timer`, {
+    await app.request(`/api/v1/boards/${board.id}/timer/start`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
@@ -161,22 +159,18 @@ describe('Timer Endpoints — Integration Tests', () => {
       body: JSON.stringify({ durationSeconds: 300 }),
     });
 
-    await app.request(`/api/v1/boards/${board.id}/timer`, {
-      method: 'PUT',
+    await app.request(`/api/v1/boards/${board.id}/timer/pause`, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
-        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ action: 'pause' }),
     });
 
-    const res = await app.request(`/api/v1/boards/${board.id}/timer`, {
-      method: 'PUT',
+    const res = await app.request(`/api/v1/boards/${board.id}/timer/resume`, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
-        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ action: 'resume' }),
     });
 
     expect(res.status).toBe(200);
@@ -186,9 +180,9 @@ describe('Timer Endpoints — Integration Tests', () => {
 
   // --- Stop timer ---
 
-  it('3.4.6: Stop timer — DELETE → 200', async () => {
+  it('3.4.6: Stop timer — POST → 200', async () => {
     // Start timer first
-    await app.request(`/api/v1/boards/${board.id}/timer`, {
+    await app.request(`/api/v1/boards/${board.id}/timer/start`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
@@ -197,8 +191,8 @@ describe('Timer Endpoints — Integration Tests', () => {
       body: JSON.stringify({ durationSeconds: 300 }),
     });
 
-    const res = await app.request(`/api/v1/boards/${board.id}/timer`, {
-      method: 'DELETE',
+    const res = await app.request(`/api/v1/boards/${board.id}/timer/reset`, {
+      method: 'POST',
       headers: { 'Authorization': `Bearer ${facilitatorToken}` },
     });
 
@@ -211,7 +205,7 @@ describe('Timer Endpoints — Integration Tests', () => {
 
   it('3.4.7: Start when timer already exists → 409 Conflict', async () => {
     // Start first timer
-    await app.request(`/api/v1/boards/${board.id}/timer`, {
+    await app.request(`/api/v1/boards/${board.id}/timer/start`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
@@ -221,7 +215,7 @@ describe('Timer Endpoints — Integration Tests', () => {
     });
 
     // Start again — should conflict
-    const res = await app.request(`/api/v1/boards/${board.id}/timer`, {
+    const res = await app.request(`/api/v1/boards/${board.id}/timer/start`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
@@ -238,13 +232,11 @@ describe('Timer Endpoints — Integration Tests', () => {
   // --- Pause when not running ---
 
   it('3.4.8: Pause when not running → 400', async () => {
-    const res = await app.request(`/api/v1/boards/${board.id}/timer`, {
-      method: 'PUT',
+    const res = await app.request(`/api/v1/boards/${board.id}/timer/pause`, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
-        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ action: 'pause' }),
     });
 
     expect(res.status).toBe(400);
@@ -256,7 +248,7 @@ describe('Timer Endpoints — Integration Tests', () => {
 
   it('3.4.9: Resume when not paused → 400', async () => {
     // Start but don't pause
-    await app.request(`/api/v1/boards/${board.id}/timer`, {
+    await app.request(`/api/v1/boards/${board.id}/timer/start`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
@@ -265,13 +257,11 @@ describe('Timer Endpoints — Integration Tests', () => {
       body: JSON.stringify({ durationSeconds: 300 }),
     });
 
-    const res = await app.request(`/api/v1/boards/${board.id}/timer`, {
-      method: 'PUT',
+    const res = await app.request(`/api/v1/boards/${board.id}/timer/resume`, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
-        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ action: 'resume' }),
     });
 
     expect(res.status).toBe(400);
@@ -283,7 +273,7 @@ describe('Timer Endpoints — Integration Tests', () => {
 
   it('3.4.10: Get timer state — GET → 200 with timer object', async () => {
     // Start timer
-    await app.request(`/api/v1/boards/${board.id}/timer`, {
+    await app.request(`/api/v1/boards/${board.id}/timer/start`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
@@ -319,7 +309,7 @@ describe('Timer Endpoints — Integration Tests', () => {
   // --- Authorization: member cannot start ---
 
   it('3.4.12: Member cannot start timer → 403', async () => {
-    const res = await app.request(`/api/v1/boards/${board.id}/timer`, {
+    const res = await app.request(`/api/v1/boards/${board.id}/timer/start`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${memberToken}`,
@@ -334,7 +324,7 @@ describe('Timer Endpoints — Integration Tests', () => {
   // --- Validation: duration below minimum ---
 
   it('3.4.13: Duration below minimum (0) → 400', async () => {
-    const res = await app.request(`/api/v1/boards/${board.id}/timer`, {
+    const res = await app.request(`/api/v1/boards/${board.id}/timer/start`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
@@ -351,7 +341,7 @@ describe('Timer Endpoints — Integration Tests', () => {
   // --- Validation: duration above maximum ---
 
   it('3.4.14: Duration above maximum (3601) → 400', async () => {
-    const res = await app.request(`/api/v1/boards/${board.id}/timer`, {
+    const res = await app.request(`/api/v1/boards/${board.id}/timer/start`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
@@ -369,7 +359,7 @@ describe('Timer Endpoints — Integration Tests', () => {
 
   it('3.4.15: Timer survives page refresh — remaining reflects elapsed', async () => {
     // Start timer
-    await app.request(`/api/v1/boards/${board.id}/timer`, {
+    await app.request(`/api/v1/boards/${board.id}/timer/start`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,

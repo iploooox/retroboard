@@ -216,13 +216,13 @@ export function useBoardSync(boardId: string | null, enabled: boolean) {
     };
 
     // Board events
-    const handleBoardLocked = (msg: { payload: { isLocked: boolean }; eventId: string }) => {
+    const handleBoardLocked = (isLocked: boolean) => (msg: { payload: { boardId: string }; eventId: string }) => {
       if (msg.eventId && seenEventIds.has(msg.eventId)) return;
       if (msg.eventId) seenEventIds.add(msg.eventId);
 
-      // Store locked state on board
+      // Store locked state on board (inferred from event type)
       useBoardStore.setState((state) => ({
-        board: state.board ? { ...state.board, is_locked: msg.payload.isLocked } : null,
+        board: state.board ? { ...state.board, is_locked: isLocked } : null,
       }));
     };
 
@@ -266,8 +266,8 @@ export function useBoardSync(boardId: string | null, enabled: boolean) {
     ws.on('user_joined', handleUserJoined as never);
     ws.on('user_left', handleUserLeft as never);
     ws.on('cursor_move', handleCursorMove as never);
-    ws.on('board_locked', handleBoardLocked as never);
-    ws.on('board_unlocked', handleBoardLocked as never);
+    ws.on('board_locked', handleBoardLocked(true) as never);
+    ws.on('board_unlocked', handleBoardLocked(false) as never);
     ws.on('cards_revealed', handleCardsRevealed as never);
 
     // Cleanup
@@ -285,8 +285,8 @@ export function useBoardSync(boardId: string | null, enabled: boolean) {
       ws.off('user_joined', handleUserJoined as never);
       ws.off('user_left', handleUserLeft as never);
       ws.off('cursor_move', handleCursorMove as never);
-      ws.off('board_locked', handleBoardLocked as never);
-      ws.off('board_unlocked', handleBoardLocked as never);
+      ws.off('board_locked', handleBoardLocked(true) as never);
+      ws.off('board_unlocked', handleBoardLocked(false) as never);
       ws.off('cards_revealed', handleCardsRevealed as never);
     };
   }, [enabled, boardId, board]);

@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS card_reactions (
     CONSTRAINT uq_card_reactions_card_user_emoji
         UNIQUE (card_id, user_id, emoji),
     CONSTRAINT chk_card_reactions_emoji_valid
-        CHECK (emoji IN ('thumbsup', 'thumbsdown', 'heart', 'fire', 'thinking', 'laughing', 'hundred', 'eyes'))
+        CHECK (emoji IN ('👍', '👎', '❤️', '🔥', '🤔', '😂', '💯', '👀', '🎉', '✅', '😀', '🚀'))
 );
 
 -- Indexes for card_reactions

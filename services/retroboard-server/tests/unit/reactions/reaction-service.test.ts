@@ -37,27 +37,27 @@ describe('S-026: Reaction Service (Unit)', () => {
   });
 
   it('4.1: Toggle adds reaction when not exists', async () => {
-    const result = await reactionService.toggle(cardId, userId, 'thumbsup');
+    const result = await reactionService.toggle(cardId, userId, '👍');
 
     expect(result.added).toBe(true);
-    expect(result.emoji).toBe('thumbsup');
+    expect(result.emoji).toBe('👍');
 
     const reactions = await sql`
       SELECT * FROM card_reactions WHERE card_id = ${cardId} AND user_id = ${userId}
     `;
     expect(reactions).toHaveLength(1);
-    expect(reactions[0].emoji).toBe('thumbsup');
+    expect(reactions[0].emoji).toBe('👍');
   });
 
   it('4.2: Toggle removes reaction when already exists', async () => {
     // Add reaction first
-    await reactionService.toggle(cardId, userId, 'thumbsup');
+    await reactionService.toggle(cardId, userId, '👍');
 
     // Toggle again to remove
-    const result = await reactionService.toggle(cardId, userId, 'thumbsup');
+    const result = await reactionService.toggle(cardId, userId, '👍');
 
     expect(result.added).toBe(false);
-    expect(result.emoji).toBe('thumbsup');
+    expect(result.emoji).toBe('👍');
 
     const reactions = await sql`
       SELECT * FROM card_reactions WHERE card_id = ${cardId} AND user_id = ${userId}
@@ -66,7 +66,7 @@ describe('S-026: Reaction Service (Unit)', () => {
   });
 
   it('4.3: Validates emoji is in curated set', async () => {
-    const validEmojis = ['thumbsup', 'thumbsdown', 'heart', 'fire', 'thinking', 'laughing', 'hundred', 'eyes'];
+    const validEmojis = ['👍', '👎', '❤️', '🔥', '🤔', '😂', '💯', '👀', '🎉', '✅', '😀', '🚀'];
 
     for (const emoji of validEmojis) {
       const result = await reactionService.toggle(cardId, userId, emoji);
@@ -85,16 +85,16 @@ describe('S-026: Reaction Service (Unit)', () => {
     await sql`UPDATE boards SET is_locked = true WHERE id = ${boardId}`;
 
     await expect(
-      reactionService.toggle(cardId, userId, 'thumbsup')
+      reactionService.toggle(cardId, userId, '👍')
     ).rejects.toThrow(/locked/i);
   });
 
   it('4.6: Returns updated reaction summary', async () => {
-    const result = await reactionService.toggle(cardId, userId, 'heart');
+    const result = await reactionService.toggle(cardId, userId, '❤️');
 
     expect(result.summary).toBeDefined();
     expect(result.summary).toHaveLength(1);
-    expect(result.summary[0].emoji).toBe('heart');
+    expect(result.summary[0].emoji).toBe('❤️');
     expect(result.summary[0].count).toBe(1);
   });
 
@@ -109,24 +109,25 @@ describe('S-026: Reaction Service (Unit)', () => {
       VALUES (${team.team_id}, ${userId2}, 'member')
     `;
 
-    await reactionService.toggle(cardId, userId, 'fire');
-    await reactionService.toggle(cardId, userId2, 'fire');
+    await reactionService.toggle(cardId, userId, '🔥');
+    await reactionService.toggle(cardId, userId2, '🔥');
 
     const summary = await reactionService.getSummaryByCard(cardId);
     expect(summary).toHaveLength(1);
-    expect(summary[0].emoji).toBe('fire');
+    expect(summary[0].emoji).toBe('🔥');
     expect(summary[0].count).toBe(2);
   });
 
   it('4.8: Multiple emojis on same card are all returned', async () => {
-    await reactionService.toggle(cardId, userId, 'thumbsup');
-    await reactionService.toggle(cardId, userId, 'heart');
+    await reactionService.toggle(cardId, userId, '👍');
+    await reactionService.toggle(cardId, userId, '❤️');
 
     const summary = await reactionService.getSummaryByCard(cardId);
     expect(summary).toHaveLength(2);
 
-    const emojis = summary.map(r => r.emoji).sort();
-    expect(emojis).toEqual(['heart', 'thumbsup']);
+    const emojis = summary.map(r => r.emoji);
+    expect(emojis).toContain('👍');
+    expect(emojis).toContain('❤️');
   });
 
   it('4.9: Summary includes reacted flag for current user', async () => {
@@ -139,8 +140,8 @@ describe('S-026: Reaction Service (Unit)', () => {
       VALUES (${team.team_id}, ${userId2}, 'member')
     `;
 
-    await reactionService.toggle(cardId, userId, 'thumbsup');
-    await reactionService.toggle(cardId, userId2, 'thumbsup');
+    await reactionService.toggle(cardId, userId, '👍');
+    await reactionService.toggle(cardId, userId2, '👍');
 
     const summaryForUser1 = await reactionService.getSummaryByCard(cardId, userId);
     expect(summaryForUser1[0].reacted).toBe(true);
@@ -154,7 +155,7 @@ describe('S-026: Reaction Service (Unit)', () => {
   });
 
   it('4.10: Curated emoji set is correct', async () => {
-    const expected = ['thumbsup', 'thumbsdown', 'heart', 'fire', 'thinking', 'laughing', 'hundred', 'eyes'];
+    const expected = ['👍', '👎', '❤️', '🔥', '🤔', '😂', '💯', '👀', '🎉', '✅', '😀', '🚀'];
     const curatedSet = ReactionService.CURATED_EMOJIS;
 
     expect(curatedSet).toEqual(expected);

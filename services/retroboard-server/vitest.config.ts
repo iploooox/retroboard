@@ -19,6 +19,6 @@ export default defineConfig({
         singleFork: true,
       },
     },
-    exclude: ['client/**', 'node_modules/**'],
+    exclude: ['client/**', 'node_modules/**', 'tests/e2e-browser/**'],
   },
 });

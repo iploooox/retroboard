@@ -63,7 +63,7 @@ describe('Real-Time Event Propagation via LISTEN/NOTIFY', () => {
     // Client B should receive card_created via WebSocket
     const msg = await clientB.waitForMessage('card_created');
     expect(msg.type).toBe('card_created');
-    expect(msg.payload.content || msg.payload.text).toContain('WS test card');
+    expect(msg.payload.card.content).toContain('WS test card');
   });
 
   it('3.8.2: Card update propagates via WS', async () => {
