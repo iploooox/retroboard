@@ -164,6 +164,49 @@ export async function createTestGroup(boardId: string, title: string, cardIds: s
   return group;
 }
 
+export async function createTestActionItem(boardId: string, createdBy: string, overrides: {
+  title?: string;
+  description?: string;
+  cardId?: string;
+  assigneeId?: string;
+  dueDate?: string;
+  status?: string;
+  carriedFromId?: string;
+} = {}) {
+  const [item] = await sql`
+    INSERT INTO action_items (board_id, card_id, title, description, assignee_id, due_date, status, carried_from_id, created_by)
+    VALUES (
+      ${boardId},
+      ${overrides.cardId || null},
+      ${overrides.title || 'Test Action Item'},
+      ${overrides.description || null},
+      ${overrides.assigneeId || null},
+      ${overrides.dueDate || null},
+      ${overrides.status || 'open'},
+      ${overrides.carriedFromId || null},
+      ${createdBy}
+    )
+    RETURNING *
+  `;
+  return item;
+}
+
+export async function createTestVote(cardId: string, userId: string, voteNumber?: number) {
+  const nextVote = voteNumber ?? (
+    await sql`SELECT COALESCE(MAX(vote_number), 0)::int + 1 AS next FROM card_votes WHERE card_id = ${cardId} AND user_id = ${userId}`
+  )[0].next;
+  const [vote] = await sql`
+    INSERT INTO card_votes (card_id, user_id, vote_number)
+    VALUES (${cardId}, ${userId}, ${nextVote})
+    RETURNING *
+  `;
+  return vote;
+}
+
+export async function setBoardPhase(boardId: string, phase: string) {
+  await sql`UPDATE boards SET phase = ${phase} WHERE id = ${boardId}`;
+}
+
 // The seed creates system templates with known IDs
 export const SYSTEM_TEMPLATE_WWD = '00000000-0000-4000-8000-000000000001';
 export const SYSTEM_TEMPLATE_SSC = '00000000-0000-4000-8000-000000000002';
