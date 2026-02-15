@@ -5,6 +5,7 @@ import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { TeamDetailPage } from '@/pages/TeamDetailPage';
+import { BoardPage } from '@/pages/BoardPage';
 import { InvitePage } from '@/pages/InvitePage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { Spinner } from '@/components/ui/Spinner';
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
     children: [
       { path: '/dashboard', element: <DashboardPage /> },
       { path: '/teams/:teamId', element: <TeamDetailPage /> },
+      { path: '/teams/:teamId/sprints/:sprintId/board', element: <BoardPage /> },
     ],
   },
   { path: '/invite/:token', element: <InvitePage /> },

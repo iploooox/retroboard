@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Plus, AlertCircle, Calendar } from 'lucide-react';
+import { Plus, AlertCircle, Calendar, LayoutDashboard } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { api, ApiError } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { Button } from '@/components/ui/Button';
@@ -132,20 +133,26 @@ export function SprintsTab({ teamId, canCreate }: SprintsTabProps) {
                     <p className="text-sm text-slate-500 mt-1 line-clamp-1">{sprint.goal}</p>
                   )}
                 </div>
-                {canCreate && (
-                  <div className="flex items-center gap-2 shrink-0">
-                    {sprint.status === 'planning' && (
-                      <Button size="sm" variant="secondary" onClick={() => handleActivate(sprint.id)}>
-                        Activate
+                <div className="flex items-center gap-2 shrink-0">
+                  {(sprint.status === 'active' || sprint.status === 'completed') && (
+                    <Link to={`/teams/${teamId}/sprints/${sprint.id}/board`}>
+                      <Button size="sm" variant="secondary">
+                        <LayoutDashboard className="h-4 w-4" />
+                        Board
                       </Button>
-                    )}
-                    {sprint.status === 'active' && (
-                      <Button size="sm" variant="secondary" onClick={() => handleComplete(sprint.id)}>
-                        Complete
-                      </Button>
-                    )}
-                  </div>
-                )}
+                    </Link>
+                  )}
+                  {canCreate && sprint.status === 'planning' && (
+                    <Button size="sm" variant="secondary" onClick={() => handleActivate(sprint.id)}>
+                      Activate
+                    </Button>
+                  )}
+                  {canCreate && sprint.status === 'active' && (
+                    <Button size="sm" variant="secondary" onClick={() => handleComplete(sprint.id)}>
+                      Complete
+                    </Button>
+                  )}
+                </div>
               </div>
             );
           })}
