@@ -9,9 +9,10 @@ interface BoardColumnProps {
   name: string;
   color: string;
   isFacilitator: boolean;
+  onCreateActionItem?: (cardId: string, cardContent: string) => void;
 }
 
-export function BoardColumn({ columnId, name, color, isFacilitator }: BoardColumnProps) {
+export function BoardColumn({ columnId, name, color, isFacilitator, onCreateActionItem }: BoardColumnProps) {
   const board = useBoardStore((s) => s.board);
   const cards = useBoardStore((s) => s.cards);
   const groups = useBoardStore((s) => s.groups);
@@ -61,11 +62,25 @@ export function BoardColumn({ columnId, name, color, isFacilitator }: BoardColum
   };
 
   return (
-    <div className="flex-shrink-0 w-72 h-full flex flex-col bg-slate-50 rounded-xl border border-slate-200">
+    <div
+      className="flex-shrink-0 w-72 h-full flex flex-col rounded-xl border"
+      style={{
+        backgroundColor: 'var(--theme-column-bg, #f8fafc)',
+        borderColor: 'var(--theme-column-border, #cbd5e1)'
+      }}
+    >
       {/* Column header */}
-      <div className="px-3 py-2.5 border-b border-slate-200 flex items-center gap-2">
+      <div
+        className="px-3 py-2.5 border-b flex items-center gap-2"
+        style={{ borderColor: 'var(--theme-column-border, #cbd5e1)' }}
+      >
         <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
-        <h3 className="text-sm font-semibold text-slate-700 truncate">{name}</h3>
+        <h3
+          className="text-sm font-semibold truncate"
+          style={{ color: 'var(--theme-header-text, #475569)' }}
+        >
+          {name}
+        </h3>
         <span className="text-xs text-slate-400 ml-auto">{columnCards.length}</span>
       </div>
 
@@ -85,7 +100,7 @@ export function BoardColumn({ columnId, name, color, isFacilitator }: BoardColum
                 )}
               </div>
               {groupCards.map((card) => (
-                <CardItem key={card.id} card={card} isFacilitator={isFacilitator} />
+                <CardItem key={card.id} card={card} isFacilitator={isFacilitator} onCreateActionItem={onCreateActionItem} />
               ))}
             </div>
           );
@@ -93,20 +108,27 @@ export function BoardColumn({ columnId, name, color, isFacilitator }: BoardColum
 
         {/* Ungrouped cards */}
         {ungroupedCards.map((card) => (
-          <CardItem key={card.id} card={card} isFacilitator={isFacilitator} />
+          <CardItem key={card.id} card={card} isFacilitator={isFacilitator} onCreateActionItem={onCreateActionItem} />
         ))}
       </div>
 
       {/* Add card input */}
       {isWritePhase && (
-        <div className="p-2 border-t border-slate-200">
+        <div
+          className="p-2 border-t"
+          style={{ borderColor: 'var(--theme-column-border, #cbd5e1)' }}
+        >
           {isAdding ? (
             <form onSubmit={handleSubmit}>
               <textarea
                 value={newCardContent}
                 onChange={(e) => setNewCardContent(e.target.value)}
                 placeholder="What's on your mind?"
-                className="w-full rounded-lg border border-slate-300 px-2.5 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full rounded-lg border px-2.5 py-2 text-sm resize-none focus:outline-none focus:ring-2"
+                style={{
+                  borderColor: 'var(--theme-card-border, #e2e8f0)',
+                  backgroundColor: 'var(--theme-card-bg, #ffffff)',
+                }}
                 rows={3}
                 autoFocus
                 onKeyDown={(e) => {
@@ -118,7 +140,18 @@ export function BoardColumn({ columnId, name, color, isFacilitator }: BoardColum
                 <button
                   type="submit"
                   disabled={!newCardContent.trim() || isSubmitting}
-                  className="flex-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex-1 rounded-lg px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  style={{
+                    backgroundColor: 'var(--theme-accent, #3b82f6)',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!e.currentTarget.disabled) {
+                      e.currentTarget.style.backgroundColor = 'var(--theme-accent-hover, #2563eb)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--theme-accent, #3b82f6)';
+                  }}
                 >
                   {isSubmitting ? 'Adding...' : 'Add Card'}
                 </button>
@@ -134,7 +167,20 @@ export function BoardColumn({ columnId, name, color, isFacilitator }: BoardColum
           ) : (
             <button
               onClick={() => setIsAdding(true)}
-              className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-sm text-slate-500 transition-colors"
+              style={{
+                borderColor: 'var(--theme-column-border, #cbd5e1)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--theme-accent, #3b82f6)';
+                e.currentTarget.style.borderColor = 'var(--theme-accent, #3b82f6)';
+                e.currentTarget.style.backgroundColor = 'var(--theme-bg, #eff6ff)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#64748b';
+                e.currentTarget.style.borderColor = 'var(--theme-column-border, #cbd5e1)';
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
             >
               <Plus className="h-4 w-4" />
               Add a card

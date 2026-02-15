@@ -118,7 +118,7 @@ describe('BoardPage', () => {
 
     // Set up authenticated user
     useAuthStore.setState({
-      user: { id: 'user-1', email: 'test@test.com', display_name: 'Test User', avatar_url: null, created_at: '' },
+      user: { id: 'user-1', email: 'test@test.com', display_name: 'Test User', avatar_url: null, created_at: '', onboarding_completed_at: null },
       isAuthenticated: true,
       isLoading: false,
     });

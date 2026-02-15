@@ -1,0 +1,110 @@
+[  341586ms] [ERROR] You are calling ReactDOMClient.createRoot() on a container that has already been passed to createRoot() before. Instead, call root.render() on the existing root instead if you want to update it. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:17251
+[  341664ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:5173/api/v1/auth/refresh:0
+[  341675ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:5173/api/v1/auth/refresh:0
+[  341679ms] [WARNING] WebSocket connection to 'ws://localhost:5173/ws?token=eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6InVpdGVzdGVyQHRlc3QuY29tIiwic3ViIjoiNTM4MzVhM2EtNGI2Mi00NTMwLWI4OGMtNTVmMGJlOTE3NGI1IiwiaWF0IjoxNzcxMTcyMzcwLCJleHAiOjE3NzExNzMyNzB9.NZFc6c4Qu3y8xHbWBl5mH2rmnnLjji_frxNJLTOkgBw&boardId=17597daf-bcf6-4286-a907-2a13b20a52f0' failed: WebSocket is closed before the connection is established. @ http://localhost:5173/src/lib/ws-client.ts:76
+[  341683ms] [ERROR] Error handled by React Router default ErrorBoundary: NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+    at removeChildFromContainer (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:15919:128)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:995:72)
+    at commitDeletionEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10173:19)
+    at recursivelyTraverseDeletionEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10113:11)
+    at commitDeletionEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10235:13)
+    at recursivelyTraverseMutationEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10377:13)
+    at commitMutationEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10403:13)
+    at recursivelyTraverseMutationEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10394:13)
+    at commitMutationEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10744:13)
+    at recursivelyTraverseMutationEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10394:13) @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=9eb34339:6197
+[  341683ms] [ERROR] Error handled by React Router default ErrorBoundary: NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+    at removeChildFromContainer (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:15919:128)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:995:72)
+    at commitDeletionEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10173:19)
+    at recursivelyTraverseDeletionEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10113:11)
+    at commitDeletionEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10235:13)
+    at recursivelyTraverseMutationEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10377:13)
+    at commitMutationEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10403:13)
+    at recursivelyTraverseMutationEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10394:13)
+    at commitMutationEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10744:13)
+    at recursivelyTraverseMutationEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10394:13) @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=9eb34339:6197
+[  341684ms] [ERROR] %o
+
+%s
+
+%s
+ NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+    at removeChildFromContainer (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:15919:128)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:995:72)
+    at commitDeletionEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10173:19)
+    at recursivelyTraverseDeletionEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10113:11)
+    at commitDeletionEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10235:13)
+    at recursivelyTraverseMutationEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10377:13)
+    at commitMutationEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10403:13)
+    at recursivelyTraverseMutationEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10394:13)
+    at commitMutationEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10744:13)
+    at recursivelyTraverseMutationEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10394:13) The above error occurred in the <div> component. React will try to recreate this component tree from scratch using the error boundary you provided, RenderErrorBoundary. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:6998
+[  341684ms] [ERROR] React Router caught the following error during render NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+    at removeChildFromContainer (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:15919:128)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:995:72)
+    at commitDeletionEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10173:19)
+    at recursivelyTraverseDeletionEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10113:11)
+    at commitDeletionEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10235:13)
+    at recursivelyTraverseMutationEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10377:13)
+    at commitMutationEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10403:13)
+    at recursivelyTraverseMutationEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10394:13)
+    at commitMutationEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10744:13)
+    at recursivelyTraverseMutationEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9eb34339:10394:13) @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=9eb34339:6236
+[  341687ms] [ERROR] [WSClient] WebSocket error: Event @ http://localhost:5173/src/lib/ws-client.ts:55
+[  341704ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:5173/api/v1/teams/78b41461-b898-4318-8701-d4ba146034d5/members:0
+[  341704ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:5173/api/v1/sprints/7a1d7cbb-9ab6-45fc-969b-b6ed5084a683/board:0
+[  341708ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:5173/api/v1/teams/78b41461-b898-4318-8701-d4ba146034d5/members:0
+[  341708ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:5173/api/v1/teams:0
+[  341711ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:5173/api/v1/sprints/7a1d7cbb-9ab6-45fc-969b-b6ed5084a683/board:0
+[  341711ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:5173/api/v1/teams:0
+[  341714ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:5173/api/v1/teams:0
+[  341716ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:5173/api/v1/teams:0
+[  475564ms] [ERROR] WebSocket connection to 'ws://localhost:5173/?token=m678_gVXSEqB' failed:  @ http://localhost:5173/@vite/client:801
+[  475613ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  476615ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  477616ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  478618ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  479621ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  480625ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  481637ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  482656ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  483695ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  484757ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  485837ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  487011ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  488487ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  489949ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  492148ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  496293ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  498877ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  502265ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  507846ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  511631ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  514895ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  517886ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  521232ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  526327ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  528678ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  531151ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  534438ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  539287ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  545073ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  550186ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  552302ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  555595ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  557829ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  562164ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  566110ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  571991ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  574973ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  577614ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  582572ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  584664ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  590385ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  594619ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  595621ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  596623ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  597624ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  598626ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034
+[  599628ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1034

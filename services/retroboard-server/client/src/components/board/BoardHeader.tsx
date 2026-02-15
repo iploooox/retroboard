@@ -1,4 +1,4 @@
-import { Settings, ListChecks, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Settings, ListChecks, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { useBoardStore } from '@/stores/board';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -26,9 +26,10 @@ interface BoardHeaderProps {
   isFacilitator: boolean;
   onOpenSettings: () => void;
   onOpenActionItems: () => void;
+  onOpenExport: () => void;
 }
 
-export function BoardHeader({ isFacilitator, onOpenSettings, onOpenActionItems }: BoardHeaderProps) {
+export function BoardHeader({ isFacilitator, onOpenSettings, onOpenActionItems, onOpenExport }: BoardHeaderProps) {
   const board = useBoardStore((s) => s.board);
   const setPhase = useBoardStore((s) => s.setPhase);
   const userVotesRemaining = useBoardStore((s) => s.userVotesRemaining);
@@ -102,6 +103,10 @@ export function BoardHeader({ isFacilitator, onOpenSettings, onOpenActionItems }
 
           <Button variant="ghost" size="sm" onClick={onOpenActionItems} aria-label="Action items">
             <ListChecks className="h-4 w-4" />
+          </Button>
+
+          <Button variant="ghost" size="sm" onClick={onOpenExport} aria-label="Export retro">
+            <Download className="h-4 w-4" />
           </Button>
 
           {isFacilitator && (

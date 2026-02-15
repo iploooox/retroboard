@@ -7,6 +7,7 @@ interface User {
   display_name: string;
   avatar_url: string | null;
   created_at: string;
+  onboarding_completed_at: string | null;
 }
 
 interface AuthState {

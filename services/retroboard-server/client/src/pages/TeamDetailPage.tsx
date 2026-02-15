@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useSearchParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { Settings, AlertCircle, ChevronLeft } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { Badge } from '@/components/ui/Badge';
@@ -25,6 +25,7 @@ const roleBadgeVariant = {
 
 export function TeamDetailPage() {
   const { teamId } = useParams<{ teamId: string }>();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'sprints';
 
@@ -53,6 +54,11 @@ export function TeamDetailPage() {
   useEffect(() => { fetchTeam(); }, [teamId]);
 
   const setTab = (tab: string) => {
+    // Navigate to dedicated analytics page instead of showing as tab
+    if (tab === 'analytics') {
+      navigate(`/teams/${teamId}/analytics`);
+      return;
+    }
     setSearchParams({ tab });
   };
 
@@ -82,6 +88,7 @@ export function TeamDetailPage() {
   const tabs = [
     { id: 'sprints', label: 'Sprints' },
     { id: 'members', label: 'Members' },
+    { id: 'analytics', label: 'Analytics' },
     ...(isAdmin ? [{ id: 'settings', label: 'Settings' }] : []),
   ];
 
@@ -149,6 +156,11 @@ export function TeamDetailPage() {
         )}
         {activeTab === 'members' && (
           <MembersTab teamId={team.id} userRole={team.your_role} />
+        )}
+        {activeTab === 'analytics' && (
+          <div className="text-center py-8 text-slate-500">
+            Redirecting to analytics...
+          </div>
         )}
         {activeTab === 'settings' && isAdmin && (
           <SettingsTab team={team} onUpdated={fetchTeam} />

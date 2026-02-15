@@ -4,12 +4,27 @@ import { useBoardStore } from '@/stores/board';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { toast } from '@/lib/toast';
+import { api, ApiError } from '@/lib/api';
 import type { ActionItem } from '@/lib/board-api';
+
+interface TeamMember {
+  user: {
+    id: string;
+    email: string;
+    display_name: string;
+    avatar_url: string | null;
+  };
+  role: string;
+  joined_at: string;
+}
 
 interface ActionItemsPanelProps {
   open: boolean;
   onClose: () => void;
   isFacilitator: boolean;
+  teamId: string;
+  initialCardId?: string;
+  initialTitle?: string;
 }
 
 const statusConfig: Record<ActionItem['status'], { icon: typeof Check; label: string; color: string }> = {
@@ -24,7 +39,7 @@ const nextStatus: Record<ActionItem['status'], ActionItem['status']> = {
   done: 'open',
 };
 
-export function ActionItemsPanel({ open, onClose, isFacilitator }: ActionItemsPanelProps) {
+export function ActionItemsPanel({ open, onClose, isFacilitator, teamId, initialCardId, initialTitle }: ActionItemsPanelProps) {
   const actionItems = useBoardStore((s) => s.actionItems);
   const actionItemsLoading = useBoardStore((s) => s.actionItemsLoading);
   const fetchActionItems = useBoardStore((s) => s.fetchActionItems);
@@ -37,14 +52,44 @@ export function ActionItemsPanel({ open, onClose, isFacilitator }: ActionItemsPa
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
+  const [newCardId, setNewCardId] = useState<string | undefined>();
+  const [newAssigneeId, setNewAssigneeId] = useState('');
+  const [newDueDate, setNewDueDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCarrying, setIsCarrying] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
 
   useEffect(() => {
     if (open && board) {
       fetchActionItems();
     }
   }, [open, board, fetchActionItems]);
+
+  // Set initial values when panel opens with card data
+  useEffect(() => {
+    if (open && initialCardId && initialTitle) {
+      setNewCardId(initialCardId);
+      setNewTitle(initialTitle);
+      setShowCreateForm(true);
+    }
+  }, [open, initialCardId, initialTitle]);
+
+  useEffect(() => {
+    if (open && teamId) {
+      setMembersLoading(true);
+      api.get<{ members: TeamMember[] }>(`/teams/${teamId}/members`)
+        .then((data) => {
+          setTeamMembers(data.members);
+        })
+        .catch((err) => {
+          toast.error(err instanceof ApiError ? err.message : 'Failed to load team members');
+        })
+        .finally(() => {
+          setMembersLoading(false);
+        });
+    }
+  }, [open, teamId]);
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
@@ -55,9 +100,15 @@ export function ActionItemsPanel({ open, onClose, isFacilitator }: ActionItemsPa
       await createActionItem({
         title: newTitle.trim(),
         description: newDescription.trim() || undefined,
+        cardId: newCardId,
+        assigneeId: newAssigneeId || undefined,
+        dueDate: newDueDate || undefined,
       });
       setNewTitle('');
       setNewDescription('');
+      setNewCardId(undefined);
+      setNewAssigneeId('');
+      setNewDueDate('');
       setShowCreateForm(false);
     } catch {
       // Error handled in store
@@ -131,6 +182,11 @@ export function ActionItemsPanel({ open, onClose, isFacilitator }: ActionItemsPa
       {/* Create form */}
       {showCreateForm && (
         <form onSubmit={handleCreate} className="px-4 py-3 border-b border-slate-200 bg-slate-50 space-y-2">
+          {newCardId && (
+            <div className="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
+              📎 Linked to card
+            </div>
+          )}
           <input
             type="text"
             value={newTitle}
@@ -146,12 +202,46 @@ export function ActionItemsPanel({ open, onClose, isFacilitator }: ActionItemsPa
             rows={2}
             className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">Assignee</label>
+              <select
+                value={newAssigneeId}
+                onChange={(e) => setNewAssigneeId(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                disabled={membersLoading}
+              >
+                <option value="">Unassigned</option>
+                {teamMembers.map((member) => (
+                  <option key={member.user.id} value={member.user.id}>
+                    {member.user.display_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">Due Date</label>
+              <input
+                type="date"
+                value={newDueDate}
+                onChange={(e) => setNewDueDate(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
           <div className="flex gap-2 justify-end">
             <Button
               type="button"
               variant="secondary"
               size="sm"
-              onClick={() => { setShowCreateForm(false); setNewTitle(''); setNewDescription(''); }}
+              onClick={() => {
+                setShowCreateForm(false);
+                setNewTitle('');
+                setNewDescription('');
+                setNewCardId(undefined);
+                setNewAssigneeId('');
+                setNewDueDate('');
+              }}
             >
               Cancel
             </Button>
@@ -177,6 +267,7 @@ export function ActionItemsPanel({ open, onClose, isFacilitator }: ActionItemsPa
             {actionItems.map((item) => {
               const config = statusConfig[item.status];
               const StatusIcon = config.icon;
+              const isOverdue = item.dueDate && item.status !== 'done' && new Date(item.dueDate) < new Date();
               return (
                 <div key={item.id} className="px-4 py-3 hover:bg-slate-50 group">
                   <div className="flex items-start gap-2">
@@ -199,7 +290,10 @@ export function ActionItemsPanel({ open, onClose, isFacilitator }: ActionItemsPa
                           <span className="text-xs text-slate-400">{item.assigneeName}</span>
                         )}
                         {item.dueDate && (
-                          <span className="text-xs text-slate-400">{item.dueDate}</span>
+                          <span className={`text-xs font-medium ${isOverdue ? 'text-red-600' : 'text-slate-400'}`}>
+                            {isOverdue && '⚠️ '}
+                            Due: {item.dueDate}
+                          </span>
                         )}
                         {item.carriedFromSprintName && (
                           <span className="text-xs text-amber-500">from {item.carriedFromSprintName}</span>

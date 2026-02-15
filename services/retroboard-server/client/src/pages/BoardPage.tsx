@@ -13,18 +13,104 @@ import { BoardHeader } from '@/components/board/BoardHeader';
 import { BoardColumn } from '@/components/board/BoardColumn';
 import { GroupManager } from '@/components/board/GroupManager';
 import { ActionItemsPanel } from '@/components/board/ActionItemsPanel';
+import { ExportDialog } from '@/components/board/ExportDialog';
 import { BoardSettingsModal } from '@/components/board/BoardSettingsModal';
 import { CreateBoardModal } from '@/components/board/CreateBoardModal';
 import { ConnectionStatus } from '@/components/board/ConnectionStatus';
 import { PresenceBar } from '@/components/board/PresenceBar';
 import { PhaseBar } from '@/components/board/PhaseBar';
 import { FacilitatorToolbar } from '@/components/board/FacilitatorToolbar';
+import { IcebreakerCard } from '@/components/board/IcebreakerCard';
 import type { BoardPhase } from '@/lib/board-api';
 
 interface TeamMember {
   user: { id: string };
   role: string;
 }
+
+// Theme definitions with CSS custom properties
+const THEME_STYLES: Record<string, Record<string, string>> = {
+  ocean: {
+    '--theme-bg': '#eff6ff',
+    '--theme-column-bg': '#dbeafe',
+    '--theme-column-border': '#93c5fd',
+    '--theme-card-bg': '#ffffff',
+    '--theme-card-border': '#bfdbfe',
+    '--theme-header-text': '#1e40af',
+    '--theme-accent': '#3b82f6',
+    '--theme-accent-hover': '#2563eb',
+  },
+  sunset: {
+    '--theme-bg': '#fff7ed',
+    '--theme-column-bg': '#ffedd5',
+    '--theme-column-border': '#fdba74',
+    '--theme-card-bg': '#ffffff',
+    '--theme-card-border': '#fed7aa',
+    '--theme-header-text': '#c2410c',
+    '--theme-accent': '#f97316',
+    '--theme-accent-hover': '#ea580c',
+  },
+  forest: {
+    '--theme-bg': '#f0fdf4',
+    '--theme-column-bg': '#dcfce7',
+    '--theme-column-border': '#86efac',
+    '--theme-card-bg': '#ffffff',
+    '--theme-card-border': '#bbf7d0',
+    '--theme-header-text': '#15803d',
+    '--theme-accent': '#22c55e',
+    '--theme-accent-hover': '#16a34a',
+  },
+  lavender: {
+    '--theme-bg': '#faf5ff',
+    '--theme-column-bg': '#f3e8ff',
+    '--theme-column-border': '#d8b4fe',
+    '--theme-card-bg': '#ffffff',
+    '--theme-card-border': '#e9d5ff',
+    '--theme-header-text': '#7e22ce',
+    '--theme-accent': '#a855f7',
+    '--theme-accent-hover': '#9333ea',
+  },
+  slate: {
+    '--theme-bg': '#f8fafc',
+    '--theme-column-bg': '#f1f5f9',
+    '--theme-column-border': '#cbd5e1',
+    '--theme-card-bg': '#ffffff',
+    '--theme-card-border': '#e2e8f0',
+    '--theme-header-text': '#475569',
+    '--theme-accent': '#64748b',
+    '--theme-accent-hover': '#475569',
+  },
+  rose: {
+    '--theme-bg': '#fff1f2',
+    '--theme-column-bg': '#ffe4e6',
+    '--theme-column-border': '#fda4af',
+    '--theme-card-bg': '#ffffff',
+    '--theme-card-border': '#fecdd3',
+    '--theme-header-text': '#be123c',
+    '--theme-accent': '#f43f5e',
+    '--theme-accent-hover': '#e11d48',
+  },
+  amber: {
+    '--theme-bg': '#fffbeb',
+    '--theme-column-bg': '#fef3c7',
+    '--theme-column-border': '#fcd34d',
+    '--theme-card-bg': '#ffffff',
+    '--theme-card-border': '#fde68a',
+    '--theme-header-text': '#b45309',
+    '--theme-accent': '#f59e0b',
+    '--theme-accent-hover': '#d97706',
+  },
+  emerald: {
+    '--theme-bg': '#ecfdf5',
+    '--theme-column-bg': '#d1fae5',
+    '--theme-column-border': '#6ee7b7',
+    '--theme-card-bg': '#ffffff',
+    '--theme-card-border': '#a7f3d0',
+    '--theme-header-text': '#047857',
+    '--theme-accent': '#10b981',
+    '--theme-accent-hover': '#059669',
+  },
+};
 
 export function BoardPage() {
   const { teamId, sprintId } = useParams<{ teamId: string; sprintId: string }>();
@@ -43,17 +129,24 @@ export function BoardPage() {
 
   const [showSettings, setShowSettings] = useState(false);
   const [showActionItems, setShowActionItems] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const [showCreateBoard, setShowCreateBoard] = useState(false);
   const [userRole, setUserRole] = useState<string>('member');
   const [boardNotFound, setBoardNotFound] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
+  const [teamTheme, setTeamTheme] = useState<string>('ocean');
+  const [showIcebreaker, setShowIcebreaker] = useState(true);
+  const [actionItemInitialCardId, setActionItemInitialCardId] = useState<string | undefined>();
+  const [actionItemInitialTitle, setActionItemInitialTitle] = useState<string | undefined>();
 
   // WebSocket sync
   useBoardSync(board?.id || null, wsConnected);
 
-  // Fetch user role in team
+  // Fetch user role in team and team theme
   useEffect(() => {
     if (!teamId) return;
+
+    // Fetch team members to get user role
     api.get<{ members: TeamMember[] }>(`/teams/${teamId}/members`)
       .then((data) => {
         const member = data.members.find((m) => m.user.id === user?.id);
@@ -61,6 +154,17 @@ export function BoardPage() {
       })
       .catch(() => {
         // Fallback to member role
+      });
+
+    // Fetch team data to get current theme
+    api.get<{ ok: boolean; data: { theme?: string } }>(`/teams/${teamId}`)
+      .then((response) => {
+        if (response.data?.theme) {
+          setTeamTheme(response.data.theme);
+        }
+      })
+      .catch(() => {
+        // Use default theme
       });
   }, [teamId, user?.id]);
 
@@ -94,6 +198,12 @@ export function BoardPage() {
       setWsConnected(false);
     };
   }, [board?.id, accessToken]);
+
+  const handleCreateActionItemFromCard = (cardId: string, cardContent: string) => {
+    setActionItemInitialCardId(cardId);
+    setActionItemInitialTitle(cardContent);
+    setShowActionItems(true);
+  };
 
   const isFacilitator = userRole === 'admin' || userRole === 'facilitator';
   const sortedColumns = [...columns].sort((a, b) => a.position - b.position);
@@ -177,8 +287,11 @@ export function BoardPage() {
     useBoardStore.setState({ cardsRevealed: true });
   };
 
+  // Get theme styles
+  const themeStyles = THEME_STYLES[teamTheme] || THEME_STYLES.ocean;
+
   return (
-    <div className="flex flex-col h-[calc(100vh-56px)]">
+    <div className="flex flex-col h-[calc(100vh-56px)]" style={themeStyles as React.CSSProperties}>
       {/* Back link */}
       <div className="px-4 py-2 bg-white border-b border-slate-200 flex items-center justify-between">
         <Link
@@ -202,6 +315,7 @@ export function BoardPage() {
         isFacilitator={isFacilitator}
         onOpenSettings={() => setShowSettings(true)}
         onOpenActionItems={() => setShowActionItems(true)}
+        onOpenExport={() => setShowExport(true)}
       />
 
       {/* Group manager (group phase only) */}
@@ -216,8 +330,13 @@ export function BoardPage() {
         </div>
       )}
 
+      {/* Icebreaker (write phase only) */}
+      {board.phase === 'write' && showIcebreaker && teamId && (
+        <IcebreakerCard teamId={teamId} onDismiss={() => setShowIcebreaker(false)} />
+      )}
+
       {/* Columns */}
-      <div className="flex-1 overflow-x-auto min-h-0">
+      <div className="flex-1 overflow-x-auto min-h-0" style={{ backgroundColor: 'var(--theme-bg)' }}>
         <div className="flex gap-4 p-4 h-full min-w-min">
           {sortedColumns.map((col) => (
             <BoardColumn
@@ -226,6 +345,7 @@ export function BoardPage() {
               name={col.name}
               color={col.color}
               isFacilitator={isFacilitator}
+              onCreateActionItem={handleCreateActionItemFromCard}
             />
           ))}
         </div>
@@ -234,15 +354,36 @@ export function BoardPage() {
       {/* Action items panel */}
       <ActionItemsPanel
         open={showActionItems}
-        onClose={() => setShowActionItems(false)}
+        onClose={() => {
+          setShowActionItems(false);
+          setActionItemInitialCardId(undefined);
+          setActionItemInitialTitle(undefined);
+        }}
         isFacilitator={isFacilitator}
+        teamId={teamId || ''}
+        initialCardId={actionItemInitialCardId}
+        initialTitle={actionItemInitialTitle}
       />
 
+      {/* Export dialog */}
+      {board && (
+        <ExportDialog
+          open={showExport}
+          onClose={() => setShowExport(false)}
+          boardId={board.id}
+          boardName={`Sprint ${board.sprint_id}`}
+        />
+      )}
+
       {/* Settings modal */}
-      <BoardSettingsModal
-        open={showSettings}
-        onClose={() => setShowSettings(false)}
-      />
+      {teamId && (
+        <BoardSettingsModal
+          open={showSettings}
+          onClose={() => setShowSettings(false)}
+          teamId={teamId}
+          currentTheme={teamTheme}
+        />
+      )}
 
       {/* Facilitator toolbar (only for facilitators/admins) */}
       {isFacilitator && board && (

@@ -2,19 +2,36 @@ import { useState, type FormEvent } from 'react';
 import { useBoardStore } from '@/stores/board';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { api } from '@/lib/api';
+import { toast } from '@/lib/toast';
+import { Check } from 'lucide-react';
 
 interface BoardSettingsModalProps {
   open: boolean;
   onClose: () => void;
+  teamId: string;
+  currentTheme?: string;
 }
 
-export function BoardSettingsModal({ open, onClose }: BoardSettingsModalProps) {
+const THEMES = [
+  { name: 'ocean', label: 'Ocean', color: 'bg-blue-500' },
+  { name: 'sunset', label: 'Sunset', color: 'bg-orange-500' },
+  { name: 'forest', label: 'Forest', color: 'bg-green-600' },
+  { name: 'lavender', label: 'Lavender', color: 'bg-purple-400' },
+  { name: 'slate', label: 'Slate', color: 'bg-slate-600' },
+  { name: 'rose', label: 'Rose', color: 'bg-pink-500' },
+  { name: 'amber', label: 'Amber', color: 'bg-amber-500' },
+  { name: 'emerald', label: 'Emerald', color: 'bg-emerald-500' },
+] as const;
+
+export function BoardSettingsModal({ open, onClose, teamId, currentTheme = 'ocean' }: BoardSettingsModalProps) {
   const board = useBoardStore((s) => s.board);
   const updateSettings = useBoardStore((s) => s.updateSettings);
 
   const [anonymousMode, setAnonymousMode] = useState(board?.anonymous_mode ?? false);
   const [maxVotesPerUser, setMaxVotesPerUser] = useState(String(board?.max_votes_per_user ?? 5));
   const [maxVotesPerCard, setMaxVotesPerCard] = useState(String(board?.max_votes_per_card ?? 3));
+  const [selectedTheme, setSelectedTheme] = useState(currentTheme);
   const [isSaving, setIsSaving] = useState(false);
 
   if (!board) return null;
@@ -26,11 +43,21 @@ export function BoardSettingsModal({ open, onClose }: BoardSettingsModalProps) {
     e.preventDefault();
     setIsSaving(true);
     try {
+      // Update board settings
       await updateSettings({
         anonymous_mode: anonymousMode,
         max_votes_per_user: parseInt(maxVotesPerUser) || 5,
         max_votes_per_card: parseInt(maxVotesPerCard) || 3,
       });
+
+      // Update team theme if changed
+      if (selectedTheme !== currentTheme) {
+        await api.patch<{ ok: boolean; data: { theme: string } }>(`/teams/${teamId}`, { theme: selectedTheme });
+        toast.success('Theme updated successfully');
+        // Reload page to apply new theme
+        window.location.reload();
+      }
+
       onClose();
     } catch {
       // Error handled in store
@@ -41,7 +68,31 @@ export function BoardSettingsModal({ open, onClose }: BoardSettingsModalProps) {
 
   return (
     <Modal open={open} onClose={onClose} title="Board Settings">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Theme Selector */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-slate-700">Board Theme</label>
+          <div className="grid grid-cols-4 gap-3">
+            {THEMES.map((theme) => (
+              <button
+                key={theme.name}
+                type="button"
+                onClick={() => setSelectedTheme(theme.name)}
+                className={`relative flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                  selectedTheme === theme.name
+                    ? 'border-indigo-500 bg-indigo-50'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-full ${theme.color} flex items-center justify-center`}>
+                  {selectedTheme === theme.name && <Check className="h-5 w-5 text-white" />}
+                </div>
+                <span className="text-xs font-medium text-slate-700">{theme.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="flex items-center justify-between">
           <div>
             <label htmlFor="anonymous-mode" className="text-sm font-medium text-slate-700">

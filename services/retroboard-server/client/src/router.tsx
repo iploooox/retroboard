@@ -6,13 +6,15 @@ import { RegisterPage } from '@/pages/RegisterPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { TeamDetailPage } from '@/pages/TeamDetailPage';
 import { BoardPage } from '@/pages/BoardPage';
+import { AnalyticsPage } from '@/pages/AnalyticsPage';
 import { InvitePage } from '@/pages/InvitePage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { LandingPage } from '@/pages/LandingPage';
+import { OnboardingPage } from '@/pages/OnboardingPage';
 import { Spinner } from '@/components/ui/Spinner';
 
 function ProtectedRoute() {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, user } = useAuthStore();
 
   if (isLoading) {
     return (
@@ -26,11 +28,39 @@ function ProtectedRoute() {
     return <Navigate to="/login" replace />;
   }
 
+  // Redirect to onboarding if not completed
+  if (user && !user.onboarding_completed_at) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   return (
     <AppLayout>
       <Outlet />
     </AppLayout>
   );
+}
+
+function OnboardingRoute() {
+  const { isAuthenticated, isLoading, user } = useAuthStore();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Spinner className="h-8 w-8 text-indigo-600" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // If onboarding already completed, redirect to dashboard
+  if (user && user.onboarding_completed_at) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <OnboardingPage />;
 }
 
 function PublicRoute() {
@@ -77,11 +107,13 @@ export const router = createBrowserRouter([
       { path: '/register', element: <RegisterPage /> },
     ],
   },
+  { path: '/onboarding', element: <OnboardingRoute /> },
   {
     element: <ProtectedRoute />,
     children: [
       { path: '/dashboard', element: <DashboardPage /> },
       { path: '/teams/:teamId', element: <TeamDetailPage /> },
+      { path: '/teams/:teamId/analytics', element: <AnalyticsPage /> },
       { path: '/teams/:teamId/sprints/:sprintId/board', element: <BoardPage /> },
     ],
   },

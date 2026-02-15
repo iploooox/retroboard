@@ -4,6 +4,12 @@ import { api } from './api';
 
 export type BoardPhase = 'write' | 'group' | 'vote' | 'discuss' | 'action';
 
+export interface CardReaction {
+  emoji: string;
+  count: number;
+  reacted: boolean;
+}
+
 export interface BoardCard {
   id: string;
   column_id: string;
@@ -15,6 +21,7 @@ export interface BoardCard {
   vote_count: number;
   user_votes: number;
   group_id: string | null;
+  reactions?: CardReaction[];
   created_at: string;
   updated_at: string;
 }
@@ -200,4 +207,24 @@ export const boardApi = {
 
   carryOverActionItems: (boardId: string) =>
     api.post<CarryOverResult>(`/boards/${boardId}/action-items/carry-over`),
+
+  // Export
+  exportBoard: async (boardId: string, format: 'json' | 'markdown' | 'html'): Promise<Blob> => {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`/api/v1/boards/${boardId}/export?format=${format}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Export failed');
+    }
+    return response.blob();
+  },
+
+  // Reactions
+  toggleReaction: (cardId: string, emoji: string) =>
+    api.post<OkResponse<{ card_id: string; reactions: CardReaction[] }>>(`/cards/${cardId}/reactions`, { emoji }).then(r => r.data),
+
+  removeReaction: (cardId: string, _emoji: string) =>
+    api.delete<OkResponse<{ card_id: string; reactions: CardReaction[] }>>(`/cards/${cardId}/reactions`).then(r => r.data),
 };

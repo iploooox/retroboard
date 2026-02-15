@@ -118,7 +118,7 @@ describe('Auth store', () => {
   it('should logout and clear state', async () => {
     // Set up logged in state
     useAuthStore.setState({
-      user: { id: '1', email: 'test@test.com', display_name: 'Test', avatar_url: null, created_at: '' },
+      user: { id: '1', email: 'test@test.com', display_name: 'Test', avatar_url: null, created_at: '', onboarding_completed_at: null },
       accessToken: 'at-123',
       refreshToken: 'rt-456',
       isAuthenticated: true,

@@ -91,7 +91,7 @@ export function OnboardingPage() {
   const handleNext = async () => {
     const currentIndex = STEPS.findIndex((s) => s.id === currentStep);
     if (currentIndex < STEPS.length - 1) {
-      const nextStep = STEPS[currentIndex + 1].id;
+      const nextStep = STEPS[currentIndex + 1]!.id;
       setCurrentStep(nextStep);
       setCompletedSteps([...completedSteps, currentStep]);
       await saveProgress(nextStep);
@@ -421,7 +421,7 @@ export function OnboardingPage() {
                 <Button
                   variant="secondary"
                   onClick={() => {
-                    const prevStep = STEPS[currentStepIndex - 1].id;
+                    const prevStep = STEPS[currentStepIndex - 1]!.id;
                     setCurrentStep(prevStep);
                   }}
                   disabled={isSaving}
@@ -436,7 +436,7 @@ export function OnboardingPage() {
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               )}
-              {currentStep === 'create-team' && (
+              {currentStep === 'create_team' && (
                 <Button onClick={handleCreateTeam} isLoading={isSaving}>
                   Create Team
                   <ChevronRight className="h-4 w-4 ml-1" />

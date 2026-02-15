@@ -1,17 +1,23 @@
-import { useState } from 'react';
-import { Pencil, Trash2, ThumbsUp, X, Check } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Pencil, Trash2, ThumbsUp, X, Check, Smile, FileCheck } from 'lucide-react';
 import { useBoardStore } from '@/stores/board';
 import { useAuthStore } from '@/stores/auth';
+import { boardApi } from '@/lib/board-api';
+import { toast } from '@/lib/toast';
 import type { BoardCard } from '@/lib/board-api';
+
+const REACTION_EMOJIS = ['👍', '👎', '❤️', '😂', '🎉', '🤔', '🔥', '👏', '✅', '❌', '💡', '🚀'];
 
 interface CardItemProps {
   card: BoardCard;
   isFacilitator: boolean;
+  onCreateActionItem?: (cardId: string, cardContent: string) => void;
 }
 
-export function CardItem({ card, isFacilitator }: CardItemProps) {
+export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemProps) {
   const user = useAuthStore((s) => s.user);
   const board = useBoardStore((s) => s.board);
+  const isLocked = useBoardStore((s) => s.isLocked);
   const updateCard = useBoardStore((s) => s.updateCard);
   const deleteCard = useBoardStore((s) => s.deleteCard);
   const voteOnCard = useBoardStore((s) => s.voteOnCard);
@@ -22,6 +28,20 @@ export function CardItem({ card, isFacilitator }: CardItemProps) {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(card.content);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+        setShowReactionPicker(false);
+      }
+    };
+    if (showReactionPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showReactionPicker]);
 
   if (!board) return null;
 
@@ -86,13 +106,27 @@ export function CardItem({ card, isFacilitator }: CardItemProps) {
     }
   };
 
+  const handleReactionClick = async (emoji: string) => {
+    try {
+      await boardApi.toggleReaction(card.id, emoji);
+      setShowReactionPicker(false);
+      // Reactions will be updated via WebSocket real-time sync
+    } catch (err) {
+      toast.error('Failed to add reaction');
+    }
+  };
+
   return (
     <div
       className={`rounded-lg border p-3 transition-all ${
         isFocused
-          ? 'border-indigo-400 bg-indigo-50 ring-2 ring-indigo-200'
-          : 'border-slate-200 bg-white hover:border-slate-300'
+          ? 'ring-2 ring-indigo-200'
+          : 'hover:shadow-sm'
       } ${isDiscussPhase && isFacilitator ? 'cursor-pointer' : ''}`}
+      style={{
+        backgroundColor: isFocused ? '#eef2ff' : 'var(--theme-card-bg, #ffffff)',
+        borderColor: isFocused ? '#818cf8' : 'var(--theme-card-border, #e2e8f0)',
+      }}
       onClick={isDiscussPhase && isFacilitator && !isEditing ? handleFocus : undefined}
     >
       {isEditing ? (
@@ -128,6 +162,63 @@ export function CardItem({ card, isFacilitator }: CardItemProps) {
       ) : (
         <>
           <p className="text-sm text-slate-800 whitespace-pre-wrap break-words">{card.content}</p>
+
+          {/* Reactions */}
+          {(card.reactions && card.reactions.length > 0) || !isLocked ? (
+            <div className="flex items-center gap-1 flex-wrap mt-2">
+              {card.reactions?.map((reaction) => (
+                <button
+                  key={reaction.emoji}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleReactionClick(reaction.emoji);
+                  }}
+                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs transition-colors ${
+                    reaction.reacted
+                      ? 'bg-indigo-100 hover:bg-indigo-200 text-indigo-700'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                  }`}
+                  disabled={isLocked}
+                  title={reaction.reacted ? 'Remove reaction' : 'Add reaction'}
+                >
+                  <span>{reaction.emoji}</span>
+                  <span className="font-medium">{reaction.count}</span>
+                </button>
+              ))}
+              {!isLocked && (
+                <div className="relative" ref={pickerRef}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowReactionPicker(!showReactionPicker);
+                    }}
+                    className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+                    aria-label="Add reaction"
+                  >
+                    <Smile className="h-3.5 w-3.5" />
+                  </button>
+                  {showReactionPicker && (
+                    <div className="absolute bottom-full left-0 mb-1 bg-white rounded-lg shadow-lg border border-slate-200 p-2 grid grid-cols-6 gap-1 z-10">
+                      {REACTION_EMOJIS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReactionClick(emoji);
+                          }}
+                          className="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 text-lg"
+                          title={`React with ${emoji}`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : null}
+
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
             <span className="text-xs text-slate-400">{authorDisplay}</span>
             <div className="flex items-center gap-1">
@@ -178,6 +269,19 @@ export function CardItem({ card, isFacilitator }: CardItemProps) {
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
+                  {onCreateActionItem && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCreateActionItem(card.id, card.content);
+                      }}
+                      className="p-1 rounded hover:bg-indigo-50 text-slate-400 hover:text-indigo-600"
+                      aria-label="Create action item from card"
+                      title="Create action item"
+                    >
+                      <FileCheck className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </>
               )}
             </div>
