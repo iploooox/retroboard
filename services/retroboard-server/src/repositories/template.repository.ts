@@ -54,9 +54,13 @@ export async function findAll(): Promise<TemplateSummary[]> {
   }));
 }
 
-export async function findById(id: string): Promise<TemplateDetail | null> {
+export async function findById(id: string, userId?: string): Promise<TemplateDetail | null> {
   const [template] = await sql`
-    SELECT * FROM templates WHERE id = ${id}
+    SELECT * FROM templates
+    WHERE id = ${id}
+      AND (is_system = true OR team_id IN (
+        SELECT team_id FROM team_members WHERE user_id = ${userId || ''}
+      ))
   `;
 
   if (!template) return null;

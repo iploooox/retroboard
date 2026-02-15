@@ -71,8 +71,9 @@ export const invitationRepository = {
     return count;
   },
 
-  async atomicJoin(inviteId: string) {
-    const [result] = await sql`
+  async atomicJoin(inviteId: string, tx?: typeof sql) {
+    const db = tx || sql;
+    const [result] = await db`
       UPDATE team_invitations
       SET use_count = use_count + 1
       WHERE id = ${inviteId}

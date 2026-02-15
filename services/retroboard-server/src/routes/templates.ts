@@ -17,6 +17,7 @@ templatesRouter.get('/', async (c) => {
 // GET /api/v1/templates/:id — get template detail
 templatesRouter.get('/:id', async (c) => {
   const id = c.req.param('id');
+  const user = c.get('user');
 
   // Validate UUID format
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -24,7 +25,7 @@ templatesRouter.get('/:id', async (c) => {
     return c.json(formatErrorResponse('TEMPLATE_NOT_FOUND', 'Template not found'), 404);
   }
 
-  const template = await templateRepo.findById(id);
+  const template = await templateRepo.findById(id, user.id);
   if (!template) {
     return c.json(formatErrorResponse('TEMPLATE_NOT_FOUND', 'Template not found'), 404);
   }

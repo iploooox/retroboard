@@ -7,6 +7,7 @@ import { invitationRepository } from '../repositories/invitation.repository.js';
 import { generateSlug } from '../utils/slug.js';
 import { generateInviteCode } from '../utils/invite-code.js';
 import { formatErrorResponse } from '../utils/errors.js';
+import { sql } from '../db/connection.js';
 import {
   createTeamSchema,
   updateTeamSchema,
@@ -155,14 +156,23 @@ teamsRouter.post('/join/:code', async (c) => {
     return c.json(formatErrorResponse('TEAM_MEMBER_EXISTS', 'You are already a member of this team'), 409);
   }
 
-  // Atomic join
-  const joinResult = await invitationRepository.atomicJoin(invitation.id);
-  if (!joinResult) {
-    return c.json(formatErrorResponse('TEAM_INVITE_EXHAUSTED', 'Invitation has reached its usage limit'), 410);
+  // Atomic join + add member in a single transaction
+  let joinRole: string;
+  try {
+    joinRole = await sql.begin(async (tx) => {
+      const joinResult = await invitationRepository.atomicJoin(invitation.id, tx);
+      if (!joinResult) {
+        throw new Error('INVITE_EXHAUSTED');
+      }
+      await teamMemberRepository.addMember(invitation.team_id, user.id, joinResult.role as 'admin' | 'facilitator' | 'member', tx);
+      return joinResult.role as string;
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message === 'INVITE_EXHAUSTED') {
+      return c.json(formatErrorResponse('TEAM_INVITE_EXHAUSTED', 'Invitation has reached its usage limit'), 410);
+    }
+    throw err;
   }
-
-  // Add member with the invite's role
-  await teamMemberRepository.addMember(invitation.team_id, user.id, joinResult.role);
 
   // Get team for response
   const team = await teamRepository.findByIdForUser(invitation.team_id, user.id);
@@ -170,7 +180,7 @@ teamsRouter.post('/join/:code', async (c) => {
   return c.json({
     team: formatTeam(team),
     membership: {
-      role: joinResult.role,
+      role: joinRole,
       joined_at: new Date().toISOString(),
     },
   });

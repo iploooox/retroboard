@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
+import { bodyLimit } from 'hono/body-limit';
 import { serve } from '@hono/node-server';
 import { env } from './config/env.js';
 import { AppError, formatErrorResponse } from './utils/errors.js';
@@ -30,16 +31,14 @@ app.use('*', async (c, next) => {
   c.header('X-Frame-Options', 'DENY');
   c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
   c.header('Content-Security-Policy', "default-src 'self'");
+  c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
 });
 
 // Body size limit (1MB)
-app.use('/api/*', async (c, next) => {
-  const contentLength = c.req.header('content-length');
-  if (contentLength && parseInt(contentLength, 10) > 1_048_576) {
-    return c.json(formatErrorResponse('PAYLOAD_TOO_LARGE', 'Request body too large'), 413);
-  }
-  await next();
-});
+app.use('/api/*', bodyLimit({
+  maxSize: 1_048_576,
+  onError: (c) => c.json(formatErrorResponse('PAYLOAD_TOO_LARGE', 'Request body too large'), 413),
+}));
 
 // Health check
 app.get('/api/v1/health', (c) => {

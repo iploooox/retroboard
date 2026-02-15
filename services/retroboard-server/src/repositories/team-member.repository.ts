@@ -1,8 +1,9 @@
 import { sql } from '../db/connection.js';
 
 export const teamMemberRepository = {
-  async addMember(teamId: string, userId: string, role: 'admin' | 'facilitator' | 'member') {
-    const [member] = await sql`
+  async addMember(teamId: string, userId: string, role: 'admin' | 'facilitator' | 'member', tx?: typeof sql) {
+    const db = tx || sql;
+    const [member] = await db`
       INSERT INTO team_members (team_id, user_id, role)
       VALUES (${teamId}, ${userId}, ${role})
       RETURNING *
