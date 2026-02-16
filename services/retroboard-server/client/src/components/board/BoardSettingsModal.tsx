@@ -2,7 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { useBoardStore } from '@/stores/board';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { Check, Plus, Trash2, Edit2, X } from 'lucide-react';
 
@@ -93,8 +93,8 @@ export function BoardSettingsModal({ open, onClose, teamId, currentTheme = 'defa
       setNewWord('');
       setNewScore('0');
       await loadCustomWords();
-    } catch (error: any) {
-      if (error.response?.status === 409) {
+    } catch (error) {
+      if (error instanceof ApiError && error.response?.status === 409) {
         toast.error('This word already exists');
       } else {
         toast.error('Failed to add word');

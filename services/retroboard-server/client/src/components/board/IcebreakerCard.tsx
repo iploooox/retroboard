@@ -46,6 +46,7 @@ export function IcebreakerCard({ teamId, boardId, onDismiss }: IcebreakerCardPro
 
   useEffect(() => {
     fetchIcebreaker();
+    // Only fetch on mount - fetchIcebreaker is stable but would cause infinite loop if added to deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

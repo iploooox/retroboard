@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { WSClient } from '@/lib/ws-client';
 
+// Type for accessing WSClient internals in tests
+type WSClientInternal = WSClient & {
+  ws: MockWebSocket | null;
+  state: string;
+};
+
 // Mock WebSocket
 class MockWebSocket {
   static OPEN = 1;
@@ -67,10 +73,11 @@ describe('WSClient', () => {
     client.connect('board-123', 'token-abc');
 
     // Simulate connection open
-    const ws = (client as any)['ws'];
+    const internalClient = client as WSClientInternal;
+    const ws = internalClient.ws;
     if (ws) {
-      (ws as MockWebSocket).readyState = MockWebSocket.OPEN;
-      (client as any)['state'] = 'CONNECTED';
+      ws.readyState = MockWebSocket.OPEN;
+      internalClient.state = 'CONNECTED';
     }
 
     expect(() => client.send('ping', {})).not.toThrow();
