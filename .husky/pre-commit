@@ -1,0 +1,10 @@
+cd services/retroboard-server
+
+echo "Running ESLint..."
+npx eslint src/ tests/ --quiet
+
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "ESLint failed. Fix errors before committing."
+  exit 1
+fi
