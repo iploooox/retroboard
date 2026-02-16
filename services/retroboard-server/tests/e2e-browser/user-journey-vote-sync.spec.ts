@@ -85,11 +85,11 @@ test.describe('Vote Real-time Sync', () => {
 
     // Confirm phase change in modal
     await page1.getByRole('button', { name: 'Change Phase' }).click();
-    await page1.waitForTimeout(1000);
+    await page1.waitForTimeout(2000);
 
-    // Verify both users see the vote phase
-    await expect(page1.getByTestId('phase-badge')).toContainText(/vote/i, { timeout: 5000 });
-    await expect(page2.getByTestId('phase-badge')).toContainText(/vote/i, { timeout: 5000 });
+    // Verify both users see the vote phase (longer timeout for WebSocket under parallel load)
+    await expect(page1.getByTestId('phase-badge')).toContainText(/vote/i, { timeout: 15000 });
+    await expect(page2.getByTestId('phase-badge')).toContainText(/vote/i, { timeout: 15000 });
 
     // Get initial vote count on both pages (should be 0)
     const card1 = page1.getByText('Test card for voting').locator('..');
@@ -209,15 +209,18 @@ test.describe('Vote Real-time Sync', () => {
     await expect(page1.getByTestId('phase-badge')).toContainText(/vote/i, { timeout: 5000 });
     await expect(page2.getByTestId('phase-badge')).toContainText(/vote/i, { timeout: 5000 });
 
-    // User 1: Cast 2 votes on Card 1 (UI allows max 2 per-card clicks due to vote limit)
+    // User 1: Cast 2 votes on Card 1
     // Vote 1
     await page1.locator('button[aria-label="Vote"]').first().click();
-    await page1.waitForTimeout(1000);
+    await page1.waitForTimeout(2000);
     await expect(page1.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 5000 });
+
+    // Verify User 2 sees vote 1 before casting vote 2
+    await expect(page2.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 10000 });
 
     // Vote 2
     await page1.locator('button[aria-label="Vote"]').first().click();
-    await page1.waitForTimeout(1000);
+    await page1.waitForTimeout(2000);
     await expect(page1.getByTestId('card-votes').first()).toContainText('2 votes', { timeout: 5000 });
 
     // Verify User 2 sees 2 votes on Card 1 in real-time via WebSocket

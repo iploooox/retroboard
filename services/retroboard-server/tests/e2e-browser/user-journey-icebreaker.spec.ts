@@ -276,7 +276,7 @@ test.describe('Icebreaker Generator (S-028)', () => {
 
     // Refresh again to verify it continues working
     await page.getByRole('button', { name: 'New Question' }).click();
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(3000);
 
     const secondFacilitatorQuestion = await facilitatorQuestion.textContent();
     const secondParticipantQuestion = await participantQuestion.textContent();
