@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { registerUser, generateUniqueEmail, loginUser } from './helpers';
+import { registerUser, generateUniqueEmail } from './helpers';
 
 test.describe('Landing Page User Journey', () => {
   test('1. Unauthenticated user sees landing page at /', async ({ page }) => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createTestApp } from '../../helpers/test-app.js';
-import { truncateTables, createTestUser, createTestTeam } from '../../helpers/db.js';
+import { truncateTables,  createTestTeam } from '../../helpers/db.js';
 import { getAuthToken } from '../../helpers/auth.js';
 import { sql } from '../../../src/db/connection.js';
 

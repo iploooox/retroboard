@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { app } from '../../src/server.js';
 import { truncateTables } from '../helpers/db.js';
 import { seed } from '../../src/db/seed.js';
-import { createTestWSClient, closeAllClients, type TestWSClient } from '../helpers/ws.js';
+import { createTestWSClient, closeAllClients, type TestWSClient, getPayload } from '../helpers/ws.js';
 
 /**
  * E2E: Phase 3 Happy Path — Real-time Retro Ceremony
@@ -136,21 +136,22 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       aliceWS = await createTestWSClient({ boardId, token: tokenA });
       const alicePresence = await aliceWS.waitForMessage('presence_state');
       expect(alicePresence.type).toBe('presence_state');
-      expect(alicePresence.payload.users).toHaveLength(0); // No existing users
+      expect(getPayload(alicePresence).users).toHaveLength(0); // No existing users
 
       // Bob connects (second user, gets Alice in presence_state)
       bobWS = await createTestWSClient({ boardId, token: tokenB });
       const bobPresence = await bobWS.waitForMessage('presence_state');
       expect(bobPresence.type).toBe('presence_state');
-      expect(bobPresence.payload.users).toHaveLength(1); // Alice is already connected
-      expect(bobPresence.payload.users[0].userId).toBe(aliceId);
-      expect(bobPresence.payload.users[0].userName).toBe('Alice');
+      const bobPresenceUsers = getPayload(bobPresence).users as Array<{ userId: string; userName: string }>;
+      expect(bobPresenceUsers).toHaveLength(1); // Alice is already connected
+      expect(bobPresenceUsers[0].userId).toBe(aliceId);
+      expect(bobPresenceUsers[0].userName).toBe('Alice');
 
       // Alice should receive user_joined for Bob
       const userJoined = await aliceWS.waitForMessage('user_joined');
       expect(userJoined.type).toBe('user_joined');
-      expect(userJoined.payload.userId).toBe(bobId);
-      expect(userJoined.payload.userName).toBe('Bob');
+      expect(getPayload(userJoined).userId).toBe(bobId);
+      expect(getPayload(userJoined).userName).toBe('Bob');
 
       // ========== WRITE PHASE: Timer + Cards ==========
 
@@ -165,8 +166,8 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       // Both clients should receive timer_started
       const aliceTimerStart = await aliceWS.waitForMessage('timer_started');
       expect(aliceTimerStart.type).toBe('timer_started');
-      expect(aliceTimerStart.payload.phase).toBe('write');
-      expect(aliceTimerStart.payload.durationSeconds).toBe(30);
+      expect(getPayload(aliceTimerStart).phase).toBe('write');
+      expect(getPayload(aliceTimerStart).durationSeconds).toBe(30);
 
       const bobTimerStart = await bobWS.waitForMessage('timer_started');
       expect(bobTimerStart.type).toBe('timer_started');
@@ -183,11 +184,11 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       // Bob should receive card_created event
       const bobCardCreated = await bobWS.waitForMessage('card_created');
       expect(bobCardCreated.type).toBe('card_created');
-      expect(bobCardCreated.payload.id).toBe(cardA1.id);
-      expect(bobCardCreated.payload.content).toBe('Great collaboration');
+      expect(getPayload(bobCardCreated).id).toBe(cardA1.id);
+      expect(getPayload(bobCardCreated).content).toBe('Great collaboration');
       // Note: WebSocket events include full data; anonymous filtering is client-side
-      expect(bobCardCreated.payload.authorId).toBeDefined();
-      expect(bobCardCreated.payload.authorName).toBe('Alice');
+      expect(getPayload(bobCardCreated).authorId).toBeDefined();
+      expect(getPayload(bobCardCreated).authorName).toBe('Alice');
 
       // Bob adds a card
       const addCardB1 = await app.request(`/api/v1/boards/${boardId}/cards`, {
@@ -229,8 +230,8 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       // Both should receive phase_changed
       const alicePhaseChanged = await aliceWS.waitForMessage('phase_changed');
       expect(alicePhaseChanged.type).toBe('phase_changed');
-      expect(alicePhaseChanged.payload.currentPhase).toBe('group');
-      expect(alicePhaseChanged.payload.previousPhase).toBe('write');
+      expect(getPayload(alicePhaseChanged).currentPhase).toBe('group');
+      expect(getPayload(alicePhaseChanged).previousPhase).toBe('write');
 
       const bobPhaseChanged = await bobWS.waitForMessage('phase_changed');
       expect(bobPhaseChanged.type).toBe('phase_changed');
@@ -238,7 +239,7 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       // Both should receive timer_stopped
       const aliceTimerStopped = await aliceWS.waitForMessage('timer_stopped');
       expect(aliceTimerStopped.type).toBe('timer_stopped');
-      expect(aliceTimerStopped.payload.reason).toBe('phase_change');
+      expect(getPayload(aliceTimerStopped).reason).toBe('phase_change');
 
       const bobTimerStopped = await bobWS.waitForMessage('timer_stopped');
       expect(bobTimerStopped.type).toBe('timer_stopped');
@@ -258,7 +259,7 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       // Bob should receive group_created
       const bobGroupCreated = await bobWS.waitForMessage('group_created');
       expect(bobGroupCreated.type).toBe('group_created');
-      expect(bobGroupCreated.payload.id).toBe(group.id);
+      expect(getPayload(bobGroupCreated).id).toBe(group.id);
 
       // ========== VOTE PHASE: Voting ==========
 
@@ -284,7 +285,7 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       // Bob should receive vote_added
       const bobVoteAdded = await bobWS.waitForMessage('vote_added');
       expect(bobVoteAdded.type).toBe('vote_added');
-      expect(bobVoteAdded.payload.id).toBeDefined(); // Vote ID
+      expect(getPayload(bobVoteAdded).id).toBeDefined(); // Vote ID
 
       // Bob votes on cardB1
       const voteB1 = await app.request(`/api/v1/boards/${boardId}/cards/${cardB1.id}/vote`, {
@@ -296,7 +297,7 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       // Alice should receive vote_added
       const aliceVoteAdded = await aliceWS.waitForMessage('vote_added');
       expect(aliceVoteAdded.type).toBe('vote_added');
-      expect(aliceVoteAdded.payload.id).toBeDefined();
+      expect(getPayload(aliceVoteAdded).id).toBeDefined();
 
       // ========== DISCUSS PHASE: Focus ==========
 
@@ -322,12 +323,12 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       // Both should receive focus_changed
       const aliceFocusChanged = await aliceWS.waitForMessage('focus_changed');
       expect(aliceFocusChanged.type).toBe('focus_changed');
-      expect(aliceFocusChanged.payload.focusId).toBe(cardA1.id);
-      expect(aliceFocusChanged.payload.focusType).toBe('card');
+      expect(getPayload(aliceFocusChanged).focusId).toBe(cardA1.id);
+      expect(getPayload(aliceFocusChanged).focusType).toBe('card');
 
       const bobFocusChanged = await bobWS.waitForMessage('focus_changed');
       expect(bobFocusChanged.type).toBe('focus_changed');
-      expect(bobFocusChanged.payload.focusId).toBe(cardA1.id);
+      expect(getPayload(bobFocusChanged).focusId).toBe(cardA1.id);
 
       // Alice changes focus to the group
       const setFocusGroup = await app.request(`/api/v1/boards/${boardId}/focus`, {
@@ -374,7 +375,7 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       // Bob should receive action_item_created
       const bobActionCreated = await bobWS.waitForMessage('action_item_created');
       expect(bobActionCreated.type).toBe('action_item_created');
-      expect(bobActionCreated.payload.id).toBe(actionItem.id);
+      expect(getPayload(bobActionCreated).id).toBe(actionItem.id);
 
       // ========== REVEAL: Anonymous cards reveal ==========
 
@@ -391,11 +392,11 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       // Both should receive cards_revealed event
       const aliceCardsRevealed = await aliceWS.waitForMessage('cards_revealed');
       expect(aliceCardsRevealed.type).toBe('cards_revealed');
-      expect(aliceCardsRevealed.payload.boardId).toBe(boardId);
+      expect(getPayload(aliceCardsRevealed).boardId).toBe(boardId);
 
       const bobCardsRevealed = await bobWS.waitForMessage('cards_revealed');
       expect(bobCardsRevealed.type).toBe('cards_revealed');
-      expect(bobCardsRevealed.payload.boardId).toBe(boardId);
+      expect(getPayload(bobCardsRevealed).boardId).toBe(boardId);
 
       // Verify after reveal, GET board shows authors
       const getBoardAfterReveal = await app.request(`/api/v1/sprints/${sprint.id}/board`, {
@@ -420,7 +421,7 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       // Both should receive board_locked
       const aliceBoardLocked = await aliceWS.waitForMessage('board_locked');
       expect(aliceBoardLocked.type).toBe('board_locked');
-      expect(aliceBoardLocked.payload.boardId).toBe(boardId);
+      expect(getPayload(aliceBoardLocked).boardId).toBe(boardId);
 
       const bobBoardLocked = await bobWS.waitForMessage('board_locked');
       expect(bobBoardLocked.type).toBe('board_locked');
@@ -440,7 +441,7 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       // Both should receive board_unlocked
       const aliceBoardUnlocked = await aliceWS.waitForMessage('board_unlocked');
       expect(aliceBoardUnlocked.type).toBe('board_unlocked');
-      expect(aliceBoardUnlocked.payload.boardId).toBe(boardId);
+      expect(getPayload(aliceBoardUnlocked).boardId).toBe(boardId);
 
       const bobBoardUnlocked = await bobWS.waitForMessage('board_unlocked');
       expect(bobBoardUnlocked.type).toBe('board_unlocked');
@@ -458,7 +459,7 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       // Alice should receive user_left
       const aliceUserLeft = await aliceWS.waitForMessage('user_left');
       expect(aliceUserLeft.type).toBe('user_left');
-      expect(aliceUserLeft.payload.userId).toBe(bobId);
+      expect(getPayload(aliceUserLeft).userId).toBe(bobId);
 
       // Alice creates an action item while Bob is disconnected
       const addAIWhileOffline = await app.request(`/api/v1/boards/${boardId}/action-items`, {
@@ -474,25 +475,26 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       const missedAI = await addAIWhileOffline.json();
 
       // Bob reconnects with lastEventId
-      bobWS = await createTestWSClient({ boardId, token: tokenB, lastEventId });
+      bobWS = await createTestWSClient({ boardId, token: tokenB, lastEventId: lastEventId as string });
 
       // Bob should receive event_replay with missed events
       const bobEventReplay = await bobWS.waitForMessage('event_replay');
       expect(bobEventReplay.type).toBe('event_replay');
-      expect(bobEventReplay.payload.events).toBeDefined();
-      expect(bobEventReplay.payload.events.length).toBeGreaterThan(0);
+      const events = getPayload(bobEventReplay).events as Array<{ type: string }>;
+      expect(events).toBeDefined();
+      expect(events.length).toBeGreaterThan(0);
 
       // Verify the missed action_item_created is in the replay
-      const replayedAICreated = bobEventReplay.payload.events.find(
-        (e: { type: string }) => e.type === 'action_item_created',
+      const replayedAICreated = events.find(
+        (e) => e.type === 'action_item_created',
       );
       expect(replayedAICreated).toBeDefined();
-      expect(replayedAICreated.payload.id).toBe(missedAI.id);
+      expect(getPayload(replayedAICreated!).id).toBe(missedAI.id);
 
       // Alice should receive user_joined when Bob reconnects
       const aliceUserJoinedAgain = await aliceWS.waitForMessage('user_joined');
       expect(aliceUserJoinedAgain.type).toBe('user_joined');
-      expect(aliceUserJoinedAgain.payload.userId).toBe(bobId);
+      expect(getPayload(aliceUserJoinedAgain).userId).toBe(bobId);
 
       // ========== SUCCESS ==========
       console.log('✅ Phase 3 E2E happy path completed successfully');

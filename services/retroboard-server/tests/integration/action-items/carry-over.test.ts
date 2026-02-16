@@ -18,7 +18,7 @@ const app = createTestApp();
 describe('POST /api/v1/boards/:id/action-items/carry-over — Carry Over Action Items', () => {
   let adminToken: string;
   let adminUser: { id: string; email: string };
-  let memberToken: string;
+  let _memberToken: string;
   let memberUser: { id: string; email: string };
   let team: { id: string };
   let prevSprint: { id: string };
@@ -35,7 +35,7 @@ describe('POST /api/v1/boards/:id/action-items/carry-over — Carry Over Action 
     adminUser = adminAuth.user;
 
     const memberAuth = await getAuthToken({ email: 'member@test.com', displayName: 'Member User' });
-    memberToken = memberAuth.token;
+      _memberToken = memberAuth.token;
     memberUser = memberAuth.user;
 
     team = await createTestTeam(adminUser.id);
@@ -81,10 +81,10 @@ describe('POST /api/v1/boards/:id/action-items/carry-over — Carry Over Action 
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.carriedOver).toHaveLength(2);
-    expect(body.sourceSprintName).toBe('Sprint 14');
-    expect(body.totalResolved).toBe(2);
+    const _body = await res.json();
+    expect(_body.carriedOver).toHaveLength(2);
+    expect(_body.sourceSprintName).toBe('Sprint 14');
+    expect(_body.totalResolved).toBe(2);
   });
 
   it('should be idempotent — second call returns alreadyCarried', async () => {
@@ -131,8 +131,8 @@ describe('POST /api/v1/boards/:id/action-items/carry-over — Carry Over Action 
     });
 
     expect(res.status).toBe(404);
-    const body = await res.json();
-    expect(body.error).toBe('NO_PREVIOUS_SPRINT');
+    const _body = await res.json();
+    expect(_body.error).toBe('NO_PREVIOUS_SPRINT');
   });
 
   it('should skip done items and include them in skipped array', async () => {
@@ -151,13 +151,13 @@ describe('POST /api/v1/boards/:id/action-items/carry-over — Carry Over Action 
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.carriedOver).toHaveLength(1);
-    expect(body.carriedOver[0].title).toBe('Open item');
-    expect(body.skipped).toHaveLength(1);
-    expect(body.skipped[0].title).toBe('Done item');
-    expect(body.skipped[0].reason).toBe('already_done');
-    expect(body.totalSkipped).toBe(1);
+    const _body = await res.json();
+    expect(_body.carriedOver).toHaveLength(1);
+    expect(_body.carriedOver[0].title).toBe('Open item');
+    expect(_body.skipped).toHaveLength(1);
+    expect(_body.skipped[0].title).toBe('Done item');
+    expect(_body.skipped[0].reason).toBe('already_done');
+    expect(_body.totalSkipped).toBe(1);
   });
 
   it('should set carried items to target board', async () => {
@@ -172,7 +172,7 @@ describe('POST /api/v1/boards/:id/action-items/carry-over — Carry Over Action 
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const _body = await res.json();
 
     // Verify the carried item belongs to the current board by listing
     const listRes = await app.request(`/api/v1/boards/${currentBoard.id}/action-items`, {
@@ -197,10 +197,10 @@ describe('POST /api/v1/boards/:id/action-items/carry-over — Carry Over Action 
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.carriedOver).toHaveLength(1);
-    expect(body.carriedOver[0].status).toBe('open');
-    expect(body.carriedOver[0].originalStatus).toBe('in_progress');
+    const _body = await res.json();
+    expect(_body.carriedOver).toHaveLength(1);
+    expect(_body.carriedOver[0].status).toBe('open');
+    expect(_body.carriedOver[0].originalStatus).toBe('in_progress');
   });
 
   it('should preserve title, description, assignee, and due date', async () => {
@@ -218,9 +218,9 @@ describe('POST /api/v1/boards/:id/action-items/carry-over — Carry Over Action 
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.carriedOver).toHaveLength(1);
-    const carried = body.carriedOver[0];
+    const _body = await res.json();
+    expect(_body.carriedOver).toHaveLength(1);
+    const carried = _body.carriedOver[0];
     expect(carried.title).toBe('Important task');
     expect(carried.description).toBe('Detailed description here');
     expect(carried.assigneeId).toBe(memberUser.id);
@@ -240,10 +240,10 @@ describe('POST /api/v1/boards/:id/action-items/carry-over — Carry Over Action 
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.carriedOver).toHaveLength(1);
-    expect(body.carriedOver[0].originalId).toBe(original.id);
-    expect(body.carriedOver[0].originalSprintName).toBe('Sprint 14');
+    const _body = await res.json();
+    expect(_body.carriedOver).toHaveLength(1);
+    expect(_body.carriedOver[0].originalId).toBe(original.id);
+    expect(_body.carriedOver[0].originalSprintName).toBe('Sprint 14');
   });
 
   it('should return 403 when user is not a team member', async () => {
@@ -255,8 +255,8 @@ describe('POST /api/v1/boards/:id/action-items/carry-over — Carry Over Action 
     });
 
     expect(res.status).toBe(403);
-    const body = await res.json();
-    expect(body.error).toBe('FORBIDDEN');
+    const _body = await res.json();
+    expect(_body.error).toBe('FORBIDDEN');
   });
 
   it('should return 401 when no auth token is provided', async () => {
@@ -274,8 +274,8 @@ describe('POST /api/v1/boards/:id/action-items/carry-over — Carry Over Action 
     });
 
     expect(res.status).toBe(404);
-    const body = await res.json();
-    expect(body.error).toBe('NOT_FOUND');
+    const _body = await res.json();
+    expect(_body.error).toBe('NOT_FOUND');
   });
 
   it('should handle when all previous items are done', async () => {
@@ -288,11 +288,11 @@ describe('POST /api/v1/boards/:id/action-items/carry-over — Carry Over Action 
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.carriedOver).toHaveLength(0);
-    expect(body.skipped).toHaveLength(2);
-    expect(body.totalResolved).toBe(0);
-    expect(body.totalSkipped).toBe(2);
+    const _body = await res.json();
+    expect(_body.carriedOver).toHaveLength(0);
+    expect(_body.skipped).toHaveLength(2);
+    expect(_body.totalResolved).toBe(0);
+    expect(_body.totalSkipped).toBe(2);
   });
 
   it('should handle when previous sprint has no action items', async () => {
@@ -302,9 +302,9 @@ describe('POST /api/v1/boards/:id/action-items/carry-over — Carry Over Action 
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.carriedOver).toHaveLength(0);
-    expect(body.skipped).toHaveLength(0);
-    expect(body.totalResolved).toBe(0);
+    const _body = await res.json();
+    expect(_body.carriedOver).toHaveLength(0);
+    expect(_body.skipped).toHaveLength(0);
+    expect(_body.totalResolved).toBe(0);
   });
 });

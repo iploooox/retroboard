@@ -18,7 +18,6 @@ export function getSql(): ReturnType<typeof postgres> {
   return _sql;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
 function _noop() {}
 
 /**

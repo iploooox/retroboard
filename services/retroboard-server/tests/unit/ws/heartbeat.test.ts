@@ -23,7 +23,7 @@ describe('HeartbeatManager', () => {
   });
 
   it('3.4.1: Active connection kept alive', () => {
-    hb.register('client-1', { terminate: mockTerminate } as any);
+    hb.register('client-1', { terminate: mockTerminate } as never);
     hb.recordPing('client-1');
 
     // Advance 30s — check runs but client pinged recently
@@ -32,14 +32,14 @@ describe('HeartbeatManager', () => {
   });
 
   it('3.4.2: Stale connection terminated', () => {
-    hb.register('client-1', { terminate: mockTerminate } as any);
+    hb.register('client-1', { terminate: mockTerminate } as never);
     // Do NOT send a ping, advance past stale threshold
     vi.advanceTimersByTime(50_000);
     expect(mockOnStale).toHaveBeenCalledWith('client-1');
   });
 
   it('3.4.3: Check interval runs every 30s', () => {
-    hb.register('client-1', { terminate: mockTerminate } as any);
+    hb.register('client-1', { terminate: mockTerminate } as never);
     hb.recordPing('client-1');
 
     // First check at 30s — client is fresh
@@ -52,7 +52,7 @@ describe('HeartbeatManager', () => {
   });
 
   it('3.4.4: Terminated connection cleaned up', () => {
-    hb.register('client-1', { terminate: mockTerminate } as any);
+    hb.register('client-1', { terminate: mockTerminate } as never);
     hb.unregister('client-1');
 
     // Advance past threshold — should not trigger stale callback

@@ -116,7 +116,7 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
       await boardApi.toggleReaction(card.id, emoji);
       setShowReactionPicker(false);
       // Reactions will be updated via WebSocket real-time sync
-    } catch (err) {
+    } catch {
       toast.error('Failed to add reaction');
     }
   };
@@ -139,11 +139,15 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
           <textarea
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
+            placeholder="Edit card content"
             className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
             rows={3}
             autoFocus
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSaveEdit();
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSaveEdit();
+              }
               if (e.key === 'Escape') setIsEditing(false);
             }}
           />
@@ -208,7 +212,7 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
                     <Smile className="h-3.5 w-3.5" />
                   </button>
                   {showReactionPicker && (
-                    <div className="absolute bottom-full left-0 mb-1 bg-white rounded-lg shadow-lg border border-slate-200 p-2 grid grid-cols-6 gap-1 z-10">
+                    <div className="absolute bottom-full left-0 mb-1 bg-white rounded-lg shadow-lg border border-slate-200 p-2 grid grid-cols-6 gap-1 z-[1000]">
                       {REACTION_EMOJIS.map((emoji) => (
                         <button
                           key={emoji}
@@ -276,6 +280,7 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
                     }}
                     className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600"
                     aria-label="Edit card"
+                    disabled={isLocked}
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
@@ -283,6 +288,7 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
                     onClick={(e) => { e.stopPropagation(); handleDelete(); }}
                     className="p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-600"
                     aria-label="Delete card"
+                    disabled={isLocked}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -295,6 +301,7 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
                       className="p-1 rounded hover:bg-indigo-50 text-slate-400 hover:text-indigo-600"
                       aria-label="Create action item from card"
                       title="Create action item"
+                      disabled={isLocked}
                     >
                       <FileCheck className="h-3.5 w-3.5" />
                     </button>

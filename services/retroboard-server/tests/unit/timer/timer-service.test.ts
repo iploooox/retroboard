@@ -405,7 +405,7 @@ describe('TimerService — Unit Tests', () => {
 
     // No further timer_tick broadcasts after expiry
     const tickCalls = mockBroadcast.mock.calls.filter(
-      (call: any[]) => call[1]?.type === 'timer_tick',
+      (call: unknown[]) => (call[1] as Record<string, unknown> | undefined)?.type === 'timer_tick',
     );
     expect(tickCalls).toHaveLength(0);
   });

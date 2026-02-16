@@ -1,5 +1,13 @@
 import type { BoardExportData } from '../repositories/export-repository.js';
 
+type FlexibleBoardExportData = {
+  board: Partial<BoardExportData['board']> & { id: string; name: string };
+  columns: Array<Partial<BoardExportData['columns'][number]> & { cards?: Array<Partial<BoardExportData['columns'][number]['cards'][number]> & Record<string, unknown>> }>;
+  groups: Array<Partial<BoardExportData['groups'][number]> & { cards?: Array<Partial<BoardExportData['groups'][number]['cards'][number]> & Record<string, unknown>> }>;
+  actionItems: Array<Partial<BoardExportData['actionItems'][number]> & Record<string, unknown>>;
+  analytics: Partial<BoardExportData['analytics']> | null;
+};
+
 /**
  * Escape markdown special characters
  */
@@ -10,15 +18,19 @@ function escapeMarkdown(text: string): string {
 /**
  * Format board export data as Markdown
  */
-export function formatAsMarkdown(boardData: BoardExportData): string {
+export function formatAsMarkdown(boardData: BoardExportData | FlexibleBoardExportData): string {
   const { board, columns, groups, actionItems, analytics } = boardData;
   const lines: string[] = [];
 
   // Header
   lines.push(`# Retrospective: ${board.name}`);
   lines.push('');
-  lines.push(`**Team:** ${board.teamName}`);
-  lines.push(`**Sprint:** ${board.sprintName} (${board.sprintStartDate} - ${board.sprintEndDate})`);
+  if (board.teamName) {
+    lines.push(`**Team:** ${board.teamName}`);
+  }
+  if (board.sprintName && board.sprintStartDate && board.sprintEndDate) {
+    lines.push(`**Sprint:** ${board.sprintName} (${board.sprintStartDate} - ${board.sprintEndDate})`);
+  }
   if (board.templateName) {
     lines.push(`**Template:** ${board.templateName}`);
   }
@@ -26,7 +38,9 @@ export function formatAsMarkdown(boardData: BoardExportData): string {
     lines.push(`**Facilitator:** ${board.facilitatorName}`);
   }
   lines.push(`**Date:** ${new Date().toISOString().split('T')[0]}`);
-  lines.push(`**Participants:** ${board.participantCount}`);
+  if (board.participantCount !== undefined) {
+    lines.push(`**Participants:** ${board.participantCount}`);
+  }
   lines.push('');
   lines.push('---');
   lines.push('');
@@ -69,17 +83,19 @@ export function formatAsMarkdown(boardData: BoardExportData): string {
 
   // Columns with cards
   for (const column of columns) {
-    const cardCount = column.cards.length;
-    lines.push(`## ${column.name} (${cardCount} cards)`);
+    const cards = column.cards || [];
+    const cardCount = cards.length;
+    lines.push(`## ${column.name ?? 'Untitled Column'} (${cardCount} cards)`);
     lines.push('');
 
-    if (column.cards.length === 0) {
+    if (cards.length === 0) {
       lines.push('No cards');
       lines.push('');
     } else {
-      for (const card of column.cards) {
-        const voteText = card.voteCount === 1 ? 'vote' : 'votes';
-        lines.push(`### ${escapeMarkdown(card.content)} (${card.voteCount} ${voteText})`);
+      for (const card of cards) {
+        const voteCount = card.voteCount ?? 0;
+        const voteText = voteCount === 1 ? 'vote' : 'votes';
+        lines.push(`### ${escapeMarkdown(card.content ?? '')} (${voteCount} ${voteText})`);
         const authorName = card.authorName || 'Anonymous';
         lines.push(`> **Author:** ${authorName}`);
         if (card.groupTitle) {
@@ -99,12 +115,15 @@ export function formatAsMarkdown(boardData: BoardExportData): string {
     lines.push('');
 
     for (const group of groups) {
-      const voteText = group.totalVotes === 1 ? 'vote' : 'votes';
-      lines.push(`### ${group.title} (${group.totalVotes} total ${voteText})`);
-      lines.push(`_Column: ${group.columnName}_`);
-      for (const card of group.cards) {
-        const cardVoteText = card.voteCount === 1 ? 'vote' : 'votes';
-        lines.push(`- ${escapeMarkdown(card.content)} (${card.voteCount} ${cardVoteText})`);
+      const totalVotes = group.totalVotes ?? 0;
+      const voteText = totalVotes === 1 ? 'vote' : 'votes';
+      lines.push(`### ${group.title ?? 'Untitled Group'} (${totalVotes} total ${voteText})`);
+      lines.push(`_Column: ${group.columnName ?? 'Unknown'}_`);
+      const groupCards = group.cards || [];
+      for (const card of groupCards) {
+        const cardVoteCount = card.voteCount ?? 0;
+        const cardVoteText = cardVoteCount === 1 ? 'vote' : 'votes';
+        lines.push(`- ${escapeMarkdown(card.content ?? '')} (${cardVoteCount} ${cardVoteText})`);
       }
       lines.push('');
     }
@@ -123,8 +142,8 @@ export function formatAsMarkdown(boardData: BoardExportData): string {
     actionItems.forEach((item, index) => {
       const assignee = item.assigneeName || '-';
       const dueDate = item.dueDate || '-';
-      const status = item.status.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-      lines.push(`| ${index + 1} | ${escapeMarkdown(item.title)} | ${assignee} | ${dueDate} | ${status} |`);
+      const status = (item.status ?? 'open').replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+      lines.push(`| ${index + 1} | ${escapeMarkdown(item.title ?? '')} | ${assignee} | ${dueDate} | ${status} |`);
     });
 
     lines.push('');

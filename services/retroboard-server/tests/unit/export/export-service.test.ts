@@ -1,10 +1,44 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as exportRepository from '../../../src/repositories/export-repository.js';
+import type { BoardExportData } from '../../../src/repositories/export-repository.js';
 
 // Mock the repository
 vi.mock('../../../src/repositories/export-repository.js', () => ({
   fetchBoardExportData: vi.fn(),
 }));
+
+// Helper to create BoardExportData with defaults
+function createMockBoardExportData(overrides: {
+  board?: Partial<BoardExportData['board']>;
+  columns?: BoardExportData['columns'];
+  groups?: BoardExportData['groups'];
+  actionItems?: BoardExportData['actionItems'];
+  analytics?: BoardExportData['analytics'];
+} = {}): BoardExportData {
+  const defaultBoard: BoardExportData['board'] = {
+    id: 'board-1',
+    name: 'Test Board',
+    teamName: 'Test Team',
+    sprintName: 'Test Sprint',
+    sprintStartDate: '2026-01-01',
+    sprintEndDate: '2026-01-15',
+    templateName: null,
+    facilitatorName: null,
+    phase: 'write',
+    isAnonymous: false,
+    cardsRevealed: false,
+    participantCount: 0,
+    createdAt: '2026-01-01T00:00:00Z',
+  };
+
+  return {
+    board: { ...defaultBoard, ...overrides.board },
+    columns: overrides.columns || [],
+    groups: overrides.groups || [],
+    actionItems: overrides.actionItems || [],
+    analytics: overrides.analytics !== undefined ? overrides.analytics : null,
+  };
+}
 
 describe('Export Service (Unit)', () => {
   beforeEach(() => {
@@ -12,7 +46,7 @@ describe('Export Service (Unit)', () => {
   });
 
   it('5.1.1: Fetch complete board data', async () => {
-    const mockData = {
+    const mockData = createMockBoardExportData({
       board: {
         id: 'board-1',
         name: 'Sprint 15 Retro',
@@ -24,10 +58,7 @@ describe('Export Service (Unit)', () => {
         { id: 'col-1', name: 'Start', position: 0, cards: [] },
         { id: 'col-2', name: 'Stop', position: 1, cards: [] },
       ],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     vi.mocked(exportRepository.fetchBoardExportData).mockResolvedValue(mockData);
 
@@ -49,9 +80,8 @@ describe('Export Service (Unit)', () => {
   });
 
   it('5.1.3: Anonymous cards not revealed', async () => {
-    const mockData = {
+    const mockData = createMockBoardExportData({
       board: {
-        id: 'board-1',
         name: 'Anonymous Retro',
         isAnonymous: true,
         cardsRevealed: false,
@@ -68,14 +98,14 @@ describe('Export Service (Unit)', () => {
               authorId: null,
               authorName: null,
               voteCount: 3,
+              groupId: null,
+              groupTitle: null,
+              position: 0,
             },
           ],
         },
       ],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     vi.mocked(exportRepository.fetchBoardExportData).mockResolvedValue(mockData);
 
@@ -86,9 +116,8 @@ describe('Export Service (Unit)', () => {
   });
 
   it('5.1.4: Anonymous cards revealed', async () => {
-    const mockData = {
+    const mockData = createMockBoardExportData({
       board: {
-        id: 'board-1',
         name: 'Anonymous Retro',
         isAnonymous: true,
         cardsRevealed: true,
@@ -105,14 +134,14 @@ describe('Export Service (Unit)', () => {
               authorId: 'user-1',
               authorName: 'Alice Chen',
               voteCount: 3,
+              groupId: null,
+              groupTitle: null,
+              position: 0,
             },
           ],
         },
       ],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     vi.mocked(exportRepository.fetchBoardExportData).mockResolvedValue(mockData);
 
@@ -123,9 +152,8 @@ describe('Export Service (Unit)', () => {
   });
 
   it('5.1.5: Non-anonymous board', async () => {
-    const mockData = {
+    const mockData = createMockBoardExportData({
       board: {
-        id: 'board-1',
         name: 'Open Retro',
         isAnonymous: false,
         cardsRevealed: false,
@@ -142,14 +170,14 @@ describe('Export Service (Unit)', () => {
               authorId: 'user-1',
               authorName: 'Bob Martinez',
               voteCount: 2,
+              groupId: null,
+              groupTitle: null,
+              position: 0,
             },
           ],
         },
       ],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     vi.mocked(exportRepository.fetchBoardExportData).mockResolvedValue(mockData);
 
@@ -160,24 +188,20 @@ describe('Export Service (Unit)', () => {
   });
 
   it('5.1.6: Cards sorted by vote count', async () => {
-    const mockData = {
-      board: { id: 'board-1', name: 'Test Board' },
+    const mockData = createMockBoardExportData({
       columns: [
         {
           id: 'col-1',
           name: 'Start',
           position: 0,
           cards: [
-            { id: 'card-1', content: 'High votes', voteCount: 10 },
-            { id: 'card-2', content: 'Medium votes', voteCount: 5 },
-            { id: 'card-3', content: 'Low votes', voteCount: 1 },
+            { id: 'card-1', content: 'High votes', voteCount: 10, authorId: null, authorName: null, groupId: null, groupTitle: null, position: 0 },
+            { id: 'card-2', content: 'Medium votes', voteCount: 5, authorId: null, authorName: null, groupId: null, groupTitle: null, position: 1 },
+            { id: 'card-3', content: 'Low votes', voteCount: 1, authorId: null, authorName: null, groupId: null, groupTitle: null, position: 2 },
           ],
         },
       ],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     vi.mocked(exportRepository.fetchBoardExportData).mockResolvedValue(mockData);
 
@@ -189,16 +213,15 @@ describe('Export Service (Unit)', () => {
   });
 
   it('5.1.7: Groups include card IDs', async () => {
-    const mockData = {
-      board: { id: 'board-1', name: 'Test Board' },
+    const mockData = createMockBoardExportData({
       columns: [
         {
           id: 'col-1',
           name: 'Start',
           position: 0,
           cards: [
-            { id: 'card-1', content: 'Card 1', groupId: 'group-1' },
-            { id: 'card-2', content: 'Card 2', groupId: 'group-1' },
+            { id: 'card-1', content: 'Card 1', groupId: 'group-1', authorId: null, authorName: null, voteCount: 0, groupTitle: null, position: 0 },
+            { id: 'card-2', content: 'Card 2', groupId: 'group-1', authorId: null, authorName: null, voteCount: 0, groupTitle: null, position: 1 },
           ],
         },
       ],
@@ -207,13 +230,14 @@ describe('Export Service (Unit)', () => {
           id: 'group-1',
           title: 'Test Group',
           columnId: 'col-1',
+          columnName: 'Start',
           cardIds: ['card-1', 'card-2'],
           totalVotes: 8,
+          position: 0,
+          cards: [],
         },
       ],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     vi.mocked(exportRepository.fetchBoardExportData).mockResolvedValue(mockData);
 
@@ -224,20 +248,20 @@ describe('Export Service (Unit)', () => {
   });
 
   it('5.1.8: Action items include source card', async () => {
-    const mockData = {
-      board: { id: 'board-1', name: 'Test Board' },
-      columns: [],
-      groups: [],
+    const mockData = createMockBoardExportData({
       actionItems: [
         {
           id: 'ai-1',
           title: 'Fix CI',
-          cardId: 'card-1',
+          description: null,
+          assigneeName: null,
+          dueDate: null,
+          status: 'open',
           sourceCardText: 'CI is flaky',
+          carriedFromSprintName: null,
         },
       ],
-      analytics: null,
-    };
+    });
 
     vi.mocked(exportRepository.fetchBoardExportData).mockResolvedValue(mockData);
 
@@ -247,20 +271,20 @@ describe('Export Service (Unit)', () => {
   });
 
   it('5.1.9: Action items without source card', async () => {
-    const mockData = {
-      board: { id: 'board-1', name: 'Test Board' },
-      columns: [],
-      groups: [],
+    const mockData = createMockBoardExportData({
       actionItems: [
         {
           id: 'ai-1',
           title: 'General task',
-          cardId: null,
+          description: null,
+          assigneeName: null,
+          dueDate: null,
+          status: 'open',
           sourceCardText: null,
+          carriedFromSprintName: null,
         },
       ],
-      analytics: null,
-    };
+    });
 
     vi.mocked(exportRepository.fetchBoardExportData).mockResolvedValue(mockData);
 
@@ -270,19 +294,18 @@ describe('Export Service (Unit)', () => {
   });
 
   it('5.1.10: Analytics included when requested', async () => {
-    const mockData = {
-      board: { id: 'board-1', name: 'Test Board' },
-      columns: [],
-      groups: [],
-      actionItems: [],
+    const mockData = createMockBoardExportData({
       analytics: {
         healthScore: 72.5,
         sentimentScore: 65.0,
         participationRate: 80.0,
         totalCards: 24,
         totalVotes: 48,
+        sentimentBreakdown: { positive: 15, negative: 5, neutral: 4 },
+        topVotedCards: [],
+        topWords: [],
       },
-    };
+    });
 
     vi.mocked(exportRepository.fetchBoardExportData).mockResolvedValue(mockData);
 
@@ -293,13 +316,7 @@ describe('Export Service (Unit)', () => {
   });
 
   it('5.1.11: Analytics excluded when requested', async () => {
-    const mockData = {
-      board: { id: 'board-1', name: 'Test Board' },
-      columns: [],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    const mockData = createMockBoardExportData();
 
     vi.mocked(exportRepository.fetchBoardExportData).mockResolvedValue(mockData);
 
@@ -309,13 +326,7 @@ describe('Export Service (Unit)', () => {
   });
 
   it('5.1.12: Action items excluded when requested', async () => {
-    const mockData = {
-      board: { id: 'board-1', name: 'Test Board' },
-      columns: [],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    const mockData = createMockBoardExportData();
 
     vi.mocked(exportRepository.fetchBoardExportData).mockResolvedValue(mockData);
 
@@ -329,10 +340,15 @@ describe('Export Service (Unit)', () => {
       id: `card-${i}`,
       content: `Card ${i}`,
       voteCount: 0,
+      authorId: null,
+      authorName: null,
+      groupId: null,
+      groupTitle: null,
+      position: i,
     }));
 
-    const mockData = {
-      board: { id: 'board-1', name: 'Large Board' },
+    const mockData = createMockBoardExportData({
+      board: { name: 'Large Board' },
       columns: [
         {
           id: 'col-1',
@@ -341,10 +357,7 @@ describe('Export Service (Unit)', () => {
           cards: mockCards,
         },
       ],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     vi.mocked(exportRepository.fetchBoardExportData).mockResolvedValue(mockData);
 

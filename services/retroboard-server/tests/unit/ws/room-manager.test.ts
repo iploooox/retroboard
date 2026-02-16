@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type WebSocket from 'ws';
 import { RoomManager } from '../../../src/ws/room-manager.js';
 
 describe('RoomManager', () => {
@@ -13,7 +14,7 @@ describe('RoomManager', () => {
     return {
       send: overrides.send ?? vi.fn(),
       readyState: overrides.readyState ?? 1, // 1 = OPEN
-    } as any;
+    } as unknown as WebSocket;
   }
 
   it('3.1.1: Join adds client to room', () => {

@@ -10,6 +10,12 @@ export interface RateLimitConfig {
 
 export function rateLimit(config: RateLimitConfig) {
   return async (c: Context, next: Next) => {
+    // Skip rate limiting if DISABLE_RATE_LIMIT is set (for E2E tests)
+    if (process.env.DISABLE_RATE_LIMIT === 'true') {
+      await next();
+      return;
+    }
+
     const key = config.keyGenerator(c);
     const allowed = await checkAndIncrement(key, config.windowMs, config.max);
 

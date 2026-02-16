@@ -8,6 +8,7 @@ import {
   formatReportAsJSON,
   formatReportAsMarkdown,
 } from '../formatters/report-formatter.js';
+import { formatErrorResponse } from '../utils/errors.js';
 import { z } from 'zod';
 
 const exportRouter = new Hono();
@@ -113,8 +114,8 @@ exportRouter.get('/boards/:id/export', async (c) => {
     }
   } catch (err: unknown) {
     if (err instanceof Error && 'status' in err) {
-      const appError = err as { status: number; code: string; message: string };
-      return c.json({ error: appError.code }, appError.status);
+      const appError = err as unknown as { status: number; code: string; message: string };
+      return c.json({ error: appError.code }, appError.status as 200);
     }
     throw err;
   }
@@ -194,8 +195,8 @@ exportRouter.get('/teams/:teamId/report', async (c) => {
     }
   } catch (err: unknown) {
     if (err instanceof Error && 'status' in err) {
-      const appError = err as { status: number; code: string; message: string };
-      return c.json({ error: appError.code }, appError.status);
+      const appError = err as unknown as { status: number; code: string; message: string };
+      return c.json({ error: appError.code }, appError.status as 200);
     }
     throw err;
   }

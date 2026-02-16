@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { app } from '../../../src/server.js';
 import { truncateTables } from '../../helpers/db.js';
-import { signAccessToken } from '../../../src/utils/jwt.js';
+import { } from '../../../src/utils/jwt.js';
 import { SignJWT } from 'jose';
 
 async function registerUser(email = 'alice@example.com', password = 'SecurePass1', display_name = 'Alice') {

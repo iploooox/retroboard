@@ -46,16 +46,17 @@ onboardingRouter.patch('/users/me/onboarding', async (c) => {
   try {
     const newState = await onboardingService.updateStep(user.id, step, action);
     return c.json(okRes(newState));
-  } catch (err: any) {
-    return c.json(errRes('VALIDATION_ERROR', err.message), 400);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return c.json(errRes('VALIDATION_ERROR', message), 400);
   }
 });
 
 // POST /api/v1/users/me/onboarding/complete
 onboardingRouter.post('/users/me/onboarding/complete', async (c) => {
   const user = c.get('user');
-  await onboardingService.complete(user.id);
-  return c.json(okRes({ completed: true }));
+  const updatedUser = await onboardingService.complete(user.id);
+  return c.json(okRes({ completed: true, user: updatedUser }));
 });
 
 // POST /api/v1/users/me/onboarding/reset

@@ -22,7 +22,7 @@ test.describe('Board Enhancements Journey', () => {
       await expect(page.getByRole('heading', { name: /action items/i })).toBeVisible();
 
       // Click "New" button to create action item
-      await page.getByRole('button', { name: /new/i }).click();
+      await page.getByRole('button', { name: 'New Action Item' }).click();
 
       // Fill in action item form
       const actionTitle = 'Improve code review process';
@@ -45,9 +45,10 @@ test.describe('Board Enhancements Journey', () => {
       await page.getByRole('button', { name: /^create$/i }).click();
 
       // Verify action item appears in the list
-      await expect(page.getByText(actionTitle)).toBeVisible();
-      await expect(page.getByText(displayName)).toBeVisible();
-      await expect(page.getByText(dueDateStr)).toBeVisible();
+      const actionItemsList = page.locator('.divide-y.divide-slate-100');
+      await expect(actionItemsList.getByText(actionTitle)).toBeVisible();
+      await expect(actionItemsList.getByText(displayName)).toBeVisible();
+      await expect(actionItemsList.getByText(dueDateStr)).toBeVisible();
     });
 
     test('toggle action item status', async ({ page }) => {
@@ -64,17 +65,15 @@ test.describe('Board Enhancements Journey', () => {
       await page.getByRole('button', { name: /action items/i }).click();
 
       // Create a simple action item
-      await page.getByRole('button', { name: /new/i }).click();
+      await page.getByRole('button', { name: 'New Action Item' }).click();
       await page.getByPlaceholder(/action item title/i).fill('Test status toggle');
       await page.getByRole('button', { name: /^create$/i }).click();
 
       // Wait for action item to be created
       await page.waitForTimeout(500);
 
-      // Find the status icon button for our action item
-      // The status icon is a button with a Circle icon (open status)
-      const actionItemRow = page.locator('div', { hasText: 'Test status toggle' }).first();
-      const statusButton = actionItemRow.locator('button').first();
+      // Find the status icon button for our action item using title attribute
+      const statusButton = page.getByTitle(/Status:.*Click to change/i).first();
 
       // Verify initial status is "open" (Circle icon with text-slate-400 color)
       await expect(statusButton).toBeVisible();
@@ -89,7 +88,7 @@ test.describe('Board Enhancements Journey', () => {
 
       // Verify the text is now crossed out (line-through style for done status)
       await expect(
-        actionItemRow.locator('p.line-through', { hasText: 'Test status toggle' })
+        page.locator('p.line-through', { hasText: 'Test status toggle' })
       ).toBeVisible();
 
       // Click again to cycle back to "open"
@@ -98,7 +97,7 @@ test.describe('Board Enhancements Journey', () => {
 
       // Verify line-through is removed
       await expect(
-        actionItemRow.locator('p.line-through', { hasText: 'Test status toggle' })
+        page.locator('p.line-through', { hasText: 'Test status toggle' })
       ).not.toBeVisible();
     });
 
@@ -141,7 +140,8 @@ test.describe('Board Enhancements Journey', () => {
       await page.waitForTimeout(500);
 
       // Verify action item appears in the list with the card's text
-      await expect(page.getByText(cardText)).toBeVisible();
+      const actionItemsList = page.locator('.divide-y.divide-slate-100');
+      await expect(actionItemsList.getByText(cardText)).toBeVisible();
     });
 
     test('overdue action item shows red warning indicator', async ({ page }) => {
@@ -160,7 +160,7 @@ test.describe('Board Enhancements Journey', () => {
       await expect(page.getByRole('heading', { name: /action items/i })).toBeVisible();
 
       // Create action item with overdue date (yesterday)
-      await page.getByRole('button', { name: /new/i }).click();
+      await page.getByRole('button', { name: 'New Action Item' }).click();
 
       const actionTitle = 'Overdue task from last week';
       await page.getByPlaceholder(/action item title/i).fill(actionTitle);
@@ -202,7 +202,7 @@ test.describe('Board Enhancements Journey', () => {
       await page.getByRole('button', { name: /action items/i }).click();
 
       // Create an action item
-      await page.getByRole('button', { name: /new/i }).click();
+      await page.getByRole('button', { name: 'New Action Item' }).click();
       const actionTitle = 'Action to be deleted';
       await page.getByPlaceholder(/action item title/i).fill(actionTitle);
       await page.getByRole('button', { name: /^create$/i }).click();
@@ -240,7 +240,7 @@ test.describe('Board Enhancements Journey', () => {
       await page.getByRole('button', { name: /action items/i }).click();
 
       // Create a simple action item
-      await page.getByRole('button', { name: /new/i }).click();
+      await page.getByRole('button', { name: 'New Action Item' }).click();
       const actionTitle = 'Test completion date feature';
       await page.getByPlaceholder(/action item title/i).fill(actionTitle);
       await page.getByRole('button', { name: /^create$/i }).click();
@@ -252,24 +252,24 @@ test.describe('Board Enhancements Journey', () => {
       await expect(actionItemRow).toBeVisible();
 
       // Verify no completion date is shown initially (status is 'open')
-      await expect(actionItemRow.getByText(/Completed/i)).not.toBeVisible();
+      await expect(page.getByText(/Completed/i)).not.toBeVisible();
 
-      // Find the status button (first button in the row)
-      const statusButton = actionItemRow.locator('button').first();
+      // Find the status button using title attribute
+      const statusButton = page.getByTitle(/Status:.*Click to change/i).first();
 
       // Click once to change status to 'in_progress'
       await statusButton.click();
       await page.waitForTimeout(300);
 
       // Still no completion date
-      await expect(actionItemRow.getByText(/Completed/i)).not.toBeVisible();
+      await expect(page.getByText(/Completed/i)).not.toBeVisible();
 
       // Click again to change status to 'done'
       await statusButton.click();
       await page.waitForTimeout(500);
 
       // Verify completion date appears with green text
-      const completionDate = actionItemRow.locator('span.text-green-600').filter({ hasText: /Completed/ });
+      const completionDate = page.locator('span.text-green-600').filter({ hasText: /Completed/ });
       await expect(completionDate).toBeVisible();
 
       // Verify the date format is like "Completed Feb 15" or "Completed Jan 1"
@@ -278,7 +278,7 @@ test.describe('Board Enhancements Journey', () => {
 
       // Verify the title is now crossed out (line-through)
       await expect(
-        actionItemRow.locator('p.line-through', { hasText: actionTitle })
+        page.locator('p.line-through', { hasText: actionTitle })
       ).toBeVisible();
 
       // Click status button again to cycle back to 'open'
@@ -286,7 +286,7 @@ test.describe('Board Enhancements Journey', () => {
       await page.waitForTimeout(500);
 
       // Verify completion date disappears
-      await expect(actionItemRow.getByText(/Completed/i)).not.toBeVisible();
+      await expect(page.getByText(/Completed/i)).not.toBeVisible();
 
       // Verify title is no longer crossed out
       await expect(
@@ -323,7 +323,7 @@ test.describe('Board Enhancements Journey', () => {
 
       // Create action item with specific title
       await page.getByRole('button', { name: /action items/i }).click();
-      await page.getByRole('button', { name: /new/i }).click();
+      await page.getByRole('button', { name: 'New Action Item' }).click();
 
       const actionItemTitle = 'Set up Jenkins CI integration';
       await page.getByPlaceholder(/action item title/i).fill(actionItemTitle);
@@ -334,15 +334,19 @@ test.describe('Board Enhancements Journey', () => {
       await page.getByRole('button', { name: /close panel/i }).click();
 
       // Complete the board (as per spec: "Export is available for completed retro boards")
-      // Move through phases: write → vote → discuss → action → complete
-      await page.getByRole('button', { name: /next phase|vote/i }).click();
-      await page.waitForTimeout(500);
+      // Move through phases: write → group → vote → discuss → action
+      // Use the larger "Next Phase: Group" button in facilitator toolbar
+      await page.getByRole('button', { name: /Next Phase:/i }).click(); // write → group
+      await page.waitForTimeout(1000); // Wait for phase transition
 
-      await page.getByRole('button', { name: /next phase|discuss/i }).click();
-      await page.waitForTimeout(500);
+      await page.getByRole('button', { name: /Next Phase:/i }).click(); // group → vote
+      await page.waitForTimeout(1000);
 
-      await page.getByRole('button', { name: /next phase|action/i }).click();
-      await page.waitForTimeout(500);
+      await page.getByRole('button', { name: /Next Phase:/i }).click(); // vote → discuss
+      await page.waitForTimeout(1000);
+
+      await page.getByRole('button', { name: /Next Phase:/i }).click(); // discuss → action
+      await page.waitForTimeout(1000);
 
       await page.getByRole('button', { name: /complete|finish/i }).click();
       await page.waitForTimeout(500);
@@ -388,18 +392,19 @@ test.describe('Board Enhancements Journey', () => {
 
       // Verify cards are in the export
       expect(exportData.columns).toBeDefined();
-      const allCards = exportData.columns.flatMap((col: any) => col.cards);
+      const exportDataTyped = exportData as { columns: Array<{ cards: Array<Record<string, unknown>> }>; actionItems: Array<Record<string, unknown>> };
+      const allCards = exportDataTyped.columns.flatMap((col) => col.cards);
       expect(allCards.length).toBeGreaterThanOrEqual(2);
 
       // Verify specific card content is present
-      const cardTexts = allCards.map((card: any) => card.text);
+      const cardTexts = allCards.map((card) => card.text);
       expect(cardTexts).toContain(card1Text);
       expect(cardTexts).toContain(card2Text);
 
       // Verify action item is in the export
-      expect(exportData.actionItems).toBeDefined();
-      expect(exportData.actionItems.length).toBeGreaterThanOrEqual(1);
-      const actionItemTitles = exportData.actionItems.map((ai: any) => ai.title);
+      expect(exportDataTyped.actionItems).toBeDefined();
+      expect(exportDataTyped.actionItems.length).toBeGreaterThanOrEqual(1);
+      const actionItemTitles = exportDataTyped.actionItems.map((ai) => ai.title);
       expect(actionItemTitles).toContain(actionItemTitle);
 
       // Verify analytics summary is included
@@ -440,8 +445,10 @@ test.describe('Board Enhancements Journey', () => {
       const emojiPicker = page.locator('.grid.grid-cols-6.gap-1');
       await expect(emojiPicker).toBeVisible();
 
-      // Click 👍 emoji
-      await emojiPicker.getByTitle(/react with 👍/i).click();
+      // Scroll emoji picker into view and click 👍 emoji
+      const thumbsUpButton = emojiPicker.getByTitle(/react with 👍/i);
+      await thumbsUpButton.scrollIntoViewIfNeeded();
+      await thumbsUpButton.click();
 
       // Wait for reaction to be added
       await page.waitForTimeout(500);
@@ -468,7 +475,9 @@ test.describe('Board Enhancements Journey', () => {
 
       // Add a different reaction
       await cardElement.getByRole('button', { name: /add reaction/i }).click();
-      await emojiPicker.getByTitle(/react with ❤️/i).click();
+      const heartButton = emojiPicker.getByTitle(/react with ❤️/i);
+      await heartButton.scrollIntoViewIfNeeded();
+      await heartButton.click();
       await page.waitForTimeout(500);
 
       // Verify both reactions are present
@@ -505,7 +514,10 @@ test.describe('Board Enhancements Journey', () => {
 
       // Add a reaction while board is unlocked
       await cardElement.getByRole('button', { name: /add reaction/i }).click();
-      await page.locator('.grid.grid-cols-6.gap-1').getByTitle(/react with 🎉/i).click();
+      const emojiPicker = page.locator('.grid.grid-cols-6.gap-1');
+      const partyButton = emojiPicker.getByTitle(/react with 🎉/i);
+      await partyButton.scrollIntoViewIfNeeded();
+      await partyButton.click();
       await page.waitForTimeout(500);
 
       // Verify reaction was added
@@ -544,7 +556,7 @@ test.describe('Board Enhancements Journey', () => {
       await page.getByRole('button', { name: 'Board settings' }).click();
 
       // Verify sentiment lexicon section is visible
-      await expect(page.getByText('Custom Sentiment Words')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Custom Sentiment Words' })).toBeVisible();
       await expect(
         page.getByText(/Add custom words with sentiment scores/i)
       ).toBeVisible();
@@ -554,7 +566,7 @@ test.describe('Board Enhancements Journey', () => {
       const score1 = '4.5';
       await page.getByPlaceholder('Word').fill(customWord1);
       await page.getByPlaceholder('Score').fill(score1);
-      await page.locator('button').filter({ has: page.locator('svg').first() }).click(); // Plus button
+      await page.getByRole('button', { name: 'Add custom word' }).click();
 
       // Wait for word to be added
       await page.waitForTimeout(500);
@@ -570,7 +582,7 @@ test.describe('Board Enhancements Journey', () => {
       const score2 = '-3.0';
       await page.getByPlaceholder('Word').fill(customWord2);
       await page.getByPlaceholder('Score').fill(score2);
-      await page.locator('button').filter({ has: page.locator('svg').first() }).click(); // Plus button
+      await page.getByRole('button', { name: 'Add custom word' }).click();
 
       await page.waitForTimeout(500);
 
@@ -583,6 +595,7 @@ test.describe('Board Enhancements Journey', () => {
       // Edit the first word's score
       const wordRow1 = page.locator('div.bg-slate-50').filter({ hasText: customWord1 }).first();
       const editButton = wordRow1.getByRole('button').filter({ has: page.locator('svg') }).nth(0); // Edit2 icon
+      await editButton.scrollIntoViewIfNeeded();
       await editButton.click();
 
       // Verify edit mode is active (input field appears)
@@ -658,19 +671,19 @@ test.describe('Board Enhancements Journey', () => {
       // Try to add word with score > 5.0
       await page.getByPlaceholder('Word').fill('invalid');
       await page.getByPlaceholder('Score').fill('10');
-      await page.locator('button').filter({ has: page.locator('svg').first() }).click();
+      await page.getByRole('button', { name: 'Add custom word' }).click();
 
       // Verify error toast appears
-      await expect(page.getByText(/Score must be between -5.0 and 5.0/i)).toBeVisible({
+      await expect(page.getByText(/Score must be between -5.0 and 5.0/i).first()).toBeVisible({
         timeout: 3000,
       });
 
       // Try to add word with score < -5.0
       await page.getByPlaceholder('Score').fill('-10');
-      await page.locator('button').filter({ has: page.locator('svg').first() }).click();
+      await page.getByRole('button', { name: 'Add custom word' }).click();
 
       // Verify error toast appears
-      await expect(page.getByText(/Score must be between -5.0 and 5.0/i)).toBeVisible({
+      await expect(page.getByText(/Score must be between -5.0 and 5.0/i).first()).toBeVisible({
         timeout: 3000,
       });
 

@@ -17,7 +17,7 @@ import { seed } from '../../../src/db/seed.js';
 const app = createTestApp();
 
 describe('POST /api/v1/boards/:id/cards/:cardId/vote — Vote', () => {
-  let adminToken: string;
+  let _adminToken: string;
   let adminUser: { id: string; email: string };
   let memberToken: string;
   let memberUser: { id: string; email: string };
@@ -31,7 +31,7 @@ describe('POST /api/v1/boards/:id/cards/:cardId/vote — Vote', () => {
     await truncateTables();
     await seed();
     const adminAuth = await getAuthToken({ displayName: 'Admin User' });
-    adminToken = adminAuth.token;
+      _adminToken = adminAuth.token;
     adminUser = adminAuth.user;
     team = await createTestTeam(adminUser.id);
     sprint = await createTestSprint(team.id, adminUser.id);

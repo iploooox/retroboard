@@ -171,7 +171,8 @@ teamsRouter.post('/join/:code', async (c) => {
   // Atomic join + add member in a single transaction
   let joinRole: string;
   try {
-    joinRole = await sql.begin(async (tx) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    joinRole = await sql.begin(async (tx: any) => {
       const joinResult = await invitationRepository.atomicJoin(invitation.id, tx);
       if (!joinResult) {
         throw new Error('INVITE_EXHAUSTED');
@@ -228,7 +229,8 @@ teamsRouter.get('/:id', async (c) => {
 });
 
 // PUT/PATCH /api/v1/teams/:id — Update team
-const updateTeamHandler: Parameters<typeof teamsRouter.put>[1] = async (c) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const updateTeamHandler = async (c: any) => {
   const body = await c.req.json().catch(() => ({}));
   const parsed = updateTeamSchema.safeParse(body);
   if (!parsed.success) {

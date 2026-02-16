@@ -11,6 +11,8 @@ import {
   createTestVote,
   SYSTEM_TEMPLATE_WWD,
   refreshAnalyticsMaterializedViews,
+  type TestBoard,
+  type TestColumn,
 } from '../../helpers/db.js';
 import { getAuthToken } from '../../helpers/auth.js';
 import { seed } from '../../../src/db/seed.js';
@@ -23,8 +25,8 @@ describe('Export Data Integrity Tests', () => {
   let adminUser: { id: string; email: string };
   let team: { id: string };
   let sprint: { id: string };
-  let board: Record<string, unknown>;
-  let columns: Record<string, unknown>[];
+  let board: TestBoard;
+  let columns: TestColumn[];
 
   beforeEach(async () => {
     await truncateTables();
@@ -58,7 +60,7 @@ describe('Export Data Integrity Tests', () => {
     // Fetch DB data
     const [dbBoard] = await sql`SELECT * FROM boards WHERE id = ${board.id}`;
     const dbColumns = await sql`SELECT * FROM columns WHERE board_id = ${board.id} ORDER BY position`;
-    const dbCards = await sql`SELECT * FROM cards WHERE board_id = ${board.id}`;
+    const _dbCards = await sql`SELECT * FROM cards WHERE board_id = ${board.id}`;
 
     expect(exportedData.board.id).toBe(dbBoard.id);
     expect(exportedData.columns.length).toBe(dbColumns.length);

@@ -29,7 +29,8 @@ test.describe('Authentication', () => {
     await page.goto('/register');
     await page.getByLabel('Display Name').fill('Another Name');
     await page.getByLabel('Email').fill(email);
-    await page.getByLabel('Password').fill(password);
+    // Use explicit ID selector to avoid matching the "Show password" button
+    await page.locator('#register-password').fill(password);
     await page.getByRole('button', { name: 'Create Account' }).click();
 
     // Should show error
@@ -50,7 +51,8 @@ test.describe('Authentication', () => {
     // Try to login with wrong password (don't use loginUser — it expects dashboard redirect)
     await page.goto('/login');
     await page.getByLabel('Email').fill(email);
-    await page.getByLabel('Password').fill('WrongPassword123!');
+    // Use explicit ID selector to avoid matching the "Show password" button
+    await page.locator('#password').fill('WrongPassword123!');
     await page.getByRole('button', { name: 'Log In' }).click();
 
     // Should show error (we stay on login page)

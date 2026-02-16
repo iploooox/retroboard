@@ -17,7 +17,7 @@ const app = createTestApp();
 describe('GET /api/v1/teams/:teamId/action-items — Team Action Items', () => {
   let adminToken: string;
   let adminUser: { id: string; email: string };
-  let memberToken: string;
+  let _memberToken: string;
   let memberUser: { id: string; email: string };
   let team: { id: string };
   let sprint1: { id: string };
@@ -34,7 +34,7 @@ describe('GET /api/v1/teams/:teamId/action-items — Team Action Items', () => {
     adminUser = adminAuth.user;
 
     const memberAuth = await getAuthToken({ email: 'member@test.com', displayName: 'Member User' });
-    memberToken = memberAuth.token;
+      _memberToken = memberAuth.token;
     memberUser = memberAuth.user;
 
     team = await createTestTeam(adminUser.id);

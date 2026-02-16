@@ -167,7 +167,7 @@ export function ActionItemsPanel({ open, onClose, isFacilitator, teamId, initial
 
       {/* Action bar */}
       <div className="flex gap-2 px-4 py-2 border-b border-slate-100">
-        <Button size="sm" onClick={() => setShowCreateForm(true)}>
+        <Button size="sm" onClick={() => setShowCreateForm(true)} aria-label="New Action Item">
           <Plus className="h-4 w-4" />
           New
         </Button>
@@ -204,8 +204,9 @@ export function ActionItemsPanel({ open, onClose, isFacilitator, teamId, initial
           />
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-xs text-slate-600 mb-1">Assignee</label>
+              <label htmlFor="action-assignee" className="block text-xs text-slate-600 mb-1">Assignee</label>
               <select
+                id="action-assignee"
                 value={newAssigneeId}
                 onChange={(e) => setNewAssigneeId(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
@@ -220,8 +221,9 @@ export function ActionItemsPanel({ open, onClose, isFacilitator, teamId, initial
               </select>
             </div>
             <div>
-              <label className="block text-xs text-slate-600 mb-1">Due Date</label>
+              <label htmlFor="action-due-date" className="block text-xs text-slate-600 mb-1">Due Date</label>
               <input
+                id="action-due-date"
                 type="date"
                 value={newDueDate}
                 onChange={(e) => setNewDueDate(e.target.value)}

@@ -183,10 +183,10 @@ export function BoardPage() {
       });
 
     // Fetch team data to get current theme
-    api.get<{ ok: boolean; data: { theme?: string } }>(`/teams/${teamId}`)
+    api.get<{ team: { theme?: string } }>(`/teams/${teamId}`)
       .then((response) => {
-        if (response.data?.theme) {
-          setTeamTheme(response.data.theme);
+        if (response.team.theme) {
+          setTeamTheme(response.team.theme);
         }
       })
       .catch(() => {
@@ -305,7 +305,10 @@ export function BoardPage() {
 
   const handleLockToggle = (locked: boolean) => {
     // Update store directly for immediate UI feedback
-    useBoardStore.setState({ isLocked: locked });
+    useBoardStore.setState((state) => ({
+      isLocked: locked,
+      board: state.board ? { ...state.board, is_locked: locked } : null,
+    }));
   };
 
   const handleRevealCards = () => {

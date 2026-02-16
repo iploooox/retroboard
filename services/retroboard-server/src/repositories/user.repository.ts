@@ -7,6 +7,7 @@ export interface UserRow {
   display_name: string;
   avatar_url: string | null;
   email_verified: boolean;
+  onboarding_completed_at: Date | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -46,7 +47,6 @@ export async function findById(id: string): Promise<UserRow | undefined> {
 }
 
 export async function updateProfile(id: string, data: UpdateProfileData): Promise<UserRow | undefined> {
-  const sets: string[] = [];
   const hasDisplayName = data.display_name !== undefined;
   const hasAvatarUrl = data.avatar_url !== undefined;
 

@@ -17,7 +17,8 @@ const broadcast = (boardId: string, event: Record<string, unknown>) => {
   broadcastToBoard(boardId, event as { type: string; payload: Record<string, unknown> });
 };
 
-export const timerService = new TimerService(repo, broadcast);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const timerService = new TimerService(repo as any, broadcast);
 
 const timerRouter = new Hono();
 timerRouter.use('*', requireAuth);

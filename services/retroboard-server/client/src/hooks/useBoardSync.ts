@@ -223,6 +223,7 @@ export function useBoardSync(boardId: string | null, enabled: boolean) {
       // Store locked state on board (inferred from event type)
       useBoardStore.setState((state) => ({
         board: state.board ? { ...state.board, is_locked: isLocked } : null,
+        isLocked,
       }));
     };
 

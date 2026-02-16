@@ -61,15 +61,18 @@ reactionsRouter.post('/cards/:cardId/reactions', async (c) => {
       emoji: result.emoji,
       reactions: result.summary,
     }));
-  } catch (err: any) {
-    if (err.code === 'INVALID_EMOJI') {
-      return c.json(errRes('VALIDATION_ERROR', err.message), 400);
-    }
-    if (err.code === 'BOARD_LOCKED') {
-      return c.json(errRes('BOARD_LOCKED', err.message), 403);
-    }
-    if (err.code === 'CARD_NOT_FOUND') {
-      return c.json(errRes('CARD_NOT_FOUND', err.message), 404);
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'code' in err) {
+      const error = err as { code: string; message: string };
+      if (error.code === 'INVALID_EMOJI') {
+        return c.json(errRes('VALIDATION_ERROR', error.message), 400);
+      }
+      if (error.code === 'BOARD_LOCKED') {
+        return c.json(errRes('BOARD_LOCKED', error.message), 403);
+      }
+      if (error.code === 'CARD_NOT_FOUND') {
+        return c.json(errRes('CARD_NOT_FOUND', error.message), 404);
+      }
     }
     throw err;
   }

@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import WebSocket from 'ws';
-import { truncateTables, createTestUser, createTestTeam, addTeamMember, createTestSprint, createTestBoard, SYSTEM_TEMPLATE_WWD } from '../../helpers/db.js';
+import { truncateTables,  createTestTeam, addTeamMember, createTestSprint, createTestBoard, SYSTEM_TEMPLATE_WWD } from '../../helpers/db.js';
 import { getAuthToken } from '../../helpers/auth.js';
 import { seed } from '../../../src/db/seed.js';
-import { createTestWSClient, closeAllClients, type TestWSClient } from '../../helpers/ws.js';
+import { createTestWSClient, closeAllClients, type TestWSClient, assertPresenceState, assertUserPayload, getPayload } from '../../helpers/ws.js';
 
 const TEST_PORT = Number(process.env.TEST_PORT) || 3001;
 
@@ -12,7 +12,7 @@ describe('WebSocket Connection', () => {
   let adminToken: string;
   let team: { id: string };
   let sprint: { id: string };
-  let board: Record<string, any>;
+  let board: Record<string, unknown>;
   let clients: TestWSClient[] = [];
 
   beforeEach(async () => {
@@ -33,23 +33,24 @@ describe('WebSocket Connection', () => {
   });
 
   it('3.6.1: Successful connection with valid JWT', async () => {
-    const client = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const client = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(client);
     const msg = await client.waitForMessage('presence_state');
+    assertPresenceState(msg);
     expect(msg.type).toBe('presence_state');
-    expect(msg.payload.users).toBeDefined();
+    expect(getPayload(msg).users).toBeDefined();
   });
 
   it('3.6.2: Connection rejected with invalid JWT', async () => {
     await expect(
-      createTestWSClient({ token: 'invalid-token', boardId: board.id }),
+      createTestWSClient({ token: 'invalid-token', boardId: board.id as string }),
     ).rejects.toThrow();
   });
 
   it('3.6.3: Connection rejected with expired JWT', async () => {
     // Create a JWT that is already expired
     const { signAccessToken } = await import('../../../src/utils/jwt.js');
-    const expiredToken = await signAccessToken(
+    const _expiredToken = await signAccessToken(
       { sub: adminUser.id, email: adminUser.email },
       // Implementation should support expiresIn override; if not, this will fail at connect
     );
@@ -57,7 +58,7 @@ describe('WebSocket Connection', () => {
     // We use a known-invalid expired token string.
     const fakeExpiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZXhwIjoxfQ.invalid';
     await expect(
-      createTestWSClient({ token: fakeExpiredToken, boardId: board.id }),
+      createTestWSClient({ token: fakeExpiredToken, boardId: board.id as string }),
     ).rejects.toThrow();
   });
 
@@ -80,7 +81,7 @@ describe('WebSocket Connection', () => {
     // Create a different user who is NOT in the team
     const otherAuth = await getAuthToken({ email: 'outsider@example.com', displayName: 'Outsider' });
     await expect(
-      createTestWSClient({ token: otherAuth.token, boardId: board.id }),
+      createTestWSClient({ token: otherAuth.token, boardId: board.id as string }),
     ).rejects.toThrow();
   });
 
@@ -98,17 +99,18 @@ describe('WebSocket Connection', () => {
     const auth3 = await getAuthToken({ email: 'user3@example.com', displayName: 'User 3' });
     await addTeamMember(team.id, auth3.user.id, 'member');
 
-    const client1 = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const client1 = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(client1);
     await client1.waitForMessage('presence_state');
 
-    const client2 = await createTestWSClient({ token: auth2.token, boardId: board.id });
+    const client2 = await createTestWSClient({ token: auth2.token, boardId: board.id as string });
     clients.push(client2);
     await client2.waitForMessage('presence_state');
 
-    const client3 = await createTestWSClient({ token: auth3.token, boardId: board.id });
+    const client3 = await createTestWSClient({ token: auth3.token, boardId: board.id as string });
     clients.push(client3);
     const presenceState = await client3.waitForMessage('presence_state');
+    assertPresenceState(presenceState);
 
     // Client 3 should see client 1 and client 2 in presence_state
     expect(presenceState.payload.users.length).toBeGreaterThanOrEqual(2);
@@ -119,27 +121,31 @@ describe('WebSocket Connection', () => {
   });
 
   it('3.6.8: Same user multiple tabs — user_joined broadcast only once', async () => {
-    const client1 = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const client1 = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(client1);
     await client1.waitForMessage('presence_state');
 
     // Add a second member who will observe
     const auth2 = await getAuthToken({ email: 'observer@example.com', displayName: 'Observer' });
     await addTeamMember(team.id, auth2.user.id, 'member');
-    const observer = await createTestWSClient({ token: auth2.token, boardId: board.id });
+    const observer = await createTestWSClient({ token: auth2.token, boardId: board.id as string });
     clients.push(observer);
     await observer.waitForMessage('presence_state');
 
     // Same admin user opens a second tab
-    const client2 = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const client2 = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(client2);
 
     // Observer should NOT receive a second user_joined for admin (already connected)
     // Wait a small window and check
     await new Promise((r) => setTimeout(r, 200));
-    const joinedMessages = observer.messages.filter(
-      (m) => m.type === 'user_joined' && m.payload.userId === adminUser.id,
-    );
+    const joinedMessages = observer.messages.filter((m) => {
+      if (m.type === 'user_joined') {
+        assertUserPayload(m);
+        return getPayload(m).userId === adminUser.id;
+      }
+      return false;
+    });
     // Should have at most 1 user_joined for the admin user
     expect(joinedMessages.length).toBeLessThanOrEqual(1);
   });

@@ -1,15 +1,43 @@
 import { describe, it, expect } from 'vitest';
 import { formatAsJSON } from '../../../src/formatters/json-formatter.js';
+import type { BoardExportData } from '../../../src/repositories/export-repository.js';
+
+// Helper to create BoardExportData with defaults
+function createMockBoardExportData(overrides: {
+  board?: Partial<BoardExportData['board']>;
+  columns?: BoardExportData['columns'];
+  groups?: BoardExportData['groups'];
+  actionItems?: BoardExportData['actionItems'];
+  analytics?: BoardExportData['analytics'];
+} = {}): BoardExportData {
+  const defaultBoard: BoardExportData['board'] = {
+    id: 'board-1',
+    name: 'Test Board',
+    teamName: 'Test Team',
+    sprintName: 'Test Sprint',
+    sprintStartDate: '2026-01-01',
+    sprintEndDate: '2026-01-15',
+    templateName: null,
+    facilitatorName: null,
+    phase: 'write',
+    isAnonymous: false,
+    cardsRevealed: false,
+    participantCount: 0,
+    createdAt: '2026-01-01T00:00:00Z',
+  };
+
+  return {
+    board: { ...defaultBoard, ...overrides.board },
+    columns: overrides.columns || [],
+    groups: overrides.groups || [],
+    actionItems: overrides.actionItems || [],
+    analytics: overrides.analytics !== undefined ? overrides.analytics : null,
+  };
+}
 
 describe('JSON Formatter (Unit)', () => {
   it('5.2.1: Valid JSON output', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board' },
-      columns: [],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    const boardData = createMockBoardExportData();
 
     const result = formatAsJSON(boardData, 'user-1');
 
@@ -19,13 +47,7 @@ describe('JSON Formatter (Unit)', () => {
   });
 
   it('5.2.2: Export version included', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board' },
-      columns: [],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    const boardData = createMockBoardExportData();
 
     const result = formatAsJSON(boardData, 'user-1');
     const parsed = JSON.parse(result);
@@ -34,13 +56,7 @@ describe('JSON Formatter (Unit)', () => {
   });
 
   it('5.2.3: Exported timestamp set', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board' },
-      columns: [],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    const boardData = createMockBoardExportData();
 
     const result = formatAsJSON(boardData, 'user-1');
     const parsed = JSON.parse(result);
@@ -50,9 +66,8 @@ describe('JSON Formatter (Unit)', () => {
   });
 
   it('5.2.4: Board metadata complete', () => {
-    const boardData = {
+    const boardData = createMockBoardExportData({
       board: {
-        id: 'board-1',
         name: 'Sprint 15 Retro',
         teamName: 'Platform Team',
         sprintName: 'Sprint 15',
@@ -60,11 +75,7 @@ describe('JSON Formatter (Unit)', () => {
         isAnonymous: true,
         cardsRevealed: false,
       },
-      columns: [],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     const result = formatAsJSON(boardData, 'user-1');
     const parsed = JSON.parse(result);
@@ -79,17 +90,13 @@ describe('JSON Formatter (Unit)', () => {
   });
 
   it('5.2.5: Columns ordered by position', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board' },
+    const boardData = createMockBoardExportData({
       columns: [
         { id: 'col-1', name: 'Start', position: 0, cards: [] },
         { id: 'col-2', name: 'Stop', position: 1, cards: [] },
         { id: 'col-3', name: 'Continue', position: 2, cards: [] },
       ],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     const result = formatAsJSON(boardData, 'user-1');
     const parsed = JSON.parse(result);
@@ -100,15 +107,14 @@ describe('JSON Formatter (Unit)', () => {
   });
 
   it('5.2.6: Cards nested under columns', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board' },
+    const boardData = createMockBoardExportData({
       columns: [
         {
           id: 'col-1',
           name: 'Start',
           position: 0,
           cards: [
-            { id: 'card-1', content: 'Card A' },
+            { id: 'card-1', content: 'Card A', voteCount: 0, authorId: null, authorName: null, groupId: null, groupTitle: null, position: 0 },
           ],
         },
         {
@@ -116,14 +122,11 @@ describe('JSON Formatter (Unit)', () => {
           name: 'Stop',
           position: 1,
           cards: [
-            { id: 'card-2', content: 'Card B' },
+            { id: 'card-2', content: 'Card B', voteCount: 0, authorId: null, authorName: null, groupId: null, groupTitle: null, position: 0 },
           ],
         },
       ],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     const result = formatAsJSON(boardData, 'user-1');
     const parsed = JSON.parse(result);
@@ -135,16 +138,12 @@ describe('JSON Formatter (Unit)', () => {
   });
 
   it('5.2.7: Empty columns included', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board' },
+    const boardData = createMockBoardExportData({
       columns: [
         { id: 'col-1', name: 'Start', position: 0, cards: [] },
         { id: 'col-2', name: 'Stop', position: 1, cards: [] },
       ],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     const result = formatAsJSON(boardData, 'user-1');
     const parsed = JSON.parse(result);
@@ -155,20 +154,20 @@ describe('JSON Formatter (Unit)', () => {
   });
 
   it('5.2.8: Group totalVotes calculated', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board' },
-      columns: [],
+    const boardData = createMockBoardExportData({
       groups: [
         {
           id: 'group-1',
           title: 'Test Group',
+          columnId: 'col-1',
+          columnName: 'Start',
           totalVotes: 15,
           cardIds: ['card-1', 'card-2', 'card-3'],
+          position: 0,
+          cards: [],
         },
       ],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     const result = formatAsJSON(boardData, 'user-1');
     const parsed = JSON.parse(result);
@@ -177,20 +176,20 @@ describe('JSON Formatter (Unit)', () => {
   });
 
   it('5.2.9: Null fields serialized as null', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board' },
-      columns: [],
-      groups: [],
+    const boardData = createMockBoardExportData({
       actionItems: [
         {
           id: 'ai-1',
           title: 'Task',
+          description: null,
           assigneeName: null,
           dueDate: null,
+          status: 'open',
+          sourceCardText: null,
+          carriedFromSprintName: null,
         },
       ],
-      analytics: null,
-    };
+    });
 
     const result = formatAsJSON(boardData, 'user-1');
     const parsed = JSON.parse(result);
@@ -202,22 +201,18 @@ describe('JSON Formatter (Unit)', () => {
   });
 
   it('5.2.10: Unicode preserved', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board' },
+    const boardData = createMockBoardExportData({
       columns: [
         {
           id: 'col-1',
           name: 'Start',
           position: 0,
           cards: [
-            { id: 'card-1', content: '🚀 Deploy faster! 中文测试' },
+            { id: 'card-1', content: '🚀 Deploy faster! 中文测试', voteCount: 0, authorId: null, authorName: null, groupId: null, groupTitle: null, position: 0 },
           ],
         },
       ],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     const result = formatAsJSON(boardData, 'user-1');
     const parsed = JSON.parse(result);

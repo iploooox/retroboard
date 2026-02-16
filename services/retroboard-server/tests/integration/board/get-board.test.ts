@@ -9,6 +9,8 @@ import {
   createTestCard,
   createTestGroup,
   SYSTEM_TEMPLATE_WWD,
+  type TestBoard,
+  type TestColumn,
 } from '../../helpers/db.js';
 import { getAuthToken } from '../../helpers/auth.js';
 import { seed } from '../../../src/db/seed.js';
@@ -19,12 +21,12 @@ const app = createTestApp();
 describe('GET /api/v1/sprints/:sprintId/board — Get Board', () => {
   let adminToken: string;
   let adminUser: { id: string; email: string };
-  let memberToken: string;
+  let _memberToken: string;
   let memberUser: { id: string; email: string };
   let team: { id: string };
   let sprint: { id: string };
-  let board: Record<string, unknown>;
-  let columns: Record<string, unknown>[];
+  let board: TestBoard;
+  let columns: TestColumn[];
 
   beforeEach(async () => {
     await truncateTables();
@@ -33,7 +35,7 @@ describe('GET /api/v1/sprints/:sprintId/board — Get Board', () => {
     adminToken = adminAuth.token;
     adminUser = adminAuth.user;
     const memberAuth = await getAuthToken({ email: 'member@example.com', displayName: 'Member User' });
-    memberToken = memberAuth.token;
+    _memberToken = memberAuth.token;
     memberUser = memberAuth.user;
     team = await createTestTeam(adminUser.id);
     await addTeamMember(team.id, memberUser.id, 'member');
@@ -109,7 +111,7 @@ describe('GET /api/v1/sprints/:sprintId/board — Get Board', () => {
     await createTestCard(result2.board.id as string, result2.columns[0].id as string, adminUser.id, { content: 'Anon card' });
 
     const res = await app.request(`/api/v1/sprints/${sprint2.id}/board`, {
-      headers: { 'Authorization': `Bearer ${memberToken}` },
+      headers: { 'Authorization': `Bearer ${_memberToken}` },
     });
 
     const body = await res.json();
@@ -206,7 +208,7 @@ describe('GET /api/v1/sprints/:sprintId/board — Get Board', () => {
 
   it('2.2.12: Get board from different team', async () => {
     const otherAuth = await getAuthToken({ email: 'other@example.com' });
-    const otherTeam = await createTestTeam(otherAuth.user.id, { slug: 'other-team' });
+    const _otherTeam = await createTestTeam(otherAuth.user.id, { slug: 'other-team' });
 
     const res = await app.request(`/api/v1/sprints/${sprint.id}/board`, {
       headers: { 'Authorization': `Bearer ${otherAuth.token}` },

@@ -37,7 +37,7 @@ describe('Database', () => {
     expect(templates).toHaveLength(6);
 
     // Check a few key templates exist
-    const templateNames = templates.map((t: any) => t.name);
+    const templateNames = templates.map((t) => (t as Record<string, unknown>).name);
     expect(templateNames).toContain('Start / Stop / Continue');
     expect(templateNames).toContain('What Went Well / Delta');
     expect(templateNames).toContain('4Ls');
@@ -46,10 +46,10 @@ describe('Database', () => {
     expect(templateNames).toContain('Starfish');
 
     // Check WWD template columns
-    const wwdTemplate = templates.find((t: any) => t.name === 'What Went Well / Delta');
+    const wwdTemplate = templates.find((t) => (t as Record<string, unknown>).name === 'What Went Well / Delta') as Record<string, unknown> | undefined;
     const columns = await sql`
       SELECT * FROM template_columns
-      WHERE template_id = ${wwdTemplate.id}
+      WHERE template_id = ${(wwdTemplate!.id as string)}
       ORDER BY position
     `;
     expect(columns).toHaveLength(2);

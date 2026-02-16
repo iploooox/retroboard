@@ -7,6 +7,7 @@ import {
   createTestSprint,
   createTestBoard,
   SYSTEM_TEMPLATE_WWD,
+  type TestBoard,
 } from '../../helpers/db.js';
 import { getAuthToken } from '../../helpers/auth.js';
 import { seed } from '../../../src/db/seed.js';
@@ -19,7 +20,7 @@ describe('PUT /api/v1/boards/:id — Update Board Settings', () => {
   let adminUser: { id: string; email: string };
   let team: { id: string };
   let sprint: { id: string };
-  let board: Record<string, unknown>;
+  let board: TestBoard;
 
   beforeEach(async () => {
     await truncateTables();

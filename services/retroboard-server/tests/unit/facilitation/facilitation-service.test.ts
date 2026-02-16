@@ -46,7 +46,7 @@ describe('FacilitationService', () => {
 
     it('3.1.3: Set invalid phase value', async () => {
       await expect(
-        service.setPhase(boardId, 'invalid' as any, userId),
+        service.setPhase(boardId, 'invalid' as never, userId),
       ).rejects.toThrow(/INVALID_PHASE/);
     });
 

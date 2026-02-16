@@ -145,7 +145,7 @@ describe('PUT /api/v1/teams/:id', () => {
 
     const body = await res.json();
     expect(new Date(body.team.updated_at).getTime()).toBeGreaterThan(
-      new Date(team.updated_at).getTime(),
+      new Date(team.updated_at!).getTime(),
     );
   });
 });

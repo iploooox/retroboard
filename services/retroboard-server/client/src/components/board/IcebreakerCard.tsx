@@ -33,11 +33,11 @@ export function IcebreakerCard({ teamId, boardId, onDismiss }: IcebreakerCardPro
     try {
       let query = `?teamId=${teamId}&boardId=${boardId}`;
       if (category) {
-        query += `&category=${category}`;
+        query += `&category=${category.toLowerCase()}`;
       }
       const response = await api.get<{ ok: boolean; data: Icebreaker }>(`/icebreakers/random${query}`);
       setIcebreaker(response.data);
-    } catch (err) {
+    } catch {
       toast.error('Failed to load icebreaker question');
     } finally {
       setIsLoading(false);
@@ -83,12 +83,12 @@ export function IcebreakerCard({ teamId, boardId, onDismiss }: IcebreakerCardPro
     try {
       await api.post(`/teams/${teamId}/icebreakers/custom`, {
         question: customQuestion.trim(),
-        category: customCategory,
+        category: customCategory.toLowerCase(),
       });
       toast.success('Custom icebreaker question added!');
       setCustomQuestion('');
       setShowCustomForm(false);
-    } catch (err) {
+    } catch {
       toast.error('Failed to add custom question');
     } finally {
       setIsSubmittingCustom(false);

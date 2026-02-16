@@ -173,7 +173,7 @@ export const boardApi = {
 
   // Phase & Focus
   setPhase: (boardId: string, phase: BoardPhase) =>
-    api.put<OkResponse<{ id: string; phase: BoardPhase; previous_phase: BoardPhase; updated_at: string }>>(`/boards/${boardId}/phase`, { phase }).then(r => r.data),
+    api.put<OkResponse<{ phase: BoardPhase; previous_phase: BoardPhase; timerStopped: boolean }>>(`/boards/${boardId}/phase`, { phase }).then(r => r.data),
 
   setFocus: (boardId: string, focusItemId: string | null, focusItemType: 'card' | 'group' | null) =>
     api.put<OkResponse<{ id: string; focus_item_id: string | null; focus_item_type: 'card' | 'group' | null; updated_at: string }>>(`/boards/${boardId}/focus`, {
@@ -224,8 +224,5 @@ export const boardApi = {
 
   // Reactions
   toggleReaction: (cardId: string, emoji: string) =>
-    api.post<OkResponse<{ card_id: string; reactions: CardReaction[] }>>(`/cards/${cardId}/reactions`, { emoji }).then(r => r.data),
-
-  removeReaction: (cardId: string, _emoji: string) =>
-    api.delete<OkResponse<{ card_id: string; reactions: CardReaction[] }>>(`/cards/${cardId}/reactions`).then(r => r.data),
+    api.post<OkResponse<{ added: boolean; emoji: string; reactions: CardReaction[] }>>(`/cards/${cardId}/reactions`, { emoji }).then(r => r.data),
 };

@@ -135,7 +135,7 @@ describe('E2E: Phase 2 Happy Path — Full Retro Ceremony', () => {
     };
 
     const cardA1 = await addCard(tokenA, wwwColumnId, 'Great team collaboration this sprint');
-    const cardA2 = await addCard(tokenA, wwwColumnId, 'CI/CD pipeline improvements shipped');
+    const _cardA2 = await addCard(tokenA, wwwColumnId, 'CI/CD pipeline improvements shipped');
     const cardA3 = await addCard(tokenA, deltaColumnId, 'Too many meetings');
 
     // ---- Step 8: Bob adds cards ----

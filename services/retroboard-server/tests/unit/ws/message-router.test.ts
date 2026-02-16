@@ -1,11 +1,19 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MessageRouter } from '../../../src/ws/message-router.js';
 
+interface ClientInfo {
+  clientId: string;
+  userId: string;
+  userName: string;
+  boardId: string;
+  ws: { send: (data: string) => void; readyState: number };
+}
+
 describe('MessageRouter', () => {
   let router: MessageRouter;
   let mockSend: ReturnType<typeof vi.fn>;
   let mockBroadcast: ReturnType<typeof vi.fn>;
-  let mockClient: any;
+  let mockClient: ClientInfo;
 
   beforeEach(() => {
     mockSend = vi.fn();

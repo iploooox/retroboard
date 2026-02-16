@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../middleware/auth.js';
-import { formatErrorResponse } from '../utils/errors.js';
 import { analyticsService } from '../services/analytics-service.js';
 import * as analyticsRepo from '../repositories/analytics.repository.js';
 import { z } from 'zod';
@@ -161,19 +160,24 @@ analyticsRouter.get('/sprints/:sprintId/analytics', async (c) => {
   // Try to get analytics
   let result = await analyticsService.getSprintAnalytics(sprintId);
 
-  // If no data found, refresh materialized views and retry once
-  if (!result) {
-    try {
-      await analyticsRepo.refreshMaterializedViews();
-      result = await analyticsService.getSprintAnalytics(sprintId);
-    } catch (err) {
-      console.error('Failed to refresh materialized views:', err);
-      // Continue with null result if refresh fails
-    }
-  }
-
   if (!result) {
     return c.json({ error: 'NOT_FOUND', message: 'Sprint not found' }, 404);
+  }
+
+  // If no data found (no board created yet), try refreshing materialized views once
+  if ('noDataReason' in result) {
+    try {
+      await analyticsRepo.refreshMaterializedViews();
+      const retryResult = await analyticsService.getSprintAnalytics(sprintId);
+      // If retry still has noDataReason, return it (board really doesn't exist)
+      // Otherwise use the retry result with actual data
+      if (retryResult && !('noDataReason' in retryResult)) {
+        result = retryResult;
+      }
+    } catch (err) {
+      console.error('Failed to refresh materialized views:', err);
+      // Continue with noDataReason result
+    }
   }
 
   // Return analytics data (may include noDataReason if sprint has no board yet)

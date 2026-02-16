@@ -5,7 +5,7 @@ import {
   createTestTeam,
   addTeamMember,
   createTestSprint,
-  createTestBoard,
+  
   SYSTEM_TEMPLATE_WWD,
   SYSTEM_TEMPLATE_SSC,
 } from '../../helpers/db.js';
@@ -177,7 +177,7 @@ describe('POST /api/v1/sprints/:sprintId/board — Create Board', () => {
 
   it('2.1.9: Create board for sprint in a different team', async () => {
     const otherAuth = await getAuthToken({ email: 'other@example.com' });
-    const otherTeam = await createTestTeam(otherAuth.user.id, { slug: 'other-team' });
+    const _otherTeam = await createTestTeam(otherAuth.user.id, { slug: 'other-team' });
 
     const res = await app.request(`/api/v1/sprints/${sprint.id}/board`, {
       method: 'POST',

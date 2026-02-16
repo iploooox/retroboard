@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { AppError, formatErrorResponse } from '../utils/errors.js';
+import { formatErrorResponse } from '../utils/errors.js';
 import { hashPassword, comparePassword } from '../utils/password.js';
 import { signAccessToken } from '../utils/jwt.js';
 import { generateRefreshToken, hashToken } from '../utils/token.js';
@@ -24,6 +24,7 @@ function formatUserResponse(user: userRepo.UserRow) {
     avatar_url: user.avatar_url,
     created_at: user.created_at,
     updated_at: user.updated_at,
+    onboarding_completed_at: user.onboarding_completed_at,
   };
 }
 
@@ -58,20 +59,6 @@ async function generateTokenPair(userId: string, email: string) {
 const authRouter = new Hono();
 
 // --- Rate limiters ---
-const loginEmailRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
-  keyGenerator: (c) => {
-    try {
-      // We need the email from the body for per-email rate limiting
-      // This is set by the login handler before this middleware runs
-      return `login:email:${c.get('rateLimitEmail' as never) || 'unknown'}`;
-    } catch {
-      return 'login:email:unknown';
-    }
-  },
-});
-
 const loginIpRateLimit = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 30,

@@ -7,7 +7,7 @@ import * as analyticsRepo from '../repositories/analytics.repository.js';
 export class FacilitationService {
   constructor(private timerService?: TimerService) {}
 
-  async setPhase(boardId: string, phase: string, userId: string) {
+  async setPhase(boardId: string, phase: string, _userId: string) {
     // Validate phase
     if (!BOARD_PHASES.includes(phase as BoardPhase)) {
       throw new Error('INVALID_PHASE');
@@ -50,11 +50,13 @@ export class FacilitationService {
     const updated = updateResult?.[0];
 
     // Refresh materialized views when entering 'action' phase (final phase)
-    // This is fire-and-forget to avoid blocking the response
+    // Wait for refresh to complete so analytics data is immediately available
     if (phase === 'action') {
-      analyticsRepo.refreshMaterializedViews().catch((err) => {
+      try {
+        await analyticsRepo.refreshMaterializedViews();
+      } catch (err) {
         console.error('Failed to refresh materialized views after phase change:', err);
-      });
+      }
     }
 
     return {
@@ -64,7 +66,7 @@ export class FacilitationService {
     };
   }
 
-  async setLock(boardId: string, isLocked: boolean, userId: string) {
+  async setLock(boardId: string, isLocked: boolean, _userId: string) {
     // Find board
     const boardResult = await sql`SELECT * FROM boards WHERE id = ${boardId}`;
     if (!boardResult || boardResult.length === 0) {
@@ -82,7 +84,7 @@ export class FacilitationService {
     };
   }
 
-  async revealCards(boardId: string, userId: string) {
+  async revealCards(boardId: string, _userId: string) {
     // Find board
     const boardResult = await sql`SELECT * FROM boards WHERE id = ${boardId}`;
     if (!boardResult || boardResult.length === 0) {
@@ -121,7 +123,7 @@ export class FacilitationService {
     boardId: string,
     focusType: string | null,
     focusId: string | null,
-    userId: string,
+    _userId: string,
   ) {
     // Find board
     const boardResult = await sql`SELECT * FROM boards WHERE id = ${boardId}`;

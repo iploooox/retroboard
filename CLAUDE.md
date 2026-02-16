@@ -29,6 +29,7 @@ See `epics/INDEX.md` for current status.
 - Testers do NOT write implementation code. They only write E2E tests.
 - ALL priority levels must be fixed — low priority ≠ skip or defer.
 - NEVER use standalone Task agents. ALWAYS use TeamCreate.
+- Dev agents and E2E testers MUST spawn in plan mode (`"mode": "plan"`). They write a plan first, orchestrator approves before they can edit. PO does NOT need plan mode (read-only role).
 
 ### Closed-Loop E2E Verification
 The real bugs are integration cracks (PUT vs PATCH, CSS not applying, props passing UUIDs). Unit tests prove nothing about whether a feature works for a real user.
@@ -41,7 +42,10 @@ Every dev agent MUST, for every feature:
 3. Start the real server and run the E2E test against it
 4. Test MUST pass (GREEN) — if it fails, fix and re-run until green
 5. Paste the Playwright test output as PROOF of completion
-6. Also run: `npx tsc --noEmit` (zero errors) + check story ACs
+6. Also run: `npx tsc --noEmit` — zero errors, BOTH frontend and backend. "Pre-existing" is not an excuse — fix them.
+7. Also run: `npx eslint src/ tests/` — zero errors. **NEVER use `any` to fix a TS error.** Use the correct type or `unknown` with narrowing.
+
+**Tests are the source of truth, NOT the code.** If a test fails, fix the application code — NEVER modify test assertions to make them pass. ALL non-skipped tests must be GREEN. "4 of 6 passing" is NOT done.
 
 Every agent prompt MUST tell agents to read `docs/agent-protocol.md` for the full verification contract.
 

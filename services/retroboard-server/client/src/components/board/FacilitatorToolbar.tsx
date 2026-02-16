@@ -71,7 +71,7 @@ export function FacilitatorToolbar({
       setTimerPaused(false);
       setTimerRemaining(timerDuration);
       toast.success('Timer started');
-    } catch (err) {
+    } catch {
       toast.error('Failed to start timer');
     } finally {
       setIsStartingTimer(false);
@@ -84,7 +84,7 @@ export function FacilitatorToolbar({
       setTimerPaused(true);
       setTimerRunning(false);
       toast.success('Timer paused');
-    } catch (err) {
+    } catch {
       toast.error('Failed to pause timer');
     }
   };
@@ -95,7 +95,7 @@ export function FacilitatorToolbar({
       setTimerPaused(false);
       setTimerRunning(true);
       toast.success('Timer resumed');
-    } catch (err) {
+    } catch {
       toast.error('Failed to resume timer');
     }
   };
@@ -107,7 +107,7 @@ export function FacilitatorToolbar({
       setTimerPaused(false);
       setTimerRemaining(timerDuration);
       toast.success('Timer reset');
-    } catch (err) {
+    } catch {
       toast.error('Failed to reset timer');
     }
   };
@@ -126,7 +126,7 @@ export function FacilitatorToolbar({
       setShowPhaseConfirm(false);
       setPendingPhase(null);
       toast.success(`Phase changed to ${PHASES.find((p) => p.key === pendingPhase)?.label}`);
-    } catch (err) {
+    } catch {
       toast.error('Failed to change phase');
     }
   };
@@ -136,7 +136,7 @@ export function FacilitatorToolbar({
       await facilitationApi.lockBoard(boardId, !isLocked);
       onLockToggle(!isLocked);
       toast.success(isLocked ? 'Board unlocked' : 'Board locked');
-    } catch (err) {
+    } catch {
       toast.error('Failed to toggle lock');
     }
   };
@@ -146,7 +146,7 @@ export function FacilitatorToolbar({
       await facilitationApi.revealCards(boardId);
       onRevealCards();
       toast.success('Anonymous cards revealed');
-    } catch (err) {
+    } catch {
       toast.error('Failed to reveal cards');
     }
   };
@@ -192,7 +192,10 @@ export function FacilitatorToolbar({
             {/* Timer Controls */}
             <div className="flex items-center gap-2 sm:gap-3">
               <span className="text-xs sm:text-sm text-slate-600 font-medium hidden sm:inline">Timer:</span>
-              <div className="font-mono text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-50 rounded-lg">
+              <div
+                data-testid="timer-display"
+                className="font-mono text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-50 rounded-lg"
+              >
                 {formatTime(timerRemaining)}
               </div>
               {!timerRunning && !timerPaused && (

@@ -45,13 +45,7 @@ export class NotifyListener {
     const count = this.boardRefCounts.get(boardId) ?? 0;
     if (count <= 1) {
       this.boardRefCounts.delete(boardId);
-      try {
-        const channel = `board:${boardId}`;
-        const conn = this.getConnection();
-        await conn.unlisten(channel);
-      } catch {
-        // Ignore errors on unlisten (e.g., connection already closed)
-      }
+      // Note: postgres library doesn't provide unlisten() - channels are cleaned up automatically
     } else {
       this.boardRefCounts.set(boardId, count - 1);
     }

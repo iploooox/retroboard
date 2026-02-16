@@ -18,7 +18,7 @@ const app = createTestApp();
 describe('GET /api/v1/teams/:teamId/analytics/word-cloud — Word Cloud Analytics', () => {
   let adminToken: string;
   let adminUser: { id: string; email: string };
-  let memberToken: string;
+  let _memberToken: string;
   let memberUser: { id: string; email: string };
   let team: { id: string };
 
@@ -31,7 +31,7 @@ describe('GET /api/v1/teams/:teamId/analytics/word-cloud — Word Cloud Analytic
     adminUser = adminAuth.user;
 
     const memberAuth = await getAuthToken({ email: 'member@test.com', displayName: 'Member User' });
-    memberToken = memberAuth.token;
+      _memberToken = memberAuth.token;
     memberUser = memberAuth.user;
 
     team = await createTestTeam(adminUser.id);
@@ -102,10 +102,10 @@ describe('GET /api/v1/teams/:teamId/analytics/word-cloud — Word Cloud Analytic
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await res.json() as { words: Array<Record<string, unknown>> };
 
     // "the" and "and" are stop words and should not appear
-    const words = body.words.map((w: any) => w.word);
+    const words = body.words.map((w) => w.word);
     expect(words).not.toContain('the');
     expect(words).not.toContain('and');
   });
@@ -124,8 +124,8 @@ describe('GET /api/v1/teams/:teamId/analytics/word-cloud — Word Cloud Analytic
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
-    const words = body.words.map((w: any) => w.word);
+    const body = await res.json() as { words: Array<Record<string, unknown>> };
+    const words = body.words.map((w) => w.word);
 
     // "a", "is" are too short (< 4 chars)
     expect(words).not.toContain('a');
@@ -245,10 +245,10 @@ describe('GET /api/v1/teams/:teamId/analytics/word-cloud — Word Cloud Analytic
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await res.json() as { words: Array<Record<string, unknown>> };
 
     // Should aggregate words from both sprints
-    const deployment = body.words.find((w: any) => w.word === 'deployment');
+    const deployment = body.words.find((w) => w.word === 'deployment');
     if (deployment) {
       expect(deployment.frequency).toBeGreaterThanOrEqual(4); // 2 + 2 from both sprints
     }

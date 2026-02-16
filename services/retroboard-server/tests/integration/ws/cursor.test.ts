@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { truncateTables, createTestTeam, addTeamMember, createTestSprint, createTestBoard, SYSTEM_TEMPLATE_WWD } from '../../helpers/db.js';
 import { getAuthToken } from '../../helpers/auth.js';
 import { seed } from '../../../src/db/seed.js';
-import { createTestWSClient, closeAllClients, type TestWSClient } from '../../helpers/ws.js';
+import { createTestWSClient, closeAllClients, type TestWSClient, getPayload } from '../../helpers/ws.js';
 
 describe('Cursor Sharing', () => {
   let adminToken: string;
@@ -10,7 +10,7 @@ describe('Cursor Sharing', () => {
   let memberToken: string;
   let memberUser: { id: string; email: string; display_name: string };
   let team: { id: string };
-  let board: Record<string, any>;
+  let board: Record<string, unknown>;
   let clients: TestWSClient[] = [];
 
   beforeEach(async () => {
@@ -37,11 +37,11 @@ describe('Cursor Sharing', () => {
   });
 
   it('3.9.1: Cursor move relayed to others', async () => {
-    const clientA = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const clientA = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(clientA);
     await clientA.waitForMessage('presence_state');
 
-    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(clientB);
     await clientB.waitForMessage('presence_state');
 
@@ -49,17 +49,17 @@ describe('Cursor Sharing', () => {
 
     const msg = await clientB.waitForMessage('cursor_move');
     expect(msg.type).toBe('cursor_move');
-    expect(msg.payload.x).toBe(100);
-    expect(msg.payload.y).toBe(200);
-    expect(msg.payload.userId).toBe(adminUser.id);
+    expect(getPayload(msg).x).toBe(100);
+    expect(getPayload(msg).y).toBe(200);
+    expect(getPayload(msg).userId).toBe(adminUser.id);
   });
 
   it('3.9.2: Cursor move not echoed to sender', async () => {
-    const clientA = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const clientA = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(clientA);
     await clientA.waitForMessage('presence_state');
 
-    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(clientB);
     await clientB.waitForMessage('presence_state');
 
@@ -74,11 +74,11 @@ describe('Cursor Sharing', () => {
   });
 
   it('3.9.3: Throttled at 20/sec — Client B receives at most 20', async () => {
-    const clientA = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const clientA = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(clientA);
     await clientA.waitForMessage('presence_state');
 
-    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(clientB);
     await clientB.waitForMessage('presence_state');
 
@@ -95,18 +95,18 @@ describe('Cursor Sharing', () => {
   });
 
   it('3.9.4: Cursor includes userId and userName', async () => {
-    const clientA = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const clientA = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(clientA);
     await clientA.waitForMessage('presence_state');
 
-    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(clientB);
     await clientB.waitForMessage('presence_state');
 
     clientA.send({ type: 'cursor_move', payload: { x: 50, y: 75 } });
 
     const msg = await clientB.waitForMessage('cursor_move');
-    expect(msg.payload.userId).toBe(adminUser.id);
-    expect(msg.payload.userName).toBe('Admin User');
+    expect(getPayload(msg).userId).toBe(adminUser.id);
+    expect(getPayload(msg).userName).toBe('Admin User');
   });
 });

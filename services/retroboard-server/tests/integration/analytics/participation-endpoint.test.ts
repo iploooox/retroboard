@@ -90,8 +90,8 @@ describe('GET /api/v1/teams/:teamId/analytics/participation — Participation An
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    const adminMember = body.members.find((m: any) => m.userId === adminUser.id);
-    expect(adminMember.perSprint).toHaveLength(3);
+    const adminMember = (body as { members: Array<{ userId: string; perSprint: unknown[]; totals: { cardsSubmitted: number; votesCast: number; completionRate: number } }> }).members.find((m) => m.userId === adminUser.id);
+    expect(adminMember!.perSprint).toHaveLength(3);
   });
 
   it('7.3: Totals are aggregated across sprints', async () => {
@@ -112,8 +112,8 @@ describe('GET /api/v1/teams/:teamId/analytics/participation — Participation An
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    const adminMember = body.members.find((m: any) => m.userId === adminUser.id);
-    expect(adminMember.totals.cardsSubmitted).toBe(3);
+    const adminMember = (body as { members: Array<{ userId: string; perSprint: unknown[]; totals: { cardsSubmitted: number; votesCast: number; completionRate: number } }> }).members.find((m) => m.userId === adminUser.id);
+    expect(adminMember!.totals.cardsSubmitted).toBe(3);
   });
 
   it('7.4: Completion rate calculated correctly (3/4 = 75%)', async () => {
@@ -133,8 +133,8 @@ describe('GET /api/v1/teams/:teamId/analytics/participation — Participation An
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    const adminMember = body.members.find((m: any) => m.userId === adminUser.id);
-    expect(adminMember.totals.completionRate).toBe(75.0);
+    const adminMember = (body as { members: Array<{ userId: string; perSprint: unknown[]; totals: { cardsSubmitted: number; votesCast: number; completionRate: number } }> }).members.find((m) => m.userId === adminUser.id);
+    expect(adminMember!.totals.completionRate).toBe(75.0);
   });
 
   it('7.5: Team averages calculated correctly', async () => {
@@ -184,9 +184,9 @@ describe('GET /api/v1/teams/:teamId/analytics/participation — Participation An
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    const adminMember = body.members.find((m: any) => m.userId === adminUser.id);
-    expect(adminMember.perSprint).toHaveLength(1);
-    expect(adminMember.perSprint[0].sprintId).toBe(sprint1.id);
+    const adminMember = (body as { members: Array<{ userId: string; perSprint: Array<{ sprintId: string }>; totals: { cardsSubmitted: number; votesCast: number; completionRate: number } }> }).members.find((m) => m.userId === adminUser.id);
+    expect(adminMember!.perSprint).toHaveLength(1);
+    expect(adminMember!.perSprint[0].sprintId).toBe(sprint1.id);
   });
 
   it('7.7: Member with no activity shows all counts as 0', async () => {
@@ -200,10 +200,10 @@ describe('GET /api/v1/teams/:teamId/analytics/participation — Participation An
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
-    const inactiveMember = body.members.find((m: any) => m.userId === user3.id);
-    expect(inactiveMember.totals.cardsSubmitted).toBe(0);
-    expect(inactiveMember.totals.votesCast).toBe(0);
+    const body = await res.json() as { members: Array<{ userId: string; totals: { cardsSubmitted: number; votesCast: number } }> };
+    const inactiveMember = body.members.find((m) => m.userId === user3.id);
+    expect(inactiveMember!.totals.cardsSubmitted).toBe(0);
+    expect(inactiveMember!.totals.votesCast).toBe(0);
   });
 
   it('7.8: Team not found returns 404', async () => {

@@ -370,7 +370,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     try {
       const result = await boardApi.setPhase(board.id, phase);
       set((state) => ({
-        board: state.board ? { ...state.board, phase: result.phase, updated_at: result.updated_at } : null,
+        board: state.board ? { ...state.board, phase: result.phase } : null,
       }));
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to change phase');

@@ -43,7 +43,7 @@ describe('GET /api/v1/teams', () => {
     const auth1 = await getAuthToken({ email: 'admin@test.com' });
     const auth2 = await getAuthToken({ email: 'other@test.com' });
 
-    const team1 = await createTestTeam(auth1.user.id, { name: 'Admin Team', slug: 'admin-team' });
+    const _team1 = await createTestTeam(auth1.user.id, { name: 'Admin Team', slug: 'admin-team' });
     const team2 = await createTestTeam(auth2.user.id, { name: 'Member Team', slug: 'member-team' });
 
     // Add auth1 as member to team2

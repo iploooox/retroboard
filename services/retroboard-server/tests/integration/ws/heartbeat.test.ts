@@ -8,7 +8,7 @@ describe('WebSocket Heartbeat', () => {
   let adminToken: string;
   let adminUser: { id: string; email: string; display_name: string };
   let team: { id: string };
-  let board: Record<string, any>;
+  let board: Record<string, unknown>;
   let clients: TestWSClient[] = [];
 
   beforeEach(async () => {
@@ -30,7 +30,7 @@ describe('WebSocket Heartbeat', () => {
 
   // TODO: Convert to fake timers - skipped due to 75+ second real waits
   it.skip('3.11.1: Ping/pong keeps connection alive', async () => {
-    const client = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const client = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(client);
     await client.waitForMessage('presence_state');
 
@@ -48,7 +48,7 @@ describe('WebSocket Heartbeat', () => {
 
   // TODO: Convert to fake timers - skipped due to 50+ second real waits
   it.skip('3.11.2: No ping causes disconnect after 45s', async () => {
-    const client = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const client = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(client);
     await client.waitForMessage('presence_state');
 
@@ -66,7 +66,7 @@ describe('WebSocket Heartbeat', () => {
   }, 60_000); // Extended timeout
 
   it('3.11.3: Pong response is immediate', async () => {
-    const client = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const client = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(client);
     await client.waitForMessage('presence_state');
 

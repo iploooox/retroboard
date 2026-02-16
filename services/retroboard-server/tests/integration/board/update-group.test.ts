@@ -19,7 +19,7 @@ const app = createTestApp();
 describe('PUT /api/v1/boards/:id/groups/:groupId — Update Group', () => {
   let adminToken: string;
   let adminUser: { id: string; email: string };
-  let memberToken: string;
+  let _memberToken: string;
   let memberUser: { id: string; email: string };
   let team: { id: string };
   let sprint: { id: string };
@@ -36,7 +36,7 @@ describe('PUT /api/v1/boards/:id/groups/:groupId — Update Group', () => {
     sprint = await createTestSprint(team.id, adminUser.id);
 
     const memberAuth = await getAuthToken({ email: 'member@example.com', displayName: 'Member User' });
-    memberToken = memberAuth.token;
+      _memberToken = memberAuth.token;
     memberUser = memberAuth.user;
     await addTeamMember(team.id, memberUser.id, 'member');
 
@@ -107,7 +107,7 @@ describe('PUT /api/v1/boards/:id/groups/:groupId — Update Group', () => {
 
   it('2.10.4: Add card already in another group (moves it)', async () => {
     const card = await createTestCard(board.id, columns[0].id, adminUser.id, { content: 'Shared card' });
-    const group1 = await createTestGroup(board.id, 'Group 1', [card.id]);
+    const _group1 = await createTestGroup(board.id, 'Group 1', [card.id]);
     const group2 = await createTestGroup(board.id, 'Group 2');
 
     const res = await app.request(`/api/v1/boards/${board.id}/groups/${group2.id}`, {

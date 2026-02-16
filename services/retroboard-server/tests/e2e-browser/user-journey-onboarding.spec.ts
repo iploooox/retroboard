@@ -132,8 +132,8 @@ test.describe('Onboarding Flow (S-029)', () => {
     // Click "Skip for now"
     await page.getByRole('button', { name: 'Skip for now' }).click();
 
-    // Should be redirected to dashboard
-    await expect(page).toHaveURL('/dashboard', { timeout: 5000 });
+    // Should be redirected to dashboard (with confetti animation delay)
+    await expect(page).toHaveURL('/dashboard', { timeout: 10000 });
   });
 
   test('E2E-ONBOARDING-4: User can navigate back through onboarding steps', async ({ page }) => {
@@ -157,6 +157,10 @@ test.describe('Onboarding Flow (S-029)', () => {
     await page.locator('#team-name').fill(teamName);
     await page.getByRole('button', { name: 'Create Team' }).click();
     await page.waitForTimeout(1000);
+
+    // Now on invite members step
+    await expect(page.getByRole('heading', { name: /invite your team/i })).toBeVisible();
+    await page.getByRole('button', { name: 'Continue' }).click();
 
     // Now on create sprint step
     await expect(page.getByRole('heading', { name: /create your sprint/i })).toBeVisible();
@@ -195,10 +199,11 @@ test.describe('Onboarding Flow (S-029)', () => {
     await page.getByRole('button', { name: 'Create Team' }).click();
     await page.waitForTimeout(1000);
 
-    // Now on create sprint step - verify progress bar shows team step as completed
-    // The first icon should now be green (Check icon)
+    // Now on invite members step - verify progress bar shows completed steps
+    // Completed steps should have green background (bg-green-500)
     const completedSteps = page.locator('div.bg-green-500');
-    await expect(completedSteps).toHaveCount({ min: 1 });
+    const count = await completedSteps.count();
+    expect(count).toBeGreaterThanOrEqual(1);
   });
 
   test('E2E-ONBOARDING-6: Onboarding is only shown once per user', async ({ page }) => {
@@ -221,6 +226,9 @@ test.describe('Onboarding Flow (S-029)', () => {
     await page.locator('#team-name').fill(teamName);
     await page.getByRole('button', { name: 'Create Team' }).click();
     await page.waitForTimeout(1000);
+
+    // Skip invite members step
+    await page.getByRole('button', { name: 'Continue' }).click();
 
     await page.locator('#sprint-name').fill(sprintName);
     await page.getByRole('button', { name: 'Create Sprint' }).click();

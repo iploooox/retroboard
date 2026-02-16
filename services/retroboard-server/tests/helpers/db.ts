@@ -1,5 +1,16 @@
 import { sql } from '../../src/db/connection.js';
 
+// Test database object types
+export type TestUser = { id: string; email: string; display_name: string };
+export type TestTeam = { id: string; name: string; slug: string; updated_at?: Date };
+export type TestSprint = { id: string; name: string; team_id: string; status: string };
+export type TestBoard = { id: string; sprint_id: string; template_id: string; phase: string; anonymous_mode: boolean; max_votes_per_user: number; max_votes_per_card: number; created_by: string };
+export type TestColumn = { id: string; board_id: string; name: string; color: string; position: number };
+export type TestCard = { id: string; board_id: string; column_id: string; author_id: string; content: string; position: number };
+export type TestGroup = { id: string; board_id: string; title: string; position: number };
+export type TestActionItem = { id: string; board_id: string; card_id: string | null; title: string; description: string | null; assignee_id: string | null; due_date: string | null; status: string; carried_from_id: string | null; created_by: string; updated_at?: Date };
+export type TestVote = { id: string; card_id: string; user_id: string; vote_number: number };
+
 const TABLES_TO_TRUNCATE = [
   'action_items',
   'card_reactions',
@@ -37,8 +48,8 @@ export async function createTestUser(overrides: {
   email?: string;
   displayName?: string;
   passwordHash?: string;
-} = {}) {
-  const [user] = await sql`
+} = {}): Promise<TestUser> {
+  const [user] = await sql<Array<TestUser>>`
     INSERT INTO users (email, password_hash, display_name)
     VALUES (
       ${overrides.email || `test-${Date.now()}@example.com`},
@@ -53,8 +64,8 @@ export async function createTestUser(overrides: {
 export async function createTestTeam(createdBy: string, overrides: {
   name?: string;
   slug?: string;
-} = {}) {
-  const [team] = await sql`
+} = {}): Promise<TestTeam> {
+  const [team] = await sql<Array<TestTeam>>`
     INSERT INTO teams (name, slug, created_by)
     VALUES (
       ${overrides.name || 'Test Team'},
@@ -81,13 +92,13 @@ export async function createTestSprint(teamId: string, createdBy: string, overri
   name?: string;
   status?: string;
   startDate?: string;
-} = {}) {
+} = {}): Promise<TestSprint> {
   const status = overrides.status || 'active';
   // Auto-deactivate existing active sprint to avoid unique constraint violation
   if (status === 'active') {
     await sql`UPDATE sprints SET status = 'completed' WHERE team_id = ${teamId} AND status = 'active'`;
   }
-  const [sprint] = await sql`
+  const [sprint] = await sql<Array<TestSprint>>`
     INSERT INTO sprints (team_id, name, start_date, status, sprint_number, created_by)
     VALUES (
       ${teamId},
@@ -107,8 +118,8 @@ export async function createTestBoard(sprintId: string, templateId: string, crea
   anonymous_mode?: boolean;
   max_votes_per_user?: number;
   max_votes_per_card?: number;
-} = {}) {
-  const [board] = await sql`
+} = {}): Promise<{ board: TestBoard; columns: TestColumn[] }> {
+  const [board] = await sql<Array<TestBoard>>`
     INSERT INTO boards (sprint_id, template_id, phase, anonymous_mode, max_votes_per_user, max_votes_per_card, created_by)
     VALUES (
       ${sprintId},
@@ -123,15 +134,15 @@ export async function createTestBoard(sprintId: string, templateId: string, crea
   `;
 
   // Copy template columns
-  const templateColumns = await sql`
+  const templateColumns = await sql<Array<{ name: string; color: string; position: number }>>`
     SELECT name, color, position FROM template_columns
     WHERE template_id = ${templateId}
     ORDER BY position
   `;
 
-  const columns = [];
+  const columns: TestColumn[] = [];
   for (const tc of templateColumns) {
-    const [col] = await sql`
+    const [col] = await sql<Array<TestColumn>>`
       INSERT INTO columns (board_id, name, color, position)
       VALUES (${board.id}, ${tc.name}, ${tc.color}, ${tc.position})
       RETURNING *
@@ -145,11 +156,11 @@ export async function createTestBoard(sprintId: string, templateId: string, crea
 export async function createTestCard(boardId: string, columnId: string, authorId: string, overrides: {
   content?: string;
   position?: number;
-} = {}) {
-  const [maxPos] = await sql`
+} = {}): Promise<TestCard> {
+  const [maxPos] = await sql<Array<{ max_pos: number }>>`
     SELECT COALESCE(MAX(position), -1)::int AS max_pos FROM cards WHERE column_id = ${columnId}
   `;
-  const [card] = await sql`
+  const [card] = await sql<Array<TestCard>>`
     INSERT INTO cards (board_id, column_id, author_id, content, position)
     VALUES (${boardId}, ${columnId}, ${authorId}, ${overrides.content || 'Test card'}, ${overrides.position ?? (maxPos.max_pos + 1)})
     RETURNING *
@@ -157,11 +168,11 @@ export async function createTestCard(boardId: string, columnId: string, authorId
   return card;
 }
 
-export async function createTestGroup(boardId: string, title: string, cardIds: string[] = []) {
-  const [maxPos] = await sql`
+export async function createTestGroup(boardId: string, title: string, cardIds: string[] = []): Promise<TestGroup> {
+  const [maxPos] = await sql<Array<{ max_pos: number }>>`
     SELECT COALESCE(MAX(position), -1)::int AS max_pos FROM card_groups WHERE board_id = ${boardId}
   `;
-  const [group] = await sql`
+  const [group] = await sql<Array<TestGroup>>`
     INSERT INTO card_groups (board_id, title, position)
     VALUES (${boardId}, ${title}, ${maxPos.max_pos + 1})
     RETURNING *
@@ -185,8 +196,8 @@ export async function createTestActionItem(boardId: string, createdBy: string, o
   dueDate?: string;
   status?: string;
   carriedFromId?: string;
-} = {}) {
-  const [item] = await sql`
+} = {}): Promise<TestActionItem> {
+  const [item] = await sql<Array<TestActionItem>>`
     INSERT INTO action_items (board_id, card_id, title, description, assignee_id, due_date, status, carried_from_id, created_by)
     VALUES (
       ${boardId},
@@ -204,11 +215,11 @@ export async function createTestActionItem(boardId: string, createdBy: string, o
   return item;
 }
 
-export async function createTestVote(cardId: string, userId: string, voteNumber?: number) {
+export async function createTestVote(cardId: string, userId: string, voteNumber?: number): Promise<TestVote> {
   const nextVote = voteNumber ?? (
-    await sql`SELECT COALESCE(MAX(vote_number), 0)::int + 1 AS next FROM card_votes WHERE card_id = ${cardId} AND user_id = ${userId}`
+    await sql<Array<{ next: number }>>`SELECT COALESCE(MAX(vote_number), 0)::int + 1 AS next FROM card_votes WHERE card_id = ${cardId} AND user_id = ${userId}`
   )[0].next;
-  const [vote] = await sql`
+  const [vote] = await sql<Array<TestVote>>`
     INSERT INTO card_votes (card_id, user_id, vote_number)
     VALUES (${cardId}, ${userId}, ${nextVote})
     RETURNING *

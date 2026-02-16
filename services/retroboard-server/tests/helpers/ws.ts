@@ -1,8 +1,155 @@
-import { createServer, type Server } from 'node:http';
+import { createServer } from 'node:http';
 import WebSocket from 'ws';
 import { getAuthToken } from './auth.js';
 
 const TEST_PORT = Number(process.env.TEST_PORT) || 3001;
+
+interface WSMessage {
+  type: string;
+  payload?: unknown;
+  [key: string]: unknown;
+}
+
+// Typed payload interfaces for different message types
+export interface PresenceStatePayload {
+  users: Array<{
+    userId: string;
+    userName: string;
+    userAvatar: string;
+    connectionCount: number;
+    cursorPosition: { x: number; y: number } | null;
+    joinedAt: string;
+  }>;
+}
+
+export interface UserJoinedPayload {
+  userId: string;
+  userName: string;
+}
+
+export interface CursorMovePayload {
+  userId: string;
+  userName: string;
+  x: number;
+  y: number;
+}
+
+export interface CardCreatedPayload {
+  id: string;
+  boardId: string;
+  [key: string]: unknown;
+}
+
+export interface VotePayload {
+  id: string;
+  boardId: string;
+  [key: string]: unknown;
+}
+
+export interface GroupPayload {
+  id: string;
+  boardId: string;
+  [key: string]: unknown;
+}
+
+export interface PhaseChangedPayload {
+  phase: string;
+  boardId: string;
+  [key: string]: unknown;
+}
+
+export interface FocusChangedPayload {
+  focusType: string | null;
+  focusId: string | null;
+  boardId: string;
+  [key: string]: unknown;
+}
+
+export interface TimerPayload {
+  boardId: string;
+  durationMs?: number;
+  [key: string]: unknown;
+}
+
+export interface EventReplayPayload {
+  events: Array<{
+    eventId: string;
+    type: string;
+    timestamp: string;
+    [key: string]: unknown;
+  }>;
+  hasMore?: boolean;
+  [key: string]: unknown;
+}
+
+// Type assertion helpers
+export function assertPresenceState(msg: WSMessage): asserts msg is WSMessage & { payload: PresenceStatePayload } {
+  if (!msg.payload || typeof msg.payload !== 'object') {
+    throw new Error('Invalid presence_state payload');
+  }
+}
+
+export function assertUserPayload(msg: WSMessage): asserts msg is WSMessage & { payload: UserJoinedPayload } {
+  if (!msg.payload || typeof msg.payload !== 'object') {
+    throw new Error('Invalid user payload');
+  }
+}
+
+export function assertCursorPayload(msg: WSMessage): asserts msg is WSMessage & { payload: CursorMovePayload } {
+  if (!msg.payload || typeof msg.payload !== 'object') {
+    throw new Error('Invalid cursor payload');
+  }
+}
+
+export function assertCardPayload(msg: WSMessage): asserts msg is WSMessage & { payload: CardCreatedPayload } {
+  if (!msg.payload || typeof msg.payload !== 'object') {
+    throw new Error('Invalid card payload');
+  }
+}
+
+export function assertVotePayload(msg: WSMessage): asserts msg is WSMessage & { payload: VotePayload } {
+  if (!msg.payload || typeof msg.payload !== 'object') {
+    throw new Error('Invalid vote payload');
+  }
+}
+
+export function assertGroupPayload(msg: WSMessage): asserts msg is WSMessage & { payload: GroupPayload } {
+  if (!msg.payload || typeof msg.payload !== 'object') {
+    throw new Error('Invalid group payload');
+  }
+}
+
+export function assertPhasePayload(msg: WSMessage): asserts msg is WSMessage & { payload: PhaseChangedPayload } {
+  if (!msg.payload || typeof msg.payload !== 'object') {
+    throw new Error('Invalid phase payload');
+  }
+}
+
+export function assertFocusPayload(msg: WSMessage): asserts msg is WSMessage & { payload: FocusChangedPayload } {
+  if (!msg.payload || typeof msg.payload !== 'object') {
+    throw new Error('Invalid focus payload');
+  }
+}
+
+export function assertTimerPayload(msg: WSMessage): asserts msg is WSMessage & { payload: TimerPayload } {
+  if (!msg.payload || typeof msg.payload !== 'object') {
+    throw new Error('Invalid timer payload');
+  }
+}
+
+export function assertEventReplayPayload(msg: WSMessage): asserts msg is WSMessage & { payload: EventReplayPayload } {
+  if (!msg.payload || typeof msg.payload !== 'object') {
+    throw new Error('Invalid event_replay payload');
+  }
+}
+
+// Generic helper to access payload as a record
+export function getPayload(msg: WSMessage): Record<string, unknown> {
+  if (!msg.payload || typeof msg.payload !== 'object' || Array.isArray(msg.payload)) {
+    return {};
+  }
+  return msg.payload as Record<string, unknown>;
+}
 
 // Lazy HTTP+WS server: starts once on first WS client creation
 // Cleanup stored on globalThis so setup.ts afterAll can access it
@@ -36,10 +183,10 @@ async function ensureServerStarted(): Promise<void> {
 
 export interface TestWSClient {
   ws: WebSocket;
-  messages: any[];
-  waitForMessage(type: string, timeoutMs?: number): Promise<any>;
-  waitForMessages(type: string, count: number, timeoutMs?: number): Promise<any[]>;
-  send(msg: any): void;
+  messages: WSMessage[];
+  waitForMessage(type: string, timeoutMs?: number): Promise<WSMessage>;
+  waitForMessages(type: string, count: number, timeoutMs?: number): Promise<WSMessage[]>;
+  send(msg: unknown): void;
   close(): Promise<void>;
 }
 
@@ -56,10 +203,10 @@ export async function createTestWSClient(options: {
 
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(url);
-    const messages: any[] = [];
+    const messages: WSMessage[] = [];
     const waiters: Array<{
       type: string;
-      resolve: (msg: any) => void;
+      resolve: (msg: WSMessage) => void;
       reject: (err: Error) => void;
     }> = [];
 
@@ -118,7 +265,7 @@ export async function createTestWSClient(options: {
             ws.on('message', () => check());
           });
         },
-        send(msg: any) {
+        send(msg: unknown) {
           ws.send(JSON.stringify(msg));
         },
         close() {

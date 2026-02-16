@@ -38,7 +38,7 @@ describe('E2E: Phase 5 Happy Path — Polish Features', () => {
     expect(regA.status).toBe(201);
     const userA = await regA.json();
     const tokenA = userA.access_token;
-    const aliceId = userA.user.id;
+    const _aliceId = userA.user.id;
 
     // Register Bob (member)
     const regB = await app.request('/api/v1/auth/register', {

@@ -8,6 +8,7 @@ import {
   createTestBoard,
   createTestActionItem,
   SYSTEM_TEMPLATE_WWD,
+  type TestActionItem,
 } from '../../helpers/db.js';
 import { getAuthToken } from '../../helpers/auth.js';
 import { seed } from '../../../src/db/seed.js';
@@ -17,12 +18,12 @@ const app = createTestApp();
 describe('PUT /api/v1/action-items/:id — Update Action Item', () => {
   let adminToken: string;
   let adminUser: { id: string; email: string };
-  let memberToken: string;
+  let _memberToken: string;
   let memberUser: { id: string; email: string };
   let team: { id: string };
   let sprint: { id: string };
   let board: { id: string };
-  let actionItem: { id: string };
+  let actionItem: TestActionItem;
 
   beforeEach(async () => {
     await truncateTables();
@@ -33,7 +34,7 @@ describe('PUT /api/v1/action-items/:id — Update Action Item', () => {
     adminUser = adminAuth.user;
 
     const memberAuth = await getAuthToken({ email: 'member@test.com', displayName: 'Member User' });
-    memberToken = memberAuth.token;
+      _memberToken = memberAuth.token;
     memberUser = memberAuth.user;
 
     team = await createTestTeam(adminUser.id);
@@ -306,7 +307,7 @@ describe('PUT /api/v1/action-items/:id — Update Action Item', () => {
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(new Date(body.updatedAt).getTime()).toBeGreaterThan(new Date(originalUpdatedAt).getTime());
+    expect(new Date(body.updatedAt).getTime()).toBeGreaterThan(new Date(originalUpdatedAt!).getTime());
   });
 
   it('should preserve other fields when doing a partial update', async () => {

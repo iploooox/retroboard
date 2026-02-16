@@ -52,8 +52,8 @@ describe('Action Item Carry-Over Service (Unit)', () => {
     const result = await actionItemRepo.carryOver('board-new', 'facilitator-1');
 
     expect(result).toEqual(mockResult);
-    expect(result.carriedOver).toHaveLength(2);
-    expect(result.totalResolved).toBe(2);
+    expect(result!.carriedOver).toHaveLength(2);
+    expect(result!.totalResolved).toBe(2);
   });
 
   it('3.1.2: Skip done items (1 open + 1 done → only 1 carried)', async () => {
@@ -90,10 +90,10 @@ describe('Action Item Carry-Over Service (Unit)', () => {
 
     const result = await actionItemRepo.carryOver('board-new', 'facilitator-1');
 
-    expect(result.carriedOver).toHaveLength(1);
-    expect(result.skipped).toHaveLength(1);
-    expect(result.skipped[0].reason).toBe('already_done');
-    expect(result.totalSkipped).toBe(1);
+    expect(result!.carriedOver).toHaveLength(1);
+    expect(result!.skipped).toHaveLength(1);
+    expect(result!.skipped![0].reason).toBe('already_done');
+    expect(result!.totalSkipped).toBe(1);
   });
 
   it('3.1.3: Include in_progress items (status reset to open)', async () => {
@@ -124,8 +124,8 @@ describe('Action Item Carry-Over Service (Unit)', () => {
 
     const result = await actionItemRepo.carryOver('board-new', 'facilitator-1');
 
-    expect(result.carriedOver[0].status).toBe('open');
-    expect(result.carriedOver[0].originalStatus).toBe('in_progress');
+    expect(result!.carriedOver![0].status).toBe('open');
+    expect(result!.carriedOver![0].originalStatus).toBe('in_progress');
   });
 
   it('3.1.4: Preserve title and description', async () => {
@@ -156,8 +156,8 @@ describe('Action Item Carry-Over Service (Unit)', () => {
 
     const result = await actionItemRepo.carryOver('board-new', 'facilitator-1');
 
-    expect(result.carriedOver[0].title).toBe('Original Title');
-    expect(result.carriedOver[0].description).toBe('Original detailed description');
+    expect(result!.carriedOver![0].title).toBe('Original Title');
+    expect(result!.carriedOver![0].description).toBe('Original detailed description');
   });
 
   it('3.1.5: Preserve assignee', async () => {
@@ -188,8 +188,8 @@ describe('Action Item Carry-Over Service (Unit)', () => {
 
     const result = await actionItemRepo.carryOver('board-new', 'facilitator-1');
 
-    expect(result.carriedOver[0].assigneeId).toBe('user-123');
-    expect(result.carriedOver[0].assigneeName).toBe('Charlie Kim');
+    expect(result!.carriedOver![0].assigneeId).toBe('user-123');
+    expect(result!.carriedOver![0].assigneeName).toBe('Charlie Kim');
   });
 
   it('3.1.6: Preserve due date', async () => {
@@ -220,7 +220,7 @@ describe('Action Item Carry-Over Service (Unit)', () => {
 
     const result = await actionItemRepo.carryOver('board-new', 'facilitator-1');
 
-    expect(result.carriedOver[0].dueDate).toBe('2026-03-15');
+    expect(result!.carriedOver![0].dueDate).toBe('2026-03-15');
   });
 
   it('3.1.7: Set carried_from_id to original item ID (implicit in response structure)', async () => {
@@ -252,7 +252,7 @@ describe('Action Item Carry-Over Service (Unit)', () => {
     const result = await actionItemRepo.carryOver('board-new', 'facilitator-1');
 
     // The carried_from_id is set to originalId
-    expect(result.carriedOver[0].originalId).toBe('old-ai-1');
+    expect(result!.carriedOver![0].originalId).toBe('old-ai-1');
   });
 
   it('3.1.8: Idempotent (second call returns items in alreadyCarried, no duplicates)', async () => {
@@ -283,10 +283,10 @@ describe('Action Item Carry-Over Service (Unit)', () => {
 
     const result = await actionItemRepo.carryOver('board-new', 'facilitator-1');
 
-    expect(result.carriedOver).toHaveLength(0);
-    expect(result.alreadyCarried).toHaveLength(2);
-    expect(result.totalAlreadyCarried).toBe(2);
-    expect(result.alreadyCarried[0].reason).toBe('already_carried_over');
+    expect(result!.carriedOver).toHaveLength(0);
+    expect(result!.alreadyCarried).toHaveLength(2);
+    expect(result!.totalAlreadyCarried).toBe(2);
+    expect(result!.alreadyCarried![0].reason).toBe('already_carried_over');
   });
 
   it('3.1.9: No previous sprint → throws NO_PREVIOUS_SPRINT', async () => {
@@ -314,8 +314,8 @@ describe('Action Item Carry-Over Service (Unit)', () => {
 
     const result = await actionItemRepo.carryOver('board-new', 'facilitator-1');
 
-    expect(result.carriedOver).toHaveLength(0);
-    expect(result.totalResolved).toBe(0);
+    expect(result!.carriedOver).toHaveLength(0);
+    expect(result!.totalResolved).toBe(0);
   });
 
   it('3.1.11: All items already done → all in skipped array', async () => {
@@ -349,9 +349,9 @@ describe('Action Item Carry-Over Service (Unit)', () => {
 
     const result = await actionItemRepo.carryOver('board-new', 'facilitator-1');
 
-    expect(result.carriedOver).toHaveLength(0);
-    expect(result.skipped).toHaveLength(3);
-    expect(result.totalSkipped).toBe(3);
+    expect(result!.carriedOver).toHaveLength(0);
+    expect(result!.skipped).toHaveLength(3);
+    expect(result!.totalSkipped).toBe(3);
   });
 
   it('3.1.12: Chain carry-over (N-1 → N → N+1, carried_from_id points to N\'s item)', async () => {
@@ -385,7 +385,7 @@ describe('Action Item Carry-Over Service (Unit)', () => {
     const result = await actionItemRepo.carryOver('board-sprint-n-plus-1', 'facilitator-1');
 
     // The new item's originalId should point to the item from Sprint N (the immediate previous)
-    expect(result.carriedOver[0].originalId).toBe('sprint-n-item');
+    expect(result!.carriedOver![0].originalId).toBe('sprint-n-item');
   });
 
   it('3.1.13: Created_by set to facilitator who triggered carry-over', async () => {

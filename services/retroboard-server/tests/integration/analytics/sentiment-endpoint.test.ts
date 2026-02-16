@@ -18,7 +18,7 @@ const app = createTestApp();
 describe('GET /api/v1/teams/:teamId/analytics/sentiment — Sentiment Analytics', () => {
   let adminToken: string;
   let adminUser: { id: string; email: string };
-  let memberToken: string;
+  let _memberToken: string;
   let memberUser: { id: string; email: string };
   let team: { id: string };
 
@@ -31,7 +31,7 @@ describe('GET /api/v1/teams/:teamId/analytics/sentiment — Sentiment Analytics'
     adminUser = adminAuth.user;
 
     const memberAuth = await getAuthToken({ email: 'member@test.com', displayName: 'Member User' });
-    memberToken = memberAuth.token;
+      _memberToken = memberAuth.token;
     memberUser = memberAuth.user;
 
     team = await createTestTeam(adminUser.id);
@@ -125,11 +125,11 @@ describe('GET /api/v1/teams/:teamId/analytics/sentiment — Sentiment Analytics'
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
-    const wentWell = body.sprints[0].sentimentByColumn.find((c: any) => c.columnName === 'What Went Well');
-    const toImprove = body.sprints[0].sentimentByColumn.find((c: any) => c.columnName === 'Delta (What to Change)');
+    const body = await res.json() as { sprints: Array<{ sentimentByColumn: Array<{ columnName: string; averageSentiment: number }> }> };
+    const wentWell = body.sprints[0].sentimentByColumn.find((c) => c.columnName === 'What Went Well');
+    const toImprove = body.sprints[0].sentimentByColumn.find((c) => c.columnName === 'Delta (What to Change)');
 
-    expect(wentWell.averageSentiment).toBeGreaterThan(toImprove.averageSentiment);
+    expect(wentWell!.averageSentiment).toBeGreaterThan(toImprove!.averageSentiment);
   });
 
   it('8.5: Overall trend calculated for 6+ sprints', async () => {

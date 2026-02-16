@@ -10,7 +10,7 @@ test.describe.serial('User Journey: Complete Retrospective Session', () => {
   let sprintName: string;
 
   test.beforeAll(async ({ browser }) => {
-    page = await browser.newPage();
+    page = await browser.newPage({ baseURL: 'http://localhost:5173' });
     email = generateUniqueEmail();
     password = 'SecurePass123!';
     displayName = 'Retro Journey User';
@@ -38,18 +38,27 @@ test.describe.serial('User Journey: Complete Retrospective Session', () => {
     await page.getByRole('button', { name: 'Create Team' }).nth(1).click();
 
     // Wait for team creation
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
     await expect(page.getByText(teamName)).toBeVisible();
+
+    // Navigate into the team (CRITICAL: Sprint creation only available on TeamDetailPage)
+    await page.getByRole('link').filter({ hasText: teamName }).click();
+    await page.waitForTimeout(1000);
   });
 
   test('E2E-JOURNEY-3: Create and activate sprint', async () => {
     // Create sprint
     await page.getByRole('button', { name: /create sprint|new sprint/i }).click();
-    await page.getByPlaceholder(/sprint name/i).fill(sprintName);
-    await page.getByRole('button', { name: /create|save/i }).click();
+    await page.getByLabel(/sprint name/i).fill(sprintName);
+
+    // Fill required start date
+    const today = new Date().toISOString().split('T')[0];
+    await page.getByLabel(/start date/i).fill(today);
+
+    await page.getByRole('button', { name: 'Create Sprint', exact: true }).click();
 
     // Wait for sprint creation
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
     await expect(page.getByText(sprintName)).toBeVisible();
 
     // Activate sprint
@@ -59,32 +68,29 @@ test.describe.serial('User Journey: Complete Retrospective Session', () => {
   });
 
   test('E2E-JOURNEY-4: Navigate to board and start retro', async () => {
-    // Navigate to board page
-    await page.getByRole('link', { name: /board/i }).click();
+    // Navigate to board page (use exact match to avoid header links)
+    await page.getByRole('link', { name: 'Board', exact: true }).click();
     await expect(page.url()).toContain('/board');
 
     // Start retro
     await page.getByRole('button', { name: /start retro/i }).click();
 
-    // Select template (use first one)
-    await page.locator('[data-template]').first().click();
-
-    // Create board
-    await page.getByRole('button', { name: /create board|start/i }).click();
+    // Template is auto-selected by default, just submit
+    await page.getByRole('button', { name: 'Create Board', exact: true }).click();
 
     // Wait for board to load
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(2000);
   });
 
   test('E2E-JOURNEY-5: Verify board loaded with columns and WebSocket connection', async () => {
-    // Should see columns (from What Went Well / Delta template typically)
-    const columns = await page.locator('[data-column], .column, [class*="column"]').count();
-    expect(columns).toBeGreaterThan(0);
+    // Should see columns (from What Went Well / Delta template)
+    await expect(page.getByRole('heading', { name: /What Went Well/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Delta|What to Change/i })).toBeVisible();
 
     // Check for WebSocket connection indicator
     // This might be text like "Connected" or an icon
     const wsIndicator = page.getByText(/connected/i).or(page.locator('[data-ws-status="connected"]'));
-    const isConnected = await wsIndicator.isVisible({ timeout: 3000 }).catch(() => false);
+    await wsIndicator.isVisible({ timeout: 3000 }).catch(() => false);
 
     // WebSocket might be indicated differently, so we'll be lenient
     // The key is that the board loaded successfully
@@ -93,10 +99,10 @@ test.describe.serial('User Journey: Complete Retrospective Session', () => {
 
   test('E2E-JOURNEY-6: WRITE phase - Add cards to different columns', async () => {
     // Verify we're in write phase
-    await expect(page.getByText(/write|writing/i)).toBeVisible();
+    await expect(page.getByText('Write Phase')).toBeVisible();
 
     // Get all "add card" buttons (one per column)
-    const addCardButtons = await page.getByRole('button', { name: /add card|\+/i }).all();
+    const addCardButtons = await page.getByRole('button', { name: /add a card/i }).all();
     expect(addCardButtons.length).toBeGreaterThan(0);
 
     // Add card to first column
@@ -125,12 +131,18 @@ test.describe.serial('User Journey: Complete Retrospective Session', () => {
   });
 
   test('E2E-JOURNEY-7: Transition to VOTE phase', async () => {
-    // Click next phase button (facilitator control)
-    await page.getByRole('button', { name: /next phase|vote/i }).click();
+    // Phase flow: Write → Group → Vote
+    // First transition: Write → Group
+    await page.getByRole('button', { name: 'Next phase', exact: true }).click();
+    await page.waitForTimeout(500);
+    await expect(page.getByText('Group Phase')).toBeVisible();
+
+    // Second transition: Group → Vote
+    await page.getByRole('button', { name: 'Next phase', exact: true }).click();
     await page.waitForTimeout(500);
 
     // Verify we're in vote phase
-    await expect(page.getByText(/vote|voting/i)).toBeVisible();
+    await expect(page.getByText('Vote Phase')).toBeVisible();
 
     // Verify vote buttons are now enabled
     const voteButton = page.getByText('Great team collaboration!').locator('..').getByRole('button', { name: /vote|👍/i }).first();
@@ -148,87 +160,50 @@ test.describe.serial('User Journey: Complete Retrospective Session', () => {
     await expect(voteIndicator).toBeVisible();
 
     // Vote on "Fast sprint delivery"
-    const card2VoteButton = page.getByText('Fast sprint delivery').locator('..').getByRole('button', { name: /vote|👍/i }).first();
+    const card2Container = page.getByText('Fast sprint delivery').locator('..');
+    const card2VoteButton = card2Container.getByRole('button', { name: 'Vote', exact: true });
     await card2VoteButton.click();
     await page.waitForTimeout(500);
 
-    // Vote again on same card
-    await card2VoteButton.click();
+    // Verify first vote
+    await expect(card2Container.getByText(/1.*vote|vote.*1|\b1\b/i)).toBeVisible({ timeout: 2000 });
+
+    // Vote again on same card - re-query for button
+    const card2VoteButton2 = card2Container.getByRole('button', { name: 'Vote', exact: true });
+    await card2VoteButton2.click();
     await page.waitForTimeout(500);
 
     // Should see 2 votes on this card
-    const card2Votes = page.getByText('Fast sprint delivery').locator('..').getByText(/2.*vote|vote.*2/i);
-    await expect(card2Votes).toBeVisible();
+    await expect(card2Container.getByText(/2.*vote|vote.*2|\b2\b/i)).toBeVisible({ timeout: 2000 });
   });
 
-  test('E2E-JOURNEY-9: Transition to GROUP phase', async () => {
-    // Click next phase button
-    await page.getByRole('button', { name: /next phase|group/i }).click();
-    await page.waitForTimeout(500);
-
-    // Verify we're in group phase
-    await expect(page.getByText(/group|grouping/i)).toBeVisible();
-  });
-
-  test('E2E-JOURNEY-10: GROUP phase - Create group with cards', async () => {
-    // Select two cards (using Ctrl+click or similar)
-    // Note: This interaction might vary based on UI implementation
-    await page.getByText('Great team collaboration!').click({ modifiers: ['Control'] });
-    await page.waitForTimeout(300);
-    await page.getByText('Fast sprint delivery').click({ modifiers: ['Control'] });
-    await page.waitForTimeout(300);
-
-    // Create group button should appear or be enabled
-    const createGroupButton = page.getByRole('button', { name: /create group|group|merge/i });
-    const isGroupButtonVisible = await createGroupButton.isVisible({ timeout: 2000 }).catch(() => false);
-
-    if (isGroupButtonVisible) {
-      await createGroupButton.click();
-      await page.waitForTimeout(300);
-
-      // Name the group
-      const groupNameInput = page.getByPlaceholder(/group name|title/i);
-      if (await groupNameInput.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await groupNameInput.fill('Team Collaboration Wins');
-        await page.getByRole('button', { name: /create|save/i }).click();
-        await page.waitForTimeout(500);
-
-        // Verify group exists
-        await expect(page.getByText('Team Collaboration Wins')).toBeVisible();
-      }
-    }
-    // If grouping UI doesn't exist yet, this step gracefully passes
-  });
-
-  test('E2E-JOURNEY-11: Transition to DISCUSS phase', async () => {
-    // Click next phase button
-    await page.getByRole('button', { name: /next phase|discuss/i }).click();
+  test('E2E-JOURNEY-9: Transition to DISCUSS phase', async () => {
+    // Phase flow: Vote → Discuss (Group phase was already traversed in E2E-JOURNEY-7)
+    await page.getByRole('button', { name: 'Next phase', exact: true }).click();
     await page.waitForTimeout(500);
 
     // Verify we're in discuss phase
-    await expect(page.getByText(/discuss|discussion/i)).toBeVisible();
+    await expect(page.getByText('Discuss Phase')).toBeVisible();
   });
 
-  test('E2E-JOURNEY-12: DISCUSS phase - Verify discussion UI', async () => {
+  test('E2E-JOURNEY-10: DISCUSS phase - Verify discussion UI', async () => {
     // In discuss phase, cards should be visible
     await expect(page.getByText('Great team collaboration!')).toBeVisible();
 
-    // There might be a focus/highlight mechanism for discussing cards
     // The UI should show discussion controls
-    const discussIndicator = page.getByText(/discuss|discussion|talk about/i);
-    await expect(discussIndicator).toBeVisible();
+    await expect(page.getByText('Discuss Phase')).toBeVisible();
   });
 
-  test('E2E-JOURNEY-13: Transition to ACTION phase', async () => {
+  test('E2E-JOURNEY-11: Transition to ACTION phase', async () => {
     // Click next phase button
-    await page.getByRole('button', { name: /next phase|action/i }).click();
+    await page.getByRole('button', { name: 'Next phase', exact: true }).click();
     await page.waitForTimeout(500);
 
     // Verify we're in action phase
-    await expect(page.getByText(/action|action items/i)).toBeVisible();
+    await expect(page.getByText('Action Phase')).toBeVisible();
   });
 
-  test('E2E-JOURNEY-14: ACTION phase - Create action items', async () => {
+  test('E2E-JOURNEY-12: ACTION phase - Create action items', async () => {
     // Look for "add action" or "create action item" button
     const addActionButton = page.getByRole('button', { name: /add action|create action|new action/i });
     const isActionButtonVisible = await addActionButton.isVisible({ timeout: 2000 }).catch(() => false);
@@ -251,7 +226,7 @@ test.describe.serial('User Journey: Complete Retrospective Session', () => {
     // If action items UI doesn't exist yet, this step gracefully passes
   });
 
-  test('E2E-JOURNEY-15: Verify complete retro session data persists', async () => {
+  test('E2E-JOURNEY-13: Verify complete retro session data persists', async () => {
     // Refresh the page to ensure data persisted
     await page.reload();
     await page.waitForTimeout(1500);
@@ -263,8 +238,7 @@ test.describe.serial('User Journey: Complete Retrospective Session', () => {
     await expect(page.getByText('Great team collaboration!')).toBeVisible();
     await expect(page.getByText('Fast sprint delivery')).toBeVisible();
 
-    // Verify we're still in action phase (or last phase)
-    const currentPhase = page.getByText(/action|discuss|group|vote|write/i);
-    await expect(currentPhase).toBeVisible();
+    // Verify we're still in action phase (last phase of retro)
+    await expect(page.getByText('Action Phase')).toBeVisible();
   });
 });

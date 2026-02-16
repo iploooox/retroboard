@@ -10,10 +10,48 @@ A feature is done ONLY when ALL of these are true:
 |-------|--------------|
 | E2E test exists | Playwright test file with happy path user journey |
 | E2E test PASSES | Run against real server, paste terminal output |
-| TypeScript compiles | `npx tsc --noEmit` — zero errors |
+| TypeScript compiles (frontend) | `cd client && npx tsc --noEmit` — zero errors |
+| TypeScript compiles (backend) | `npx tsc --noEmit` from server root — zero errors |
 | Every story AC addressed | List each AC with DONE / NOT DONE |
 | Story file updated | Check off `[x]` completed acceptance criteria |
 | Tracking docs updated | CHECKLIST.md, FRONTEND_GAPS.md, INDEX.md |
+
+## TDD Rules
+
+### Tests are the source of truth, NOT the code.
+
+If a test says "click Skip → navigate to /dashboard" and the app doesn't do that:
+- **CORRECT**: Fix the application code so the app navigates to /dashboard
+- **WRONG**: Change the test assertion to expect whatever the broken app does
+
+**NEVER modify test assertions to make them pass.** Fix the code under test.
+
+The only valid reasons to modify a test:
+- The test has a genuine bug (wrong selector, missing setup step, race condition in test logic)
+- The spec/AC changed and the PO approved the change
+- The test is testing something that was explicitly removed from scope
+
+When in doubt, ask the PO — do NOT silently weaken a test.
+
+### ALL non-skipped tests must be GREEN
+
+"4 of 6 passing" is NOT done. Failing tests are not "non-critical edge cases." Every non-skipped test describes expected user behavior. Fix until ALL are GREEN.
+
+### Zero tolerance for TypeScript errors
+
+`npx tsc --noEmit` must produce ZERO errors — both frontend (`cd client && npx tsc --noEmit`) and backend (from server root). "Pre-existing errors" is NOT an excuse to ignore them. If you find TS errors, fix them. If they're in files you didn't touch, fix them anyway. The codebase must compile clean.
+
+### Zero tolerance for `any`
+
+ESLint enforces `@typescript-eslint/no-explicit-any: error`. Run `npx eslint src/ tests/` — zero errors.
+
+**NEVER use `any` to "fix" a TypeScript error.** If you don't know the type:
+1. Read the library's type definitions (hover in IDE, check `node_modules/@types/`)
+2. Read the source code that produces the value
+3. Use the correct specific type
+4. As last resort, use `unknown` with type narrowing — NEVER `any`
+
+Using `any` is not fixing an error — it's hiding it. The orchestrator WILL reject PRs with `any`.
 
 ## E2E Test Requirements
 
@@ -35,7 +73,7 @@ E2E tests are the ONLY proof that a feature works. Unit tests don't count.
 ### How to run E2E tests
 ```bash
 # In separate terminals (or background):
-DATABASE_URL=postgres://localhost:5432/retroboard JWT_SECRET=dev-secret-must-be-at-least-32-characters-long npx tsx src/server.ts &
+DISABLE_RATE_LIMIT=true DATABASE_URL=postgres://localhost:5432/retroboard JWT_SECRET=dev-secret-must-be-at-least-32-characters-long npx tsx src/server.ts &
 cd client && npx vite --port 5173 &
 
 # Run specific test:
@@ -92,16 +130,37 @@ When reporting task completion, use this format:
 3. Explain why building it yourself is impossible (not just hard)
 4. Wait for orchestrator confirmation before marking blocked
 
+## Plan Mode (Mandatory for Dev and E2E Tester Agents)
+
+Dev agents and E2E testers MUST be spawned in plan mode (`"mode": "plan"`). This prevents wasted work by catching bad decisions before code is written.
+
+### How it works
+1. Agent spawns in **read-only mode** — can read files, search code, but CANNOT edit
+2. Agent reads the spec, explores the codebase, writes a plan
+3. Agent calls `ExitPlanMode` → orchestrator receives plan approval request
+4. Orchestrator reviews the plan:
+   - **Approve**: agent exits plan mode, gets edit access, starts implementing
+   - **Reject with feedback**: agent stays in plan mode, revises plan, resubmits
+5. PO does NOT need plan mode (read-only role by nature)
+
+### What the orchestrator checks before approving
+- Is the agent planning to modify test assertions? → **REJECT**
+- Is the agent declaring something "blocked"? → **REJECT** (in a monolith, build it)
+- Is the agent skipping any ACs or calling them "non-critical"? → **REJECT**
+- Does the plan cover ALL non-skipped tests, not just the happy path? → Must be yes
+- Does the plan match the spec/story ACs? → Must be yes
+
 ## Task Lifecycle
 
 ```
 1. CLAIM    → TaskUpdate: set owner + status=in_progress
-2. READ     → Read story ACs, specs, existing code patterns
-3. TEST     → Write Playwright E2E test for happy path (RED — must fail)
-4. BUILD    → Implement feature full-stack (GREEN — test passes)
-5. VERIFY   → Run E2E against real server, paste output
-6. REPORT   → Use Evidence Format above
-7. COMPLETE → TaskUpdate: status=completed (ONLY after E2E passes)
+2. PLAN     → Read specs, explore code, write plan (plan mode — read-only)
+3. APPROVE  → Orchestrator reviews and approves plan
+4. TEST     → Write Playwright E2E test for happy path (RED — must fail)
+5. BUILD    → Implement feature full-stack (GREEN — test passes)
+6. VERIFY   → Run E2E against real server, paste output
+7. REPORT   → Use Evidence Format above
+8. COMPLETE → TaskUpdate: status=completed (ONLY after ALL non-skipped E2E tests pass)
 ```
 
 If stuck for >10 minutes → message PO (not orchestrator).

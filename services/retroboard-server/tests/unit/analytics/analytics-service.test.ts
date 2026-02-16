@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // Mock analytics service that will be implemented later
 // For now, we'll test the business logic calculations
@@ -14,48 +14,48 @@ describe('Analytics Service — Unit Tests', () => {
     }
 
     it('3.1: Perfect score (all 100) returns health of 100', () => {
-      const health = calculateHealthScore(100, 100, 100);
-      expect(health).toBe(100);
+      const _health = calculateHealthScore(100, 100, 100);
+      expect(_health).toBe(100);
     });
 
     it('3.2: Zero score (all 0) returns health of 0', () => {
-      const health = calculateHealthScore(0, 0, 0);
-      expect(health).toBe(0);
+      const _health = calculateHealthScore(0, 0, 0);
+      expect(_health).toBe(0);
     });
 
     it('3.3: Balanced inputs calculate correctly', () => {
-      const health = calculateHealthScore(60, 70, 80);
+      const _health = calculateHealthScore(60, 70, 80);
       // 60*0.4 + 70*0.3 + 80*0.3 = 24 + 21 + 24 = 69
-      expect(health).toBe(69);
+      expect(_health).toBe(69);
     });
 
     it('3.4: No cards defaults sentiment to 50', () => {
       const sentimentScore = 50; // default when no cards
-      const health = calculateHealthScore(sentimentScore, 75, 80);
-      expect(health).toBeGreaterThan(0);
+      const _health = calculateHealthScore(sentimentScore, 75, 80);
+      expect(_health).toBeGreaterThan(0);
     });
 
     it('3.5: No votes defaults vote distribution to 50', () => {
       const voteDistScore = 50; // default when no votes
-      const health = calculateHealthScore(60, voteDistScore, 80);
-      expect(health).toBeGreaterThan(0);
+      const _health = calculateHealthScore(60, voteDistScore, 80);
+      expect(_health).toBeGreaterThan(0);
     });
 
     it('3.6: No members gives participation of 0', () => {
       const participationScore = 0; // 0 active / 0 total
-      const health = calculateHealthScore(60, 70, participationScore);
-      expect(health).toBeLessThan(60);
+      const _health = calculateHealthScore(60, 70, participationScore);
+      expect(_health).toBeLessThan(60);
     });
 
     it('3.7: All members active gives participation of 100', () => {
       const participationScore = (5 / 5) * 100; // 5/5 participated
-      const health = calculateHealthScore(60, 70, participationScore);
+      const _health = calculateHealthScore(60, 70, participationScore);
       expect(participationScore).toBe(100);
     });
 
     it('3.8: Half members active gives participation of 50', () => {
       const participationScore = (3 / 6) * 100; // 3/6 participated
-      const health = calculateHealthScore(60, 70, participationScore);
+      const _health = calculateHealthScore(60, 70, participationScore);
       expect(participationScore).toBe(50);
     });
 

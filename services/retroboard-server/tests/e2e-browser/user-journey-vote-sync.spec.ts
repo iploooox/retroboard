@@ -1,11 +1,11 @@
-import { test, expect, Browser } from '@playwright/test';
-import { generateUniqueEmail, registerUser, createTeamAndBoard, loginUser } from './helpers';
+import { test, expect } from '@playwright/test';
+import { generateUniqueEmail, registerUser, createTeamAndBoard } from './helpers';
 
 test.describe('Vote Real-time Sync', () => {
   test('E2E-VOTE-SYNC-1: Vote counts sync between two users in real-time', async ({ browser }) => {
     // Setup: Create two browser contexts for two different users
-    const context1 = await browser.newContext();
-    const context2 = await browser.newContext();
+    const context1 = await browser.newContext({ baseURL: 'http://localhost:5173' });
+    const context2 = await browser.newContext({ baseURL: 'http://localhost:5173' });
     const page1 = await context1.newPage();
     const page2 = await context2.newPage();
 
@@ -15,13 +15,13 @@ test.describe('Vote Real-time Sync', () => {
     const displayName1 = 'Vote User 1';
 
     await registerUser(page1, { email: email1, password: password1, displayName: displayName1 });
-    const { teamName, sprintName } = await createTeamAndBoard(page1, { teamName: 'Vote Sync Test Team' });
+    await createTeamAndBoard(page1, { teamName: 'Vote Sync Test Team' });
 
     // Get the board URL from User 1
     const boardUrl = page1.url();
 
     // User 1: Create a card in write phase
-    const addCardButton = page1.getByRole('button', { name: /add card|\+/i }).first();
+    const addCardButton = page1.getByRole('button', { name: /add a card/i }).first();
     await addCardButton.click();
     const cardInput = page1.getByPlaceholder(/what.*your mind|card content|enter.*text/i).first();
     await cardInput.fill('Test card for voting');
@@ -31,29 +31,31 @@ test.describe('Vote Real-time Sync', () => {
     // Verify card is visible to User 1
     await expect(page1.getByText('Test card for voting')).toBeVisible();
 
-    // User 1: Navigate to team dashboard to invite User 2
-    await page1.getByRole('link', { name: /dashboard|home/i }).click();
+    // User 1: Get invite link from board (simpler than Members tab flow)
+    await page1.getByRole('button', { name: /invite/i }).click();
+    const inviteLink = await page1.locator('input[value*="/invite/"]').inputValue();
+    const inviteCode = inviteLink.split('/invite/')[1];
+
+    // Close invite modal
+    await page1.keyboard.press('Escape');
     await page1.waitForTimeout(500);
 
-    // User 1: Invite User 2 to the team
     const email2 = generateUniqueEmail();
-    const inviteButton = page1.getByRole('button', { name: /invite|add member/i }).first();
-    await inviteButton.click();
-    await page1.getByLabel(/email/i).fill(email2);
-    await page1.getByRole('button', { name: /send invite|invite/i }).click();
-    await page1.waitForTimeout(500);
 
-    // User 2: Register with the invited email
+    // User 2: Register
     const password2 = 'SecurePass123!';
     const displayName2 = 'Vote User 2';
     await registerUser(page2, { email: email2, password: password2, displayName: displayName2 });
 
-    // User 2: Accept the team invitation (should be on dashboard)
+    // User 2: Join team via invite link
+    await page2.goto(`/invite/${inviteCode}`);
     await page2.waitForTimeout(500);
-    const acceptButton = page2.getByRole('button', { name: /accept/i }).first();
-    if (await acceptButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await acceptButton.click();
-      await page2.waitForTimeout(500);
+
+    // Click "Join Team" button on invite page
+    const joinButton = page2.getByRole('button', { name: /join team/i });
+    if (await joinButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await joinButton.click();
+      await page2.waitForTimeout(1000);
     }
 
     // User 2: Navigate to the board
@@ -67,13 +69,12 @@ test.describe('Vote Real-time Sync', () => {
     await page1.goto(boardUrl);
     await page1.waitForTimeout(500);
 
-    // Click phase dropdown/toolbar to change phase
-    const phaseButton = page1.getByRole('button', { name: /write|phase/i }).first();
-    await phaseButton.click();
-    await page1.waitForTimeout(200);
+    // Click Vote button in facilitator toolbar to change phase
+    await page1.getByRole('button', { name: 'Vote' }).click();
+    await page1.waitForTimeout(500);
 
-    // Select vote phase
-    await page1.getByText(/vote/i).click();
+    // Confirm phase change in modal
+    await page1.getByRole('button', { name: 'Change Phase' }).click();
     await page1.waitForTimeout(1000);
 
     // Verify both users see the vote phase
@@ -132,8 +133,8 @@ test.describe('Vote Real-time Sync', () => {
 
   test('E2E-VOTE-SYNC-2: Multiple votes sync with vote limits', async ({ browser }) => {
     // Setup: Create two browser contexts
-    const context1 = await browser.newContext();
-    const context2 = await browser.newContext();
+    const context1 = await browser.newContext({ baseURL: 'http://localhost:5173' });
+    const context2 = await browser.newContext({ baseURL: 'http://localhost:5173' });
     const page1 = await context1.newPage();
     const page2 = await context2.newPage();
 
@@ -143,13 +144,13 @@ test.describe('Vote Real-time Sync', () => {
     const displayName1 = 'Limit User 1';
 
     await registerUser(page1, { email: email1, password: password1, displayName: displayName1 });
-    const { teamName } = await createTeamAndBoard(page1, { teamName: 'Vote Limit Test Team' });
+    await createTeamAndBoard(page1, { teamName: 'Vote Limit Test Team' });
 
     const boardUrl = page1.url();
 
     // User 1: Create two cards
     for (let i = 1; i <= 2; i++) {
-      const addCardButton = page1.getByRole('button', { name: /add card|\+/i }).first();
+      const addCardButton = page1.getByRole('button', { name: /add a card/i }).first();
       await addCardButton.click();
       const cardInput = page1.getByPlaceholder(/what.*your mind|card content|enter.*text/i).first();
       await cardInput.fill(`Card ${i}`);
@@ -162,20 +163,26 @@ test.describe('Vote Real-time Sync', () => {
     const password2 = 'SecurePass123!';
     const displayName2 = 'Limit User 2';
 
-    // User 1: Invite User 2
-    await page1.getByRole('link', { name: /dashboard|home/i }).click();
-    await page1.waitForTimeout(500);
-    const inviteButton = page1.getByRole('button', { name: /invite|add member/i }).first();
-    await inviteButton.click();
-    await page1.getByLabel(/email/i).fill(email2);
-    await page1.getByRole('button', { name: /send invite|invite/i }).click();
+    // User 1: Get invite link from board
+    await page1.getByRole('button', { name: /invite/i }).click();
+    const inviteLink = await page1.locator('input[value*="/invite/"]').inputValue();
+    const inviteCode = inviteLink.split('/invite/')[1];
+
+    // Close invite modal
+    await page1.keyboard.press('Escape');
     await page1.waitForTimeout(500);
 
     await registerUser(page2, { email: email2, password: password2, displayName: displayName2 });
+
+    // User 2: Join team via invite link
+    await page2.goto(`/invite/${inviteCode}`);
     await page2.waitForTimeout(500);
-    const acceptButton = page2.getByRole('button', { name: /accept/i }).first();
-    if (await acceptButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await acceptButton.click();
+
+    // Click "Join Team" button on invite page
+    const joinButton = page2.getByRole('button', { name: /join team/i });
+    if (await joinButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await joinButton.click();
+      await page2.waitForTimeout(1000);
     }
 
     // Both users navigate to board
@@ -185,10 +192,9 @@ test.describe('Vote Real-time Sync', () => {
     await page2.waitForTimeout(500);
 
     // User 1: Transition to vote phase
-    const phaseButton = page1.getByRole('button', { name: /write|phase/i }).first();
-    await phaseButton.click();
-    await page1.waitForTimeout(200);
-    await page1.getByText(/vote/i).click();
+    await page1.getByRole('button', { name: 'Vote' }).click();
+    await page1.waitForTimeout(500);
+    await page1.getByRole('button', { name: 'Change Phase' }).click();
     await page1.waitForTimeout(1000);
 
     // User 1: Cast multiple votes (default limit is usually 5 per user)

@@ -9,6 +9,8 @@ import {
   createTestCard,
   createTestGroup,
   SYSTEM_TEMPLATE_WWD,
+  type TestBoard,
+  type TestColumn,
 } from '../../helpers/db.js';
 import { getAuthToken } from '../../helpers/auth.js';
 import { seed } from '../../../src/db/seed.js';
@@ -21,8 +23,8 @@ describe('PUT /api/v1/boards/:id/focus — Set Focus', () => {
   let adminUser: { id: string; email: string };
   let team: { id: string };
   let sprint: { id: string };
-  let board: Record<string, unknown>;
-  let columns: Record<string, unknown>[];
+  let board: TestBoard;
+  let columns: TestColumn[];
 
   beforeEach(async () => {
     await truncateTables();

@@ -98,11 +98,13 @@ export class OnboardingService {
   }
 
   async complete(userId: string) {
-    await sql`
+    const [user] = await sql`
       UPDATE users
       SET onboarding_completed_at = NOW()
       WHERE id = ${userId}
+      RETURNING id, email, display_name, avatar_url, created_at, updated_at, onboarding_completed_at
     `;
+    return user;
   }
 
   async reset(userId: string) {

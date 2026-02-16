@@ -273,23 +273,13 @@ export class AnalyticsService {
     // Get health score
     const health = await analyticsRepo.getSprintHealth(sprintId);
     if (!health) {
-      // Sprint exists but no analytics data (no board created yet or views not refreshed)
+      // Sprint exists but no analytics data (no board created yet)
       return {
         sprintId: sprintInfo.sprintId,
         sprintName: sprintInfo.sprintName,
         teamId: sprintInfo.teamId,
         teamName: sprintInfo.teamName,
-        dateRange: {
-          startDate: sprintInfo.startDate,
-          endDate: sprintInfo.endDate,
-        },
-        noDataReason: 'No board has been created for this sprint yet',
-        health: null,
-        cards: null,
-        sentiment: null,
-        participation: null,
-        actionItems: null,
-        wordCloud: [],
+        noDataReason: "No board has been created for this sprint yet",
       };
     }
 

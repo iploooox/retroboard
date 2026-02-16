@@ -163,7 +163,7 @@ export async function fetchBoardExportData(
   `;
 
   if (!boardRow) {
-    throw new AppError('NOT_FOUND', 'Board not found', 404);
+    throw new AppError('NOT_FOUND', 404, 'Board not found');
   }
 
   const isAnonymous = Boolean(boardRow.anonymous_mode);
@@ -488,7 +488,7 @@ export async function fetchTeamReportData(
   `;
 
   if (!teamRow) {
-    throw new AppError('NOT_FOUND', 'Team not found', 404);
+    throw new AppError('NOT_FOUND', 404, 'Team not found');
   }
 
   // Fetch health trend

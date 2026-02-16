@@ -17,12 +17,14 @@ export function BoardColumn({ columnId, name, color, isFacilitator, onCreateActi
   const cards = useBoardStore((s) => s.cards);
   const groups = useBoardStore((s) => s.groups);
   const addCard = useBoardStore((s) => s.addCard);
+  const isLocked = useBoardStore((s) => s.isLocked);
 
   const [newCardContent, setNewCardContent] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isWritePhase = board?.phase === 'write';
+  const canAddCards = isWritePhase && !isLocked;
 
   // Get cards for this column, sorted by position
   const columnCards = Object.values(cards)
@@ -71,7 +73,7 @@ export function BoardColumn({ columnId, name, color, isFacilitator, onCreateActi
     >
       {/* Column header */}
       <div
-        className="px-3 py-2.5 border-b flex items-center gap-2"
+        className="px-3 py-2.5 border-b flex items-center gap-2 pointer-events-none"
         style={{ borderColor: 'var(--theme-column-border, #cbd5e1)' }}
       >
         <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
@@ -118,7 +120,7 @@ export function BoardColumn({ columnId, name, color, isFacilitator, onCreateActi
           className="p-2 border-t"
           style={{ borderColor: 'var(--theme-column-border, #cbd5e1)' }}
         >
-          {isAdding ? (
+          {isAdding && canAddCards ? (
             <form onSubmit={handleSubmit}>
               <textarea
                 value={newCardContent}
@@ -132,7 +134,10 @@ export function BoardColumn({ columnId, name, color, isFacilitator, onCreateActi
                 rows={3}
                 autoFocus
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSubmit(e);
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit(e);
+                  }
                   if (e.key === 'Escape') { setIsAdding(false); setNewCardContent(''); }
                 }}
               />
@@ -168,7 +173,8 @@ export function BoardColumn({ columnId, name, color, isFacilitator, onCreateActi
           ) : (
             <button
               onClick={() => setIsAdding(true)}
-              className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-sm transition-colors"
+              disabled={!canAddCards}
+              className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 borderColor: 'var(--theme-column-border, #cbd5e1)',
                 color: 'var(--theme-text-muted, #64748b)',

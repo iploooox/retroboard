@@ -18,7 +18,7 @@ const app = createTestApp();
 describe('GET /api/v1/teams/:teamId/report', () => {
   let adminToken: string;
   let adminUser: { id: string; email: string };
-  let memberToken: string;
+  let _memberToken: string;
   let memberUser: { id: string; email: string };
   let nonMemberToken: string;
   let team: { id: string };
@@ -30,7 +30,7 @@ describe('GET /api/v1/teams/:teamId/report', () => {
     adminToken = adminAuth.token;
     adminUser = adminAuth.user;
     const memberAuth = await getAuthToken({ email: 'member@example.com', displayName: 'Member User' });
-    memberToken = memberAuth.token;
+      _memberToken = memberAuth.token;
     memberUser = memberAuth.user;
     const nonMemberAuth = await getAuthToken({ email: 'nonmember@example.com', displayName: 'Non Member' });
     nonMemberToken = nonMemberAuth.token;

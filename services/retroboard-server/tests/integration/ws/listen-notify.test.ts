@@ -11,8 +11,8 @@ describe('LISTEN/NOTIFY Integration', () => {
   let memberToken: string;
   let memberUser: { id: string; email: string; display_name: string };
   let team: { id: string };
-  let board: Record<string, any>;
-  let columns: Record<string, any>[];
+  let board: Record<string, unknown>;
+  let columns: Array<Record<string, unknown>>;
   let clients: TestWSClient[] = [];
 
   beforeEach(async () => {
@@ -41,14 +41,14 @@ describe('LISTEN/NOTIFY Integration', () => {
 
   it('3.12.1: Channel subscribed on first client join', async () => {
     // Connect first client — server should LISTEN on board channel
-    const client = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const client = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(client);
     await client.waitForMessage('presence_state');
 
     // Verify by inserting a card directly and expecting a WS event
     await sql`
       INSERT INTO cards (board_id, column_id, author_id, content, position)
-      VALUES (${board.id}, ${columns[0].id}, ${adminUser.id}, 'Direct insert', 0)
+      VALUES (${board.id as string}, ${columns[0].id as string}, ${adminUser.id}, 'Direct insert', 0)
     `;
 
     // If LISTEN is active, we should receive card_created
@@ -57,7 +57,7 @@ describe('LISTEN/NOTIFY Integration', () => {
   });
 
   it('3.12.2: Channel unsubscribed on last client leave', async () => {
-    const client = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const client = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(client);
     await client.waitForMessage('presence_state');
 
@@ -77,7 +77,7 @@ describe('LISTEN/NOTIFY Integration', () => {
     // Insert card on original board — should NOT propagate (no listeners)
     await sql`
       INSERT INTO cards (board_id, column_id, author_id, content, position)
-      VALUES (${board.id}, ${columns[0].id}, ${adminUser.id}, 'After unlisten', 0)
+      VALUES (${board.id as string}, ${columns[0].id as string}, ${adminUser.id}, 'After unlisten', 0)
     `;
 
     await new Promise((r) => setTimeout(r, 500));
@@ -86,17 +86,17 @@ describe('LISTEN/NOTIFY Integration', () => {
   });
 
   it('3.12.3: Channel stays active with multiple clients', async () => {
-    const client1 = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const client1 = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(client1);
     await client1.waitForMessage('presence_state');
 
-    const client2 = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const client2 = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(client2);
     await client2.waitForMessage('presence_state');
 
     const client3Auth = await getAuthToken({ email: 'user3@example.com', displayName: 'User 3' });
     await addTeamMember(team.id, client3Auth.user.id, 'member');
-    const client3 = await createTestWSClient({ token: client3Auth.token, boardId: board.id });
+    const client3 = await createTestWSClient({ token: client3Auth.token, boardId: board.id as string });
     clients.push(client3);
     await client3.waitForMessage('presence_state');
 
@@ -107,7 +107,7 @@ describe('LISTEN/NOTIFY Integration', () => {
     // Channel should still be active — insert a card directly
     await sql`
       INSERT INTO cards (board_id, column_id, author_id, content, position)
-      VALUES (${board.id}, ${columns[0].id}, ${adminUser.id}, 'Still listening', 0)
+      VALUES (${board.id as string}, ${columns[0].id as string}, ${adminUser.id}, 'Still listening', 0)
     `;
 
     const msg = await client2.waitForMessage('card_created', 3000);
@@ -118,28 +118,28 @@ describe('LISTEN/NOTIFY Integration', () => {
     // This test verifies the server can handle a listener connection disruption.
     // The exact mechanism depends on implementation. For now, we verify that
     // after a brief disruption, events still propagate.
-    const client = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const client = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(client);
     await client.waitForMessage('presence_state');
 
     // Insert a card — should propagate
     await sql`
       INSERT INTO cards (board_id, column_id, author_id, content, position)
-      VALUES (${board.id}, ${columns[0].id}, ${adminUser.id}, 'Before disruption', 0)
+      VALUES (${board.id as string}, ${columns[0].id as string}, ${adminUser.id}, 'Before disruption', 0)
     `;
     const msg = await client.waitForMessage('card_created', 3000);
     expect(msg.type).toBe('card_created');
   });
 
   it('3.12.5: Trigger fires on card insert', async () => {
-    const client = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const client = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(client);
     await client.waitForMessage('presence_state');
 
     // Insert card directly via SQL
     await sql`
       INSERT INTO cards (board_id, column_id, author_id, content, position)
-      VALUES (${board.id}, ${columns[0].id}, ${adminUser.id}, 'Trigger test', 0)
+      VALUES (${board.id as string}, ${columns[0].id as string}, ${adminUser.id}, 'Trigger test', 0)
     `;
 
     const msg = await client.waitForMessage('card_created', 3000);
@@ -147,9 +147,9 @@ describe('LISTEN/NOTIFY Integration', () => {
   });
 
   it('3.12.6: Trigger fires on card update', async () => {
-    const card = await createTestCard(board.id, columns[0].id, adminUser.id, { content: 'Original' });
+    const card = await createTestCard(board.id as string, columns[0].id as string, adminUser.id, { content: 'Original' });
 
-    const client = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const client = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(client);
     await client.waitForMessage('presence_state');
 
@@ -161,9 +161,9 @@ describe('LISTEN/NOTIFY Integration', () => {
   });
 
   it('3.12.7: Trigger fires on card delete', async () => {
-    const card = await createTestCard(board.id, columns[0].id, adminUser.id);
+    const card = await createTestCard(board.id as string, columns[0].id as string, adminUser.id);
 
-    const client = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const client = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(client);
     await client.waitForMessage('presence_state');
 
@@ -174,7 +174,7 @@ describe('LISTEN/NOTIFY Integration', () => {
   });
 
   it('3.12.8: NOTIFY payload under 8KB', async () => {
-    const client = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const client = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(client);
     await client.waitForMessage('presence_state');
 
@@ -182,7 +182,7 @@ describe('LISTEN/NOTIFY Integration', () => {
     const longContent = 'A'.repeat(2000);
     await sql`
       INSERT INTO cards (board_id, column_id, author_id, content, position)
-      VALUES (${board.id}, ${columns[0].id}, ${adminUser.id}, ${longContent}, 0)
+      VALUES (${board.id as string}, ${columns[0].id as string}, ${adminUser.id}, ${longContent}, 0)
     `;
 
     const msg = await client.waitForMessage('card_created', 3000);
@@ -191,14 +191,14 @@ describe('LISTEN/NOTIFY Integration', () => {
   });
 
   it('3.12.9: Event logged in board_events table', async () => {
-    const client = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const client = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(client);
     await client.waitForMessage('presence_state');
 
     // Create a card via REST to trigger the full flow
     await sql`
       INSERT INTO cards (board_id, column_id, author_id, content, position)
-      VALUES (${board.id}, ${columns[0].id}, ${adminUser.id}, 'Event log test', 0)
+      VALUES (${board.id as string}, ${columns[0].id as string}, ${adminUser.id}, 'Event log test', 0)
     `;
 
     // Wait for event to propagate
@@ -207,7 +207,7 @@ describe('LISTEN/NOTIFY Integration', () => {
     // Check board_events table
     const events = await sql`
       SELECT * FROM board_events
-      WHERE board_id = ${board.id}
+      WHERE board_id = ${board.id as string}
       AND event_type = 'card_created'
       ORDER BY created_at DESC
       LIMIT 1

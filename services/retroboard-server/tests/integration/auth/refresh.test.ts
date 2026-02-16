@@ -117,7 +117,7 @@ describe('POST /api/v1/auth/refresh', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: 'alice@example.com', password: 'SecurePass1' }),
     });
-    const loginBody = await loginRes.json();
+    const _loginBody = await loginRes.json();
 
     // Refresh once (rotates the token)
     const refreshRes = await app.request('/api/v1/auth/refresh', {

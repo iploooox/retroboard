@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../middleware/auth.js';
 import { sql } from '../db/connection.js';
-import { AppError, formatErrorResponse } from '../utils/errors.js';
+import { formatErrorResponse } from '../utils/errors.js';
 import * as sprintRepo from '../repositories/sprint.repository.js';
 import {
   validateCreateSprint,
@@ -13,7 +13,11 @@ import {
 
 type TeamRole = 'admin' | 'facilitator' | 'member';
 
-async function getTeamMembership(teamId: string, userId: string) {
+async function getTeamMembership(teamId: string, userId: string): Promise<
+  | { error: 'TEAM_NOT_FOUND'; status: 404 }
+  | { error: 'TEAM_NOT_MEMBER'; status: 403 }
+  | { role: TeamRole }
+> {
   // Validate UUID format
   validateUUID(teamId, 'team ID');
 
@@ -45,7 +49,7 @@ sprintsRouter.use('*', requireAuth);
 
 // POST /api/v1/teams/:teamId/sprints — create sprint
 sprintsRouter.post('/', async (c) => {
-  const teamId = c.req.param('teamId');
+  const teamId = c.req.param('teamId') as string;
   const user = c.get('user');
 
   const membership = await getTeamMembership(teamId, user.id);
@@ -74,7 +78,7 @@ sprintsRouter.post('/', async (c) => {
 
 // GET /api/v1/teams/:teamId/sprints — list sprints
 sprintsRouter.get('/', async (c) => {
-  const teamId = c.req.param('teamId');
+  const teamId = c.req.param('teamId') as string;
   const user = c.get('user');
 
   const membership = await getTeamMembership(teamId, user.id);
@@ -104,7 +108,7 @@ sprintsRouter.get('/', async (c) => {
 
 // GET /api/v1/teams/:teamId/sprints/:id — get sprint
 sprintsRouter.get('/:id', async (c) => {
-  const teamId = c.req.param('teamId');
+  const teamId = c.req.param('teamId') as string;
   const sprintId = c.req.param('id');
   const user = c.get('user');
 
@@ -125,7 +129,7 @@ sprintsRouter.get('/:id', async (c) => {
 
 // PUT /api/v1/teams/:teamId/sprints/:id — update sprint
 sprintsRouter.put('/:id', async (c) => {
-  const teamId = c.req.param('teamId');
+  const teamId = c.req.param('teamId') as string;
   const sprintId = c.req.param('id');
   const user = c.get('user');
 
@@ -171,7 +175,7 @@ sprintsRouter.put('/:id', async (c) => {
 
 // PUT /api/v1/teams/:teamId/sprints/:id/activate — activate sprint
 sprintsRouter.put('/:id/activate', async (c) => {
-  const teamId = c.req.param('teamId');
+  const teamId = c.req.param('teamId') as string;
   const sprintId = c.req.param('id');
   const user = c.get('user');
 
@@ -223,7 +227,7 @@ sprintsRouter.put('/:id/activate', async (c) => {
 
 // PUT /api/v1/teams/:teamId/sprints/:id/complete — complete sprint
 sprintsRouter.put('/:id/complete', async (c) => {
-  const teamId = c.req.param('teamId');
+  const teamId = c.req.param('teamId') as string;
   const sprintId = c.req.param('id');
   const user = c.get('user');
 
@@ -252,12 +256,21 @@ sprintsRouter.put('/:id/complete', async (c) => {
     return c.json(formatErrorResponse('SPRINT_NOT_FOUND', 'Sprint not found'), 404);
   }
 
+  // Refresh materialized views so analytics data includes the completed sprint
+  try {
+    const { refreshMaterializedViews } = await import('../repositories/analytics.repository.js');
+    await refreshMaterializedViews();
+  } catch (err) {
+    console.error('Failed to refresh materialized views after sprint completion:', err);
+    // Don't fail the request if view refresh fails
+  }
+
   return c.json({ sprint });
 });
 
 // DELETE /api/v1/teams/:teamId/sprints/:id — delete sprint
 sprintsRouter.delete('/:id', async (c) => {
-  const teamId = c.req.param('teamId');
+  const teamId = c.req.param('teamId') as string;
   const sprintId = c.req.param('id');
   const user = c.get('user');
 

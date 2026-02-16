@@ -1,15 +1,45 @@
 import { describe, it, expect } from 'vitest';
 import { formatAsMarkdown } from '../../../src/formatters/markdown-formatter.js';
+import type { BoardExportData } from '../../../src/repositories/export-repository.js';
+
+// Helper to create BoardExportData with defaults
+function createMockBoardExportData(overrides: {
+  board?: Partial<BoardExportData['board']>;
+  columns?: BoardExportData['columns'];
+  groups?: BoardExportData['groups'];
+  actionItems?: BoardExportData['actionItems'];
+  analytics?: BoardExportData['analytics'];
+} = {}): BoardExportData {
+  const defaultBoard: BoardExportData['board'] = {
+    id: 'board-1',
+    name: 'Test Board',
+    teamName: 'Test Team',
+    sprintName: 'Test Sprint',
+    sprintStartDate: '2026-01-01',
+    sprintEndDate: '2026-01-15',
+    templateName: null,
+    facilitatorName: null,
+    phase: 'write',
+    isAnonymous: false,
+    cardsRevealed: false,
+    participantCount: 0,
+    createdAt: '2026-01-01T00:00:00Z',
+  };
+
+  return {
+    board: { ...defaultBoard, ...overrides.board },
+    columns: overrides.columns || [],
+    groups: overrides.groups || [],
+    actionItems: overrides.actionItems || [],
+    analytics: overrides.analytics !== undefined ? overrides.analytics : null,
+  };
+}
 
 describe('Markdown Formatter (Unit)', () => {
   it('5.3.1: Valid Markdown structure', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Sprint 15 Retro' },
-      columns: [],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    const boardData = createMockBoardExportData({
+      board: { name: 'Sprint 15 Retro' },
+    });
 
     const result = formatAsMarkdown(boardData);
 
@@ -17,9 +47,8 @@ describe('Markdown Formatter (Unit)', () => {
   });
 
   it('5.3.2: Metadata table rendered', () => {
-    const boardData = {
+    const boardData = createMockBoardExportData({
       board: {
-        id: 'board-1',
         name: 'Sprint 15 Retro',
         teamName: 'Platform Team',
         sprintName: 'Sprint 15',
@@ -28,11 +57,7 @@ describe('Markdown Formatter (Unit)', () => {
         facilitatorName: 'Alice Chen',
         participantCount: 5,
       },
-      columns: [],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     const result = formatAsMarkdown(boardData);
 
@@ -47,19 +72,18 @@ describe('Markdown Formatter (Unit)', () => {
   });
 
   it('5.3.3: Summary table rendered', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board' },
-      columns: [],
-      groups: [],
-      actionItems: [],
+    const boardData = createMockBoardExportData({
       analytics: {
         healthScore: 72.5,
         totalCards: 24,
         totalVotes: 48,
         participationRate: 80.0,
         sentimentScore: 65.0,
+        sentimentBreakdown: { positive: 15, negative: 5, neutral: 4 },
+        topVotedCards: [],
+        topWords: [],
       },
-    };
+    });
 
     const result = formatAsMarkdown(boardData);
 
@@ -71,17 +95,13 @@ describe('Markdown Formatter (Unit)', () => {
   });
 
   it('5.3.4: Columns as H2 headers', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board' },
+    const boardData = createMockBoardExportData({
       columns: [
         { id: 'col-1', name: 'Start', position: 0, cards: [] },
         { id: 'col-2', name: 'Stop', position: 1, cards: [] },
         { id: 'col-3', name: 'Continue', position: 2, cards: [] },
       ],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     const result = formatAsMarkdown(boardData);
 
@@ -91,23 +111,19 @@ describe('Markdown Formatter (Unit)', () => {
   });
 
   it('5.3.5: Cards as H3 headers', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board' },
+    const boardData = createMockBoardExportData({
       columns: [
         {
           id: 'col-1',
           name: 'Start',
           position: 0,
           cards: [
-            { id: 'card-1', content: 'More pair programming', voteCount: 5 },
-            { id: 'card-2', content: 'Daily standups', voteCount: 3 },
+            { id: 'card-1', content: 'More pair programming', voteCount: 5, authorId: null, authorName: null, groupId: null, groupTitle: null, position: 0 },
+            { id: 'card-2', content: 'Daily standups', voteCount: 3, authorId: null, authorName: null, groupId: null, groupTitle: null, position: 1 },
           ],
         },
       ],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     const result = formatAsMarkdown(boardData);
 
@@ -116,8 +132,8 @@ describe('Markdown Formatter (Unit)', () => {
   });
 
   it('5.3.6: Author in blockquote', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board', isAnonymous: false },
+    const boardData = createMockBoardExportData({
+      board: { isAnonymous: false },
       columns: [
         {
           id: 'col-1',
@@ -127,16 +143,17 @@ describe('Markdown Formatter (Unit)', () => {
             {
               id: 'card-1',
               content: 'Test card',
+              authorId: 'user-1',
               authorName: 'Bob Martinez',
               voteCount: 2,
+              groupId: null,
+              groupTitle: null,
+              position: 0,
             },
           ],
         },
       ],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     const result = formatAsMarkdown(boardData);
 
@@ -144,10 +161,8 @@ describe('Markdown Formatter (Unit)', () => {
   });
 
   it('5.3.7: Anonymous author handled', () => {
-    const boardData = {
+    const boardData = createMockBoardExportData({
       board: {
-        id: 'board-1',
-        name: 'Test Board',
         isAnonymous: true,
         cardsRevealed: false,
       },
@@ -160,16 +175,17 @@ describe('Markdown Formatter (Unit)', () => {
             {
               id: 'card-1',
               content: 'Test card',
+              authorId: null,
               authorName: null,
               voteCount: 2,
+              groupId: null,
+              groupTitle: null,
+              position: 0,
             },
           ],
         },
       ],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     const result = formatAsMarkdown(boardData);
 
@@ -177,24 +193,23 @@ describe('Markdown Formatter (Unit)', () => {
   });
 
   it('5.3.8: Groups section rendered', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board' },
-      columns: [],
+    const boardData = createMockBoardExportData({
       groups: [
         {
           id: 'group-1',
           title: 'Collaboration Ideas',
+          columnId: 'col-1',
           columnName: 'Start',
           totalVotes: 15,
+          cardIds: ['card-1', 'card-2'],
+          position: 0,
           cards: [
             { id: 'card-1', content: 'Pair programming', voteCount: 8 },
             { id: 'card-2', content: 'Code reviews', voteCount: 7 },
           ],
         },
       ],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     const result = formatAsMarkdown(boardData);
 
@@ -206,49 +221,60 @@ describe('Markdown Formatter (Unit)', () => {
   });
 
   it('5.3.9: Action items as table', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board' },
-      columns: [],
-      groups: [],
+    const boardData = createMockBoardExportData({
       actionItems: [
         {
           id: 'ai-1',
           title: 'Schedule pair programming',
+          description: null,
           assigneeName: 'Bob Martinez',
           dueDate: '2026-02-21',
           status: 'open',
+          sourceCardText: null,
+          carriedFromSprintName: null,
         },
         {
           id: 'ai-2',
           title: 'Update CI config',
+          description: null,
           assigneeName: 'Alice Chen',
           dueDate: '2026-02-28',
           status: 'in_progress',
+          sourceCardText: null,
+          carriedFromSprintName: null,
         },
         {
           id: 'ai-3',
           title: 'Deploy to staging',
+          description: null,
           assigneeName: null,
           dueDate: null,
           status: 'open',
+          sourceCardText: null,
+          carriedFromSprintName: null,
         },
         {
           id: 'ai-4',
           title: 'Fix flaky tests',
+          description: null,
           assigneeName: 'Charlie Kim',
           dueDate: '2026-02-25',
           status: 'done',
+          sourceCardText: null,
+          carriedFromSprintName: null,
         },
         {
           id: 'ai-5',
           title: 'Add metrics',
+          description: null,
           assigneeName: 'Dana Lee',
           dueDate: '2026-03-01',
           status: 'open',
+          sourceCardText: null,
+          carriedFromSprintName: null,
         },
       ],
-      analytics: null,
-    };
+    });
 
     const result = formatAsMarkdown(boardData);
 
@@ -262,12 +288,14 @@ describe('Markdown Formatter (Unit)', () => {
   });
 
   it('5.3.10: Top voted cards listed', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board' },
-      columns: [],
-      groups: [],
-      actionItems: [],
+    const boardData = createMockBoardExportData({
       analytics: {
+        healthScore: 70,
+        totalCards: 20,
+        totalVotes: 50,
+        participationRate: 75,
+        sentimentScore: 60,
+        sentimentBreakdown: { positive: 12, negative: 4, neutral: 4 },
         topVotedCards: [
           { content: 'Most popular', voteCount: 10, columnName: 'Start' },
           { content: 'Second best', voteCount: 8, columnName: 'Continue' },
@@ -275,8 +303,9 @@ describe('Markdown Formatter (Unit)', () => {
           { content: 'Fourth', voteCount: 5, columnName: 'Start' },
           { content: 'Fifth', voteCount: 4, columnName: 'Continue' },
         ],
+        topWords: [],
       },
-    };
+    });
 
     const result = formatAsMarkdown(boardData);
 
@@ -289,19 +318,22 @@ describe('Markdown Formatter (Unit)', () => {
   });
 
   it('5.3.11: Word cloud rendered', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board' },
-      columns: [],
-      groups: [],
-      actionItems: [],
+    const boardData = createMockBoardExportData({
       analytics: {
+        healthScore: 70,
+        totalCards: 20,
+        totalVotes: 50,
+        participationRate: 75,
+        sentimentScore: 60,
+        sentimentBreakdown: { positive: 12, negative: 4, neutral: 4 },
+        topVotedCards: [],
         topWords: [
           { word: 'deployment', frequency: 8 },
           { word: 'collaboration', frequency: 6 },
           { word: 'testing', frequency: 5 },
         ],
       },
-    };
+    });
 
     const result = formatAsMarkdown(boardData);
 
@@ -310,13 +342,7 @@ describe('Markdown Formatter (Unit)', () => {
   });
 
   it('5.3.12: Footer included', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board' },
-      columns: [],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    const boardData = createMockBoardExportData();
 
     const result = formatAsMarkdown(boardData);
 
@@ -324,8 +350,7 @@ describe('Markdown Formatter (Unit)', () => {
   });
 
   it('5.3.13: Special characters escaped', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Test Board' },
+    const boardData = createMockBoardExportData({
       columns: [
         {
           id: 'col-1',
@@ -336,14 +361,16 @@ describe('Markdown Formatter (Unit)', () => {
               id: 'card-1',
               content: 'Compare A | B and use # for comments',
               voteCount: 1,
+              authorId: null,
+              authorName: null,
+              groupId: null,
+              groupTitle: null,
+              position: 0,
             },
           ],
         },
       ],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     const result = formatAsMarkdown(boardData);
 
@@ -352,16 +379,13 @@ describe('Markdown Formatter (Unit)', () => {
   });
 
   it('5.3.14: Empty board', () => {
-    const boardData = {
-      board: { id: 'board-1', name: 'Empty Board' },
+    const boardData = createMockBoardExportData({
+      board: { name: 'Empty Board' },
       columns: [
         { id: 'col-1', name: 'Start', position: 0, cards: [] },
         { id: 'col-2', name: 'Stop', position: 1, cards: [] },
       ],
-      groups: [],
-      actionItems: [],
-      analytics: null,
-    };
+    });
 
     const result = formatAsMarkdown(boardData);
 

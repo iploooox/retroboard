@@ -9,7 +9,7 @@ describe('Report Formatter (Unit)', () => {
       sprintCount: 12,
       healthTrend: [],
       participation: { members: [] },
-      actionItems: { totalCreated: 48, totalCompleted: 32 },
+      actionItems: { totalCreated: 48, totalCompleted: 32, completionRate: 66.7, totalCarriedOver: 12, currentlyOpen: 4 },
       topThemes: [],
     };
 
@@ -27,7 +27,7 @@ describe('Report Formatter (Unit)', () => {
       sprintCount: 12,
       healthTrend: [],
       participation: { members: [] },
-      actionItems: { totalCreated: 48, totalCompleted: 32 },
+      actionItems: { totalCreated: 48, totalCompleted: 32, completionRate: 66.7, totalCarriedOver: 12, currentlyOpen: 4 },
       topThemes: [],
     };
 
@@ -44,7 +44,7 @@ describe('Report Formatter (Unit)', () => {
       sprintCount: 12,
       healthTrend: [],
       participation: { members: [] },
-      actionItems: { totalCreated: 48, totalCompleted: 32 },
+      actionItems: { totalCreated: 48, totalCompleted: 32, completionRate: 66.7, totalCarriedOver: 12, currentlyOpen: 4 },
       topThemes: [],
     };
 
@@ -64,20 +64,26 @@ describe('Report Formatter (Unit)', () => {
           sprintName: 'Sprint 15',
           startDate: '2026-02-03',
           healthScore: 72.5,
+          sentimentScore: 3.2,
+          participationScore: 85.0,
         },
         {
           sprintName: 'Sprint 14',
           startDate: '2026-01-20',
           healthScore: 68.3,
+          sentimentScore: 2.8,
+          participationScore: 80.0,
         },
         {
           sprintName: 'Sprint 13',
           startDate: '2026-01-06',
           healthScore: 65.0,
+          sentimentScore: 2.5,
+          participationScore: 75.0,
         },
       ],
       participation: { members: [] },
-      actionItems: { totalCreated: 48, totalCompleted: 32 },
+      actionItems: { totalCreated: 48, totalCompleted: 32, completionRate: 66.7, totalCarriedOver: 12, currentlyOpen: 4 },
       topThemes: [],
     };
 
@@ -102,34 +108,39 @@ describe('Report Formatter (Unit)', () => {
             totalCards: 45,
             totalVotes: 120,
             actionItemsCompleted: 9,
+            actionItemCompletionRate: 90.0,
           },
           {
             userName: 'Bob Martinez',
             totalCards: 38,
             totalVotes: 105,
             actionItemsCompleted: 7,
+            actionItemCompletionRate: 70.0,
           },
           {
             userName: 'Charlie Kim',
             totalCards: 42,
             totalVotes: 115,
             actionItemsCompleted: 10,
+            actionItemCompletionRate: 100.0,
           },
           {
             userName: 'Dana Lee',
             totalCards: 35,
             totalVotes: 95,
             actionItemsCompleted: 6,
+            actionItemCompletionRate: 60.0,
           },
           {
             userName: 'Eva Park',
             totalCards: 40,
             totalVotes: 110,
             actionItemsCompleted: 8,
+            actionItemCompletionRate: 80.0,
           },
         ],
       },
-      actionItems: { totalCreated: 48, totalCompleted: 32 },
+      actionItems: { totalCreated: 48, totalCompleted: 32, completionRate: 66.7, totalCarriedOver: 12, currentlyOpen: 4 },
       topThemes: [],
     };
 
@@ -150,6 +161,7 @@ describe('Report Formatter (Unit)', () => {
       actionItems: {
         totalCreated: 48,
         totalCompleted: 32,
+        completionRate: 66.67,
         totalCarriedOver: 12,
         currentlyOpen: 6,
       },
@@ -176,6 +188,8 @@ describe('Report Formatter (Unit)', () => {
         totalCreated: 48,
         totalCompleted: 32,
         completionRate: 66.7,
+        totalCarriedOver: 12,
+        currentlyOpen: 4,
       },
       topThemes: [],
     };
@@ -193,7 +207,7 @@ describe('Report Formatter (Unit)', () => {
       sprintCount: 12,
       healthTrend: [],
       participation: { members: [] },
-      actionItems: { totalCreated: 48, totalCompleted: 32 },
+      actionItems: { totalCreated: 48, totalCompleted: 32, completionRate: 66.7, totalCarriedOver: 12, currentlyOpen: 4 },
       topThemes: [
         { word: 'deployment', frequency: 45 },
         { word: 'communication', frequency: 32 },
@@ -216,7 +230,7 @@ describe('Report Formatter (Unit)', () => {
       sprintCount: 12,
       healthTrend: [],
       participation: { members: [] },
-      actionItems: { totalCreated: 48, totalCompleted: 32 },
+      actionItems: { totalCreated: 48, totalCompleted: 32, completionRate: 66.7, totalCarriedOver: 12, currentlyOpen: 4 },
       topThemes: [],
     };
 
@@ -238,6 +252,8 @@ describe('Report Formatter (Unit)', () => {
         totalCreated: 0,
         totalCompleted: 0,
         completionRate: 0,
+        totalCarriedOver: 0,
+        currentlyOpen: 0,
       },
       topThemes: [],
     };

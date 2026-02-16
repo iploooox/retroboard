@@ -13,7 +13,7 @@ declare module 'hono' {
 export function requireTeamRole(roles: TeamRole[]) {
   return async (c: Context, next: Next) => {
     const user = c.get('user');
-    const teamId = c.req.param('id');
+    const teamId = c.req.param('teamId') || c.req.param('id');
 
     // Check team exists
     const [team] = await sql`

@@ -3,7 +3,7 @@ import { createTestApp } from '../../helpers/test-app.js';
 import { truncateTables, createTestTeam, addTeamMember, createTestSprint, createTestBoard, createTestCard, SYSTEM_TEMPLATE_WWD } from '../../helpers/db.js';
 import { getAuthToken } from '../../helpers/auth.js';
 import { seed } from '../../../src/db/seed.js';
-import { createTestWSClient, closeAllClients, type TestWSClient } from '../../helpers/ws.js';
+import { createTestWSClient, closeAllClients, type TestWSClient, getPayload } from '../../helpers/ws.js';
 
 const app = createTestApp();
 
@@ -13,8 +13,8 @@ describe('Real-Time Event Propagation via LISTEN/NOTIFY', () => {
   let memberToken: string;
   let memberUser: { id: string; email: string; display_name: string };
   let team: { id: string };
-  let board: Record<string, any>;
-  let columns: Record<string, any>[];
+  let board: Record<string, unknown>;
+  let columns: Array<Record<string, unknown>>;
   let clients: TestWSClient[] = [];
 
   beforeEach(async () => {
@@ -42,16 +42,16 @@ describe('Real-Time Event Propagation via LISTEN/NOTIFY', () => {
   });
 
   it('3.8.1: Card creation propagates via WS', async () => {
-    const clientA = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const clientA = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(clientA);
     await clientA.waitForMessage('presence_state');
 
-    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(clientB);
     await clientB.waitForMessage('presence_state');
 
     // Client A creates a card via REST
-    await app.request(`/api/v1/boards/${board.id}/cards`, {
+    await app.request(`/api/v1/boards/${board.id as string}/cards`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${adminToken}`,
@@ -63,18 +63,19 @@ describe('Real-Time Event Propagation via LISTEN/NOTIFY', () => {
     // Client B should receive card_created via WebSocket
     const msg = await clientB.waitForMessage('card_created');
     expect(msg.type).toBe('card_created');
-    expect(msg.payload.card.content).toContain('WS test card');
+    const payload = getPayload(msg);
+    expect((payload.card as { content: string }).content).toContain('WS test card');
   });
 
   it('3.8.2: Card update propagates via WS', async () => {
-    const card = await createTestCard(board.id, columns[0].id, adminUser.id, { content: 'Original' });
+    const card = await createTestCard(board.id as string, columns[0].id as string, adminUser.id, { content: 'Original' });
 
-    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(clientB);
     await clientB.waitForMessage('presence_state');
 
     // Update card via REST
-    await app.request(`/api/v1/boards/${board.id}/cards/${card.id}`, {
+    await app.request(`/api/v1/boards/${board.id as string}/cards/${card.id}`, {
       method: 'PATCH',
       headers: {
         'Authorization': `Bearer ${adminToken}`,
@@ -88,41 +89,41 @@ describe('Real-Time Event Propagation via LISTEN/NOTIFY', () => {
   });
 
   it('3.8.3: Card deletion propagates via WS', async () => {
-    const card = await createTestCard(board.id, columns[0].id, adminUser.id);
+    const card = await createTestCard(board.id as string, columns[0].id as string, adminUser.id);
 
-    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(clientB);
     await clientB.waitForMessage('presence_state');
 
-    await app.request(`/api/v1/boards/${board.id}/cards/${card.id}`, {
+    await app.request(`/api/v1/boards/${board.id as string}/cards/${card.id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${adminToken}` },
     });
 
     const msg = await clientB.waitForMessage('card_deleted');
     expect(msg.type).toBe('card_deleted');
-    expect(msg.payload.id).toBe(card.id);
+    expect(getPayload(msg).id).toBe(card.id);
   });
 
   it('3.8.4: Vote added propagates via WS', async () => {
-    const card = await createTestCard(board.id, columns[0].id, adminUser.id);
+    const card = await createTestCard(board.id as string, columns[0].id as string, adminUser.id);
     // Move to vote phase
-    await app.request(`/api/v1/boards/${board.id}/phase`, {
+    await app.request(`/api/v1/boards/${board.id as string}/phase`, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ phase: 'group' }),
     });
-    await app.request(`/api/v1/boards/${board.id}/phase`, {
+    await app.request(`/api/v1/boards/${board.id as string}/phase`, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ phase: 'vote' }),
     });
 
-    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(clientB);
     await clientB.waitForMessage('presence_state');
 
-    await app.request(`/api/v1/boards/${board.id}/cards/${card.id}/votes`, {
+    await app.request(`/api/v1/boards/${board.id as string}/cards/${card.id}/votes`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${memberToken}` },
     });
@@ -132,28 +133,28 @@ describe('Real-Time Event Propagation via LISTEN/NOTIFY', () => {
   });
 
   it('3.8.5: Vote removed propagates via WS', async () => {
-    const card = await createTestCard(board.id, columns[0].id, adminUser.id);
+    const card = await createTestCard(board.id as string, columns[0].id as string, adminUser.id);
     // Move to vote phase and add a vote
-    await app.request(`/api/v1/boards/${board.id}/phase`, {
+    await app.request(`/api/v1/boards/${board.id as string}/phase`, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ phase: 'group' }),
     });
-    await app.request(`/api/v1/boards/${board.id}/phase`, {
+    await app.request(`/api/v1/boards/${board.id as string}/phase`, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ phase: 'vote' }),
     });
-    await app.request(`/api/v1/boards/${board.id}/cards/${card.id}/votes`, {
+    await app.request(`/api/v1/boards/${board.id as string}/cards/${card.id}/votes`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${memberToken}` },
     });
 
-    const clientB = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const clientB = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(clientB);
     await clientB.waitForMessage('presence_state');
 
-    await app.request(`/api/v1/boards/${board.id}/cards/${card.id}/votes`, {
+    await app.request(`/api/v1/boards/${board.id as string}/cards/${card.id}/votes`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${memberToken}` },
     });
@@ -163,20 +164,20 @@ describe('Real-Time Event Propagation via LISTEN/NOTIFY', () => {
   });
 
   it('3.8.6: Group creation propagates via WS', async () => {
-    const card1 = await createTestCard(board.id, columns[0].id, adminUser.id, { content: 'Card 1' });
-    const card2 = await createTestCard(board.id, columns[0].id, adminUser.id, { content: 'Card 2' });
+    const card1 = await createTestCard(board.id as string, columns[0].id as string, adminUser.id, { content: 'Card 1' });
+    const card2 = await createTestCard(board.id as string, columns[0].id as string, adminUser.id, { content: 'Card 2' });
     // Move to group phase
-    await app.request(`/api/v1/boards/${board.id}/phase`, {
+    await app.request(`/api/v1/boards/${board.id as string}/phase`, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ phase: 'group' }),
     });
 
-    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(clientB);
     await clientB.waitForMessage('presence_state');
 
-    await app.request(`/api/v1/boards/${board.id}/groups`, {
+    await app.request(`/api/v1/boards/${board.id as string}/groups`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: 'Test Group', cardIds: [card1.id, card2.id] }),
@@ -187,11 +188,11 @@ describe('Real-Time Event Propagation via LISTEN/NOTIFY', () => {
   });
 
   it('3.8.7: Phase change propagates via WS', async () => {
-    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(clientB);
     await clientB.waitForMessage('presence_state');
 
-    await app.request(`/api/v1/boards/${board.id}/phase`, {
+    await app.request(`/api/v1/boards/${board.id as string}/phase`, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ phase: 'group' }),
@@ -199,34 +200,34 @@ describe('Real-Time Event Propagation via LISTEN/NOTIFY', () => {
 
     const msg = await clientB.waitForMessage('phase_changed');
     expect(msg.type).toBe('phase_changed');
-    expect(msg.payload.currentPhase).toBe('group');
-    expect(msg.payload.previousPhase).toBe('write');
+    expect(getPayload(msg).currentPhase).toBe('group');
+    expect(getPayload(msg).previousPhase).toBe('write');
   });
 
   it('3.8.8: Focus change propagates via WS', async () => {
-    const card = await createTestCard(board.id, columns[0].id, adminUser.id);
+    const card = await createTestCard(board.id as string, columns[0].id as string, adminUser.id);
     // Move to discuss phase
-    await app.request(`/api/v1/boards/${board.id}/phase`, {
+    await app.request(`/api/v1/boards/${board.id as string}/phase`, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ phase: 'group' }),
     });
-    await app.request(`/api/v1/boards/${board.id}/phase`, {
+    await app.request(`/api/v1/boards/${board.id as string}/phase`, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ phase: 'vote' }),
     });
-    await app.request(`/api/v1/boards/${board.id}/phase`, {
+    await app.request(`/api/v1/boards/${board.id as string}/phase`, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ phase: 'discuss' }),
     });
 
-    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(clientB);
     await clientB.waitForMessage('presence_state');
 
-    await app.request(`/api/v1/boards/${board.id}/focus`, {
+    await app.request(`/api/v1/boards/${board.id as string}/focus`, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ focusType: 'card', focusId: card.id }),
@@ -234,7 +235,7 @@ describe('Real-Time Event Propagation via LISTEN/NOTIFY', () => {
 
     const msg = await clientB.waitForMessage('focus_changed');
     expect(msg.type).toBe('focus_changed');
-    expect(msg.payload.focusId).toBe(card.id);
+    expect(getPayload(msg).focusId).toBe(card.id);
   });
 
   it('3.8.9: Events scoped to board — other board does not receive', async () => {
@@ -248,7 +249,7 @@ describe('Real-Time Event Propagation via LISTEN/NOTIFY', () => {
     await clientOnBoard2.waitForMessage('presence_state');
 
     // Create card on board 1 via REST
-    await app.request(`/api/v1/boards/${board.id}/cards`, {
+    await app.request(`/api/v1/boards/${board.id as string}/cards`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ columnId: columns[0].id, content: 'Board 1 card' }),
@@ -261,11 +262,11 @@ describe('Real-Time Event Propagation via LISTEN/NOTIFY', () => {
   });
 
   it('3.8.10: Event contains correct eventId (UUID)', async () => {
-    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(clientB);
     await clientB.waitForMessage('presence_state');
 
-    await app.request(`/api/v1/boards/${board.id}/cards`, {
+    await app.request(`/api/v1/boards/${board.id as string}/cards`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ columnId: columns[0].id, content: 'Event ID test' }),
@@ -279,11 +280,11 @@ describe('Real-Time Event Propagation via LISTEN/NOTIFY', () => {
   });
 
   it('3.8.11: Event has server timestamp', async () => {
-    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(clientB);
     await clientB.waitForMessage('presence_state');
 
-    await app.request(`/api/v1/boards/${board.id}/cards`, {
+    await app.request(`/api/v1/boards/${board.id as string}/cards`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ columnId: columns[0].id, content: 'Timestamp test' }),
@@ -291,17 +292,17 @@ describe('Real-Time Event Propagation via LISTEN/NOTIFY', () => {
 
     const msg = await clientB.waitForMessage('card_created');
     expect(msg.timestamp).toBeDefined();
-    const ts = new Date(msg.timestamp);
+    const ts = new Date(msg.timestamp as string);
     expect(ts.getTime()).not.toBeNaN();
   });
 
   it('3.8.12: Latency under 100ms', async () => {
-    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(clientB);
     await clientB.waitForMessage('presence_state');
 
     const before = Date.now();
-    await app.request(`/api/v1/boards/${board.id}/cards`, {
+    await app.request(`/api/v1/boards/${board.id as string}/cards`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ columnId: columns[0].id, content: 'Latency test' }),

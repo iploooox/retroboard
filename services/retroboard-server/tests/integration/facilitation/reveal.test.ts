@@ -129,10 +129,10 @@ describe('PUT /api/v1/boards/:id/reveal — Card Reveal', () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
-    const foundCard = body.data.cards?.find((c: any) => c.id === card.id);
+    const body = await res.json() as { data: { cards?: Array<Record<string, unknown>> } };
+    const foundCard = body.data.cards?.find((c) => c.id === card.id);
     expect(foundCard).toBeDefined();
-    expect(foundCard.author_id).toBe(memberUser.id);
+    expect(foundCard!.author_id).toBe(memberUser.id);
   });
 
   it('3.5.5: Member cannot reveal cards', async () => {

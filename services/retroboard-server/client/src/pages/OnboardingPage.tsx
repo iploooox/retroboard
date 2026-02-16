@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, ChevronLeft, Check, Sparkles, Users, UserPlus, Calendar, Rocket } from 'lucide-react';
-import { useAuthStore } from '@/stores/auth';
+import { useAuthStore, User } from '@/stores/auth';
 import { api, ApiError } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { toast } from '@/lib/toast';
@@ -19,6 +19,7 @@ const STEPS: { id: OnboardingStep; title: string; icon: typeof Sparkles }[] = [
 export function OnboardingPage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
   const [completedSteps, setCompletedSteps] = useState<OnboardingStep[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,22 +70,52 @@ export function OnboardingPage() {
     }
   };
 
-  const completeOnboarding = async () => {
+  const completeOnboarding = async (skipDelay = false) => {
     setIsSaving(true);
     try {
-      await api.post('/users/me/onboarding/complete', {});
+      const response = await api.post<{ data: { completed: boolean; user: User } }>(
+        '/users/me/onboarding/complete',
+        {}
+      );
 
-      // Show confetti celebration
-      setShowConfetti(true);
-      toast.success('Onboarding complete! Welcome to RetroBoard Pro 🎉');
+      // Update auth store with the updated user from the API
+      if (response.data.user) {
+        setUser(response.data.user);
+      }
 
-      // Wait for confetti animation before navigating
-      setTimeout(() => {
+      if (skipDelay) {
+        // For skip action, navigate immediately
+        toast.success('Onboarding complete!');
         navigate('/dashboard');
-      }, 3000);
+      } else {
+        // For normal completion, show confetti celebration
+        setShowConfetti(true);
+        toast.success('Onboarding complete! Welcome to RetroBoard Pro 🎉');
+
+        // Wait for confetti animation before navigating to dashboard
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 3000);
+      }
     } catch {
       toast.error('Failed to complete onboarding');
       setIsSaving(false);
+    }
+  };
+
+  const markOnboardingComplete = async () => {
+    try {
+      const response = await api.post<{ data: { completed: boolean; user: User } }>(
+        '/users/me/onboarding/complete',
+        {}
+      );
+
+      // Update auth store with the updated user from the API
+      if (response.data.user) {
+        setUser(response.data.user);
+      }
+    } catch {
+      throw new Error('Failed to complete onboarding');
     }
   };
 
@@ -102,9 +133,9 @@ export function OnboardingPage() {
   };
 
   const handleSkip = async () => {
-    // Mark current step as skipped
+    // Mark current step as skipped and complete onboarding
     await saveProgress(currentStep, 'skip');
-    navigate('/dashboard');
+    await completeOnboarding(true); // Skip delay for immediate navigation
   };
 
   const handleCreateTeam = async () => {
@@ -115,19 +146,18 @@ export function OnboardingPage() {
 
     setIsSaving(true);
     try {
-      const response = await api.post<{ ok: boolean; data: { id: string; name: string } }>('/teams', {
+      const response = await api.post<{ team: { id: string; name: string } }>('/teams', {
         name: teamName,
       });
-      setCreatedTeamId(response.data.id);
+      setCreatedTeamId(response.team.id);
 
       // Generate invite link
       try {
-        const inviteResponse = await api.post<{ ok: boolean; data: { token: string } }>(
-          `/teams/${response.data.id}/invites`,
+        const inviteResponse = await api.post<{ invitation: { invite_url: string; code: string } }>(
+          `/teams/${response.team.id}/invitations`,
           { role: 'member' }
         );
-        const link = `${window.location.origin}/invite/${inviteResponse.data.token}`;
-        setInviteLink(link);
+        setInviteLink(inviteResponse.invitation.invite_url);
       } catch {
         // Continue even if invite generation fails
       }
@@ -166,11 +196,14 @@ export function OnboardingPage() {
 
     setIsSaving(true);
     try {
-      const response = await api.post<{ ok: boolean; data: { id: string; name: string } }>(
+      const response = await api.post<{ sprint: { id: string; name: string } }>(
         `/teams/${createdTeamId}/sprints`,
-        { name: sprintName }
+        {
+          name: sprintName,
+          start_date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
+        }
       );
-      setCreatedSprintId(response.data.id);
+      setCreatedSprintId(response.sprint.id);
       toast.success('Sprint created successfully!');
       await saveProgress('create_sprint');
       handleNext();
@@ -185,10 +218,16 @@ export function OnboardingPage() {
     }
   };
 
-  const handleStartRetro = () => {
+  const handleStartRetro = async () => {
     if (createdTeamId && createdSprintId) {
-      navigate(`/teams/${createdTeamId}/sprints/${createdSprintId}/board`);
-      completeOnboarding();
+      // Mark onboarding as complete before navigating to board
+      try {
+        await markOnboardingComplete();
+        // Navigate to the board
+        navigate(`/teams/${createdTeamId}/sprints/${createdSprintId}/board`);
+      } catch {
+        toast.error('Failed to complete onboarding');
+      }
     } else {
       toast.error('Please complete all previous steps first');
     }
@@ -421,7 +460,12 @@ export function OnboardingPage() {
                 <Button
                   variant="secondary"
                   onClick={() => {
-                    const prevStep = STEPS[currentStepIndex - 1]!.id;
+                    // Skip invite_members step when going back from create_sprint
+                    let prevIndex = currentStepIndex - 1;
+                    if (currentStep === 'create_sprint' && STEPS[prevIndex]?.id === 'invite_members') {
+                      prevIndex = prevIndex - 1; // Skip to create_team
+                    }
+                    const prevStep = STEPS[prevIndex]!.id;
                     setCurrentStep(prevStep);
                   }}
                   disabled={isSaving}

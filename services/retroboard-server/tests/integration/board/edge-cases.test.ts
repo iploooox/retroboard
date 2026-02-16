@@ -198,13 +198,13 @@ describe('Edge Cases and Boundary Tests', () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = await res.json() as { data: { columns: Array<{ cards: Array<Record<string, unknown>> }> } };
       const cards = body.data.columns[0].cards;
       expect(cards.length).toBeGreaterThanOrEqual(1);
       // Member should NOT see admin's author_id
-      const adminCard = cards.find((c: any) => c.content === 'Admin anon card');
-      expect(adminCard.author_id).toBeNull();
-      expect(adminCard.author_name).toBeNull();
+      const adminCard = cards.find((c) => c.content === 'Admin anon card');
+      expect(adminCard!.author_id).toBeNull();
+      expect(adminCard!.author_name).toBeNull();
     });
 
     it('3.2.3: Anon mode — admin sees all author_ids on GET board', async () => {
@@ -221,12 +221,12 @@ describe('Edge Cases and Boundary Tests', () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = await res.json() as { data: { columns: Array<{ cards: Array<Record<string, unknown>> }> } };
       const cards = body.data.columns[0].cards;
       expect(cards.length).toBeGreaterThanOrEqual(1);
       // Admin should see all author_ids
-      const memberCard = cards.find((c: any) => c.content === 'Member anon card');
-      expect(memberCard.author_id).toBe(memberUser.id);
+      const memberCard = cards.find((c) => c.content === 'Member anon card');
+      expect(memberCard!.author_id).toBe(memberUser.id);
     });
   });
 
@@ -307,10 +307,10 @@ describe('Edge Cases and Boundary Tests', () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
-      const cards = body.data.columns.flatMap((c: any) => c.cards);
-      const votedCard = cards.find((c: any) => c.id === card.id);
-      expect(votedCard.vote_count).toBeGreaterThanOrEqual(1);
+      const body = await res.json() as { data: { columns: Array<{ cards: Array<Record<string, unknown>> }> } };
+      const cards = body.data.columns.flatMap((c) => c.cards);
+      const votedCard = cards.find((c) => c.id === card.id);
+      expect(votedCard!.vote_count).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -421,8 +421,8 @@ describe('Edge Cases and Boundary Tests', () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
-      const groupData = body.data.groups.find((g: any) => g.id === group.id);
+      const body = await res.json() as { data: { groups: Array<Record<string, unknown>> } };
+      const groupData = body.data.groups.find((g) => g.id === group.id);
       if (groupData) {
         expect(groupData.card_ids).not.toContain(card.id);
       }

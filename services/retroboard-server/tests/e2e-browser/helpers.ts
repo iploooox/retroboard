@@ -17,7 +17,11 @@ export async function registerUser(
   // Use explicit ID selector to avoid matching the "Show password" button
   await page.locator('#register-password').fill(options.password);
   await page.getByRole('button', { name: 'Create Account' }).click();
-  await expect(page).toHaveURL('/dashboard', { timeout: 15000 });
+
+  // New users are redirected to onboarding - skip it to get to dashboard
+  await expect(page).toHaveURL('/onboarding', { timeout: 15000 });
+  await page.getByRole('button', { name: 'Skip for now' }).click();
+  await expect(page).toHaveURL('/dashboard', { timeout: 10000 });
 }
 
 export async function loginUser(
@@ -26,7 +30,8 @@ export async function loginUser(
 ): Promise<void> {
   await page.goto('/login');
   await page.getByLabel('Email').fill(options.email);
-  await page.getByLabel('Password').fill(options.password);
+  // Use explicit ID selector to avoid matching the "Show password" button
+  await page.locator('#password').fill(options.password);
   await page.getByRole('button', { name: 'Log In' }).click();
   await expect(page).toHaveURL('/dashboard', { timeout: 10000 });
 }
@@ -50,45 +55,58 @@ export async function createTeamAndBoard(
   options: { teamName: string; templateName?: string }
 ): Promise<{ teamName: string; sprintName: string }> {
   // Assumes we're already on the dashboard
-  // Create team
+
+  // 1. Create team
   await page.getByRole('button', { name: 'Create Team' }).first().click();
   await page.getByLabel(/team name/i).fill(options.teamName);
   await page.getByRole('button', { name: 'Create Team' }).nth(1).click();
 
-  // Wait for team to be created and selected
+  // Wait for modal to close and team to appear
+  await page.waitForTimeout(1000);
+
+  // 2. Navigate into the team (CRITICAL FIX)
+  // Click the team card - it's a link containing the team name
+  await page.getByRole('link', { name: new RegExp(options.teamName) }).click();
+
+  // Wait for TeamDetailPage to load and verify URL contains /teams/
+  await expect(page).toHaveURL(/\/teams\/[a-f0-9-]+/, { timeout: 5000 });
   await page.waitForTimeout(500);
 
-  // Create sprint
-  await page.getByRole('button', { name: /create sprint|new sprint/i }).click();
+  // 3. Create sprint
+  await page.getByRole('button', { name: /new sprint/i }).click();
   const sprintName = `Sprint ${Date.now()}`;
   await page.getByLabel(/sprint name/i).fill(sprintName);
-  await page.getByRole('button', { name: /create|save/i }).click();
 
-  // Wait for sprint to be created
+  // Fill required start date (CRITICAL FIX)
+  const today = new Date().toISOString().split('T')[0];
+  await page.getByLabel(/start date/i).fill(today);
+
+  await page.getByRole('button', { name: /^create sprint$/i }).click();
+
+  // Wait for modal to close
+  await page.waitForTimeout(2000);
+
+  // 4. Activate sprint
+  await page.getByRole('button', { name: /activate/i }).click();
   await page.waitForTimeout(500);
 
-  // Activate sprint
-  await page.getByRole('button', { name: /activate/i }).click();
+  // 5. Click Board link to navigate to board page (use exact match to avoid header links)
+  await page.getByRole('link', { name: 'Board', exact: true }).click();
 
-  // Click Board link to navigate to board page
-  await page.getByRole('link', { name: /board/i }).click();
-
-  // Start Retro
+  // 6. Start Retro
   await page.getByRole('button', { name: /start retro/i }).click();
 
-  // Select template (default to first template or specified)
+  // 7. Select template - first template is auto-selected, so just submit (CRITICAL FIX)
+  // If specific template requested, click the radio button
   if (options.templateName) {
-    await page.getByText(options.templateName).click();
-  } else {
-    // Click first template option
-    await page.locator('[data-template]').first().click();
+    await page.getByRole('radio', { name: new RegExp(options.templateName, 'i') }).click();
   }
 
-  // Create board
-  await page.getByRole('button', { name: /create board|start/i }).click();
+  // 8. Create board
+  await page.getByRole('button', { name: /create board/i }).click();
 
-  // Wait for board to load
-  await page.waitForTimeout(1000);
+  // Wait for board to load by waiting for "Add a card" button to be visible
+  await page.getByRole('button', { name: /add a card/i }).first().waitFor({ state: 'visible', timeout: 10000 });
 
   return { teamName: options.teamName, sprintName };
 }

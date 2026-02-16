@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { truncateTables, createTestTeam, addTeamMember, createTestSprint, createTestBoard, SYSTEM_TEMPLATE_WWD } from '../../helpers/db.js';
 import { getAuthToken } from '../../helpers/auth.js';
 import { seed } from '../../../src/db/seed.js';
-import { createTestWSClient, closeAllClients, type TestWSClient } from '../../helpers/ws.js';
+import { createTestWSClient, closeAllClients, type TestWSClient, getPayload } from '../../helpers/ws.js';
 
 describe('WebSocket Presence', () => {
   let adminToken: string;
@@ -10,7 +10,7 @@ describe('WebSocket Presence', () => {
   let memberToken: string;
   let memberUser: { id: string; email: string; display_name: string };
   let team: { id: string };
-  let board: Record<string, any>;
+  let board: Record<string, unknown>;
   let clients: TestWSClient[] = [];
 
   beforeEach(async () => {
@@ -37,34 +37,34 @@ describe('WebSocket Presence', () => {
   });
 
   it('3.7.1: First user joins — receives presence_state with empty users', async () => {
-    const clientA = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const clientA = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(clientA);
     const msg = await clientA.waitForMessage('presence_state');
     expect(msg.type).toBe('presence_state');
-    expect(msg.payload.users).toHaveLength(0);
+    expect(getPayload(msg).users).toHaveLength(0);
   });
 
   it('3.7.2: Second user joins — gets presence_state with first user, first user gets user_joined', async () => {
-    const clientA = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const clientA = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(clientA);
     await clientA.waitForMessage('presence_state');
 
-    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(clientB);
 
     const presenceB = await clientB.waitForMessage('presence_state');
-    expect(presenceB.payload.users.length).toBeGreaterThanOrEqual(1);
+    expect((getPayload(presenceB) as { users: unknown[] }).users.length).toBeGreaterThanOrEqual(1);
 
     const joinedA = await clientA.waitForMessage('user_joined');
-    expect(joinedA.payload.userId).toBe(memberUser.id);
+    expect(getPayload(joinedA).userId).toBe(memberUser.id);
   });
 
   it('3.7.3: User disconnects — other user receives user_left', async () => {
-    const clientA = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const clientA = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(clientA);
     await clientA.waitForMessage('presence_state');
 
-    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const clientB = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(clientB);
     await clientB.waitForMessage('presence_state');
 
@@ -73,20 +73,20 @@ describe('WebSocket Presence', () => {
     clients = clients.filter((c) => c !== clientA);
 
     const leftMsg = await clientB.waitForMessage('user_left');
-    expect(leftMsg.payload.userId).toBe(adminUser.id);
+    expect(getPayload(leftMsg).userId).toBe(adminUser.id);
   });
 
   it('3.7.4: Multi-tab user disconnect one tab — no user_left broadcast', async () => {
     // Admin opens two tabs
-    const tab1 = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const tab1 = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(tab1);
     await tab1.waitForMessage('presence_state');
 
-    const tab2 = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const tab2 = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(tab2);
 
     // Member observes
-    const observer = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const observer = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(observer);
     await observer.waitForMessage('presence_state');
 
@@ -97,18 +97,18 @@ describe('WebSocket Presence', () => {
     // Wait briefly — no user_left should arrive for admin
     await new Promise((r) => setTimeout(r, 300));
     const leftMessages = observer.messages.filter(
-      (m) => m.type === 'user_left' && m.payload.userId === adminUser.id,
+      (m) => m.type === 'user_left' && getPayload(m).userId === adminUser.id,
     );
     expect(leftMessages).toHaveLength(0);
   });
 
   it('3.7.5: Multi-tab user disconnect all tabs — user_left broadcast', async () => {
-    const tab1 = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const tab1 = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(tab1);
-    const tab2 = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const tab2 = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(tab2);
 
-    const observer = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const observer = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(observer);
     await observer.waitForMessage('presence_state');
 
@@ -118,15 +118,15 @@ describe('WebSocket Presence', () => {
     clients = clients.filter((c) => c !== tab1 && c !== tab2);
 
     const leftMsg = await observer.waitForMessage('user_left');
-    expect(leftMsg.payload.userId).toBe(adminUser.id);
+    expect(getPayload(leftMsg).userId).toBe(adminUser.id);
   });
 
   it('3.7.6: User reconnects quickly', async () => {
-    const observer = await createTestWSClient({ token: memberToken, boardId: board.id });
+    const observer = await createTestWSClient({ token: memberToken, boardId: board.id as string });
     clients.push(observer);
     await observer.waitForMessage('presence_state');
 
-    const clientA = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const clientA = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(clientA);
     await clientA.waitForMessage('presence_state');
     await observer.waitForMessage('user_joined');
@@ -136,13 +136,13 @@ describe('WebSocket Presence', () => {
     clients = clients.filter((c) => c !== clientA);
 
     // Reconnect quickly
-    const clientA2 = await createTestWSClient({ token: adminToken, boardId: board.id });
+    const clientA2 = await createTestWSClient({ token: adminToken, boardId: board.id as string });
     clients.push(clientA2);
     await clientA2.waitForMessage('presence_state');
 
     // Observer should see user_left then user_joined (or just user_joined if within grace period)
     const joinMsgs = observer.messages.filter(
-      (m) => m.type === 'user_joined' && m.payload.userId === adminUser.id,
+      (m) => m.type === 'user_joined' && getPayload(m).userId === adminUser.id,
     );
     expect(joinMsgs.length).toBeGreaterThanOrEqual(1);
   });

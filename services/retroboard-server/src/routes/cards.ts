@@ -117,7 +117,8 @@ cardsRouter.post('/boards/:id/cards', async (c) => {
 });
 
 // PUT/PATCH /boards/:id/cards/:cardId — Edit card
-const updateCardHandler: Parameters<typeof cardsRouter.put>[1] = async (c) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const updateCardHandler = async (c: any) => {
   const boardId = c.req.param('id');
   const cardId = c.req.param('cardId');
   const user = c.get('user');
@@ -207,7 +208,8 @@ cardsRouter.delete('/boards/:id/cards/:cardId', async (c) => {
 // ---------- Votes ----------
 
 // POST /boards/:id/cards/:cardId/vote(s) — Cast vote
-const castVoteHandler: Parameters<typeof cardsRouter.post>[1] = async (c) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const castVoteHandler = async (c: any) => {
   const boardId = c.req.param('id');
   const cardId = c.req.param('cardId');
   const user = c.get('user');
@@ -246,7 +248,8 @@ cardsRouter.post('/boards/:id/cards/:cardId/vote', castVoteHandler);
 cardsRouter.post('/boards/:id/cards/:cardId/votes', castVoteHandler);
 
 // DELETE /boards/:id/cards/:cardId/vote(s) — Remove vote
-const removeVoteHandler: Parameters<typeof cardsRouter.delete>[1] = async (c) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const removeVoteHandler = async (c: any) => {
   const boardId = c.req.param('id');
   const cardId = c.req.param('cardId');
   const user = c.get('user');

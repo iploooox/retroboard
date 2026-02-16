@@ -264,10 +264,9 @@ describe('useBoardStore', () => {
       await useBoardStore.getState().fetchBoard('sprint-1');
 
       vi.mocked(boardApi.setPhase).mockResolvedValue({
-        id: 'board-1',
         phase: 'group',
         previous_phase: 'write',
-        updated_at: '2026-01-01T01:00:00.000Z',
+        timerStopped: false,
       });
 
       await useBoardStore.getState().setPhase('group');

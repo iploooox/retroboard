@@ -7,6 +7,7 @@ export interface CardRow {
   author_id: string;
   content: string;
   position: number;
+  group_id?: string | null;
   created_at: string;
   updated_at: string;
 }

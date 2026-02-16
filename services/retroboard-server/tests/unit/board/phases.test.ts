@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ALLOWED_TRANSITIONS, BOARD_PHASES, type BoardPhase } from '../../../src/validation/boards.js';
+import { ALLOWED_TRANSITIONS, BOARD_PHASES } from '../../../src/validation/boards.js';
 
 describe('Phase Transition Logic', () => {
   it('1.4.1: Advance from write to group', () => {

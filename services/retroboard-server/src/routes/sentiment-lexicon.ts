@@ -64,9 +64,9 @@ sentimentLexiconRouter.post(
         ok: true,
         data: customWord,
       }, 201);
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Handle unique constraint violation
-      if (err.code === '23505') {
+      if (err && typeof err === 'object' && 'code' in err && err.code === '23505') {
         return c.json(
           formatErrorResponse(
             'WORD_ALREADY_EXISTS',

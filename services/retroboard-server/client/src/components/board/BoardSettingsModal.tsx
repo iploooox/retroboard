@@ -64,7 +64,7 @@ export function BoardSettingsModal({ open, onClose, teamId, currentTheme = 'defa
         `/teams/${teamId}/sentiment/lexicon`,
       );
       setCustomWords(response.data);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load custom sentiment words');
     } finally {
       setIsLoadingWords(false);
@@ -118,7 +118,7 @@ export function BoardSettingsModal({ open, onClose, teamId, currentTheme = 'defa
       toast.success('Word updated');
       setEditingWord(null);
       await loadCustomWords();
-    } catch (error) {
+    } catch {
       toast.error('Failed to update word');
     }
   };
@@ -130,7 +130,7 @@ export function BoardSettingsModal({ open, onClose, teamId, currentTheme = 'defa
       await api.delete(`/teams/${teamId}/sentiment/lexicon/${encodeURIComponent(word)}`);
       toast.success('Word deleted');
       await loadCustomWords();
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete word');
     }
   };
@@ -163,7 +163,7 @@ export function BoardSettingsModal({ open, onClose, teamId, currentTheme = 'defa
 
       // Update team theme if changed
       if (selectedTheme !== currentTheme) {
-        await api.patch<{ ok: boolean; data: { theme: string } }>(`/teams/${teamId}`, { theme: selectedTheme });
+        await api.patch<{ team: { theme: string } }>(`/teams/${teamId}`, { theme: selectedTheme });
         toast.success('Theme updated successfully');
         // Reload page to apply new theme
         window.location.reload();
@@ -303,6 +303,7 @@ export function BoardSettingsModal({ open, onClose, teamId, currentTheme = 'defa
               onClick={handleAddWord}
               isLoading={isAddingWord}
               size="sm"
+              aria-label="Add custom word"
             >
               <Plus className="h-4 w-4" />
             </Button>

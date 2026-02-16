@@ -32,6 +32,9 @@ export const ErrorCode = {
   TIMER_NOT_RUNNING: 'TIMER_NOT_RUNNING',
   TIMER_NOT_PAUSED: 'TIMER_NOT_PAUSED',
   TIMER_NOT_FOUND: 'TIMER_NOT_FOUND',
+  PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
+  INVALID_EMOJI: 'INVALID_EMOJI',
+  BOARD_LOCKED: 'BOARD_LOCKED',
 } as const;
 
 export type ErrorCodeType = (typeof ErrorCode)[keyof typeof ErrorCode];

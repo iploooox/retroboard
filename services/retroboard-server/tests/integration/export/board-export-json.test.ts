@@ -11,6 +11,8 @@ import {
   createTestActionItem,
   createTestVote,
   SYSTEM_TEMPLATE_WWD,
+  type TestBoard,
+  type TestColumn,
 } from '../../helpers/db.js';
 import { getAuthToken } from '../../helpers/auth.js';
 import { seed } from '../../../src/db/seed.js';
@@ -21,13 +23,13 @@ const app = createTestApp();
 describe('GET /api/v1/boards/:id/export?format=json', () => {
   let adminToken: string;
   let adminUser: { id: string; email: string };
-  let memberToken: string;
+  let _memberToken: string;
   let memberUser: { id: string; email: string };
   let nonMemberToken: string;
   let team: { id: string };
   let sprint: { id: string };
-  let board: Record<string, unknown>;
-  let columns: Record<string, unknown>[];
+  let board: TestBoard;
+  let columns: TestColumn[];
 
   beforeEach(async () => {
     await truncateTables();
@@ -36,7 +38,7 @@ describe('GET /api/v1/boards/:id/export?format=json', () => {
     adminToken = adminAuth.token;
     adminUser = adminAuth.user;
     const memberAuth = await getAuthToken({ email: 'member@example.com', displayName: 'Member User' });
-    memberToken = memberAuth.token;
+      _memberToken = memberAuth.token;
     memberUser = memberAuth.user;
     const nonMemberAuth = await getAuthToken({ email: 'nonmember@example.com', displayName: 'Non Member' });
     nonMemberToken = nonMemberAuth.token;

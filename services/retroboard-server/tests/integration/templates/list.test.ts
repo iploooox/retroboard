@@ -21,10 +21,10 @@ describe('GET /api/v1/templates', () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await res.json() as { templates: Array<Record<string, unknown>> };
     expect(body.templates).toHaveLength(6);
     // All should be system templates
-    expect(body.templates.every((t: any) => t.is_system === true)).toBe(true);
+    expect(body.templates.every((t) => t.is_system === true)).toBe(true);
   });
 
   it('2.1.4: unauthenticated user gets 401', async () => {

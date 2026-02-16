@@ -169,7 +169,7 @@ describe('Analytics Database — Schema and Function Tests', () => {
       const readPromise = sql`SELECT * FROM mv_sprint_health WHERE sprint_id = ${sprint.id}`;
 
       // Both should succeed without blocking
-      const [refreshResult, readResult] = await Promise.all([refreshPromise, readPromise]);
+      const [, readResult] = await Promise.all([refreshPromise, readPromise]);
 
       expect(readResult).toBeDefined();
     });
@@ -194,7 +194,7 @@ describe('Analytics Database — Schema and Function Tests', () => {
       `;
 
       // Check if Index Scan is in the plan
-      const planText = plan.map((p: any) => p['QUERY PLAN']).join(' ');
+      const planText = plan.map((p) => (p as Record<string, unknown>)['QUERY PLAN']).join(' ');
       expect(planText).toContain('Index');
     });
   });

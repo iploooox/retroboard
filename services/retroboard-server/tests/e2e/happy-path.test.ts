@@ -166,9 +166,9 @@ describe('E2E: Phase 1 Happy Path', () => {
     });
 
     expect(listTemplatesRes.status).toBe(200);
-    const listTemplatesBody = await listTemplatesRes.json();
+    const listTemplatesBody = await listTemplatesRes.json() as { templates: Array<Record<string, unknown>> };
     expect(listTemplatesBody.templates).toHaveLength(6);
-    expect(listTemplatesBody.templates.every((t: any) => t.is_system === true)).toBe(true);
+    expect(listTemplatesBody.templates.every((t) => t.is_system === true)).toBe(true);
 
     // ---- Step 12: User A gets template detail — verify columns ----
     const templateDetailRes = await app.request(
