@@ -336,16 +336,16 @@ test.describe('Board Enhancements Journey', () => {
       // Complete the board (as per spec: "Export is available for completed retro boards")
       // Move through phases: write → group → vote → discuss → action
       // Use the larger "Next Phase: Group" button in facilitator toolbar
-      await page.getByRole('button', { name: /Next Phase:/i }).click(); // write → group
+      await page.getByRole('button', { name: 'Next phase', exact: true }).click(); // write → group
       await page.waitForTimeout(1000); // Wait for phase transition
 
-      await page.getByRole('button', { name: /Next Phase:/i }).click(); // group → vote
+      await page.getByRole('button', { name: 'Next phase', exact: true }).click(); // group → vote
       await page.waitForTimeout(1000);
 
-      await page.getByRole('button', { name: /Next Phase:/i }).click(); // vote → discuss
+      await page.getByRole('button', { name: 'Next phase', exact: true }).click(); // vote → discuss
       await page.waitForTimeout(1000);
 
-      await page.getByRole('button', { name: /Next Phase:/i }).click(); // discuss → action
+      await page.getByRole('button', { name: 'Next phase', exact: true }).click(); // discuss → action
       await page.waitForTimeout(1000);
 
       await page.getByRole('button', { name: /complete|finish/i }).click();
@@ -524,7 +524,7 @@ test.describe('Board Enhancements Journey', () => {
       await expect(cardElement.getByText('🎉')).toBeVisible();
 
       // Move to vote phase to trigger board lock
-      await page.getByRole('button', { name: /next phase|vote/i }).click();
+      await page.getByRole('button', { name: 'Next phase', exact: true }).click();
       await page.waitForTimeout(500);
 
       // Navigate back to write phase or just check that reaction picker is gone

@@ -118,7 +118,7 @@ test.describe('Facilitator Tools - Complete User Journey', () => {
     // ========================================
 
     // Transition from Write to Group phase
-    await page.getByRole('button', { name: /Next Phase:/i }).click();
+    await page.getByRole('button', { name: 'Next phase', exact: true }).click();
 
     // May have confirmation dialog
     const confirmButton = page.getByRole('button', { name: /confirm|continue|yes/i });
@@ -131,7 +131,7 @@ test.describe('Facilitator Tools - Complete User Journey', () => {
     await page.waitForTimeout(1000);
 
     // Transition to Vote phase
-    await page.getByRole('button', { name: /Next Phase:/i }).click();
+    await page.getByRole('button', { name: 'Next phase', exact: true }).click();
     const confirmButton2 = page.getByRole('button', { name: /confirm|continue|yes/i });
     if (await confirmButton2.isVisible({ timeout: 2000 }).catch(() => false)) {
       await confirmButton2.click();
