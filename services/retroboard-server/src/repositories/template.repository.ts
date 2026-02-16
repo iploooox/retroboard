@@ -38,7 +38,7 @@ export async function findAll(): Promise<TemplateSummary[]> {
            (SELECT COUNT(*) FROM template_columns tc WHERE tc.template_id = t.id)::int AS column_count
     FROM templates t
     WHERE t.is_system = true
-    ORDER BY t.created_at ASC
+    ORDER BY t.id ASC
   `;
 
   return rows.map((row) => ({

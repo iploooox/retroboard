@@ -43,6 +43,13 @@ async function completeFullRetro(
   await page.getByRole('button', { name: /create board/i }).click();
   await page.waitForTimeout(1500);
 
+  // Dismiss icebreaker warmup
+  const startWritingBtn = page.getByRole('button', { name: /start writing/i });
+  if (await startWritingBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await startWritingBtn.click();
+    await page.waitForTimeout(500);
+  }
+
   // Add cards
   for (const cardText of cards) {
     await page.getByRole('button', { name: /add a card/i }).first().click();
@@ -135,6 +142,13 @@ test.describe('Analytics Dashboard Journey', () => {
     await page.waitForTimeout(1000);
     await page.getByRole('button', { name: /create board/i }).click();
     await page.waitForTimeout(1500);
+
+    // Dismiss icebreaker warmup
+    const startWritingBtn = page.getByRole('button', { name: /start writing/i });
+    if (await startWritingBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await startWritingBtn.click();
+      await page.waitForTimeout(500);
+    }
 
     // Extract sprint ID from URL
     const url = page.url();
