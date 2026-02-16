@@ -62,11 +62,21 @@ test.describe('Vote Real-time Sync', () => {
     await page2.goto(boardUrl);
     await page2.waitForTimeout(1000);
 
+    // Dismiss icebreaker warmup for User 2
+    const startWritingBtn2 = page2.getByRole('button', { name: /start writing/i });
+    await startWritingBtn2.waitFor({ state: 'visible', timeout: 10000 }).then(() => startWritingBtn2.click()).catch(() => {});
+    await page2.waitForTimeout(500);
+
     // Verify User 2 can see the card
     await expect(page2.getByText('Test card for voting')).toBeVisible();
 
     // User 1: Transition to vote phase
     await page1.goto(boardUrl);
+    await page1.waitForTimeout(500);
+
+    // Dismiss icebreaker warmup for User 1 (reloaded)
+    const startWritingBtn1 = page1.getByRole('button', { name: /start writing/i });
+    await startWritingBtn1.waitFor({ state: 'visible', timeout: 10000 }).then(() => startWritingBtn1.click()).catch(() => {});
     await page1.waitForTimeout(500);
 
     // Click Vote button in facilitator toolbar to change phase
@@ -190,6 +200,13 @@ test.describe('Vote Real-time Sync', () => {
     await page2.goto(boardUrl);
     await page1.waitForTimeout(500);
     await page2.waitForTimeout(500);
+
+    // Dismiss icebreaker warmup for both users
+    const swBtn1 = page1.getByRole('button', { name: /start writing/i });
+    await swBtn1.waitFor({ state: 'visible', timeout: 10000 }).then(() => swBtn1.click()).catch(() => {});
+    const swBtn2 = page2.getByRole('button', { name: /start writing/i });
+    await swBtn2.waitFor({ state: 'visible', timeout: 10000 }).then(() => swBtn2.click()).catch(() => {});
+    await page1.waitForTimeout(500);
 
     // User 1: Transition to vote phase
     await page1.getByRole('button', { name: 'Vote' }).click();

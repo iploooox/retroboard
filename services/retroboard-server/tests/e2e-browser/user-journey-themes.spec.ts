@@ -43,8 +43,11 @@ test.describe('Board Themes (S-027)', () => {
     // Save settings
     await page.getByRole('button', { name: /save settings/i }).click();
 
-    // Wait for page reload and board to reappear
+    // Wait for page reload — icebreaker warmup shows again after reload
     await page.waitForTimeout(2000);
+    const startWritingBtn = page.getByRole('button', { name: /start writing/i });
+    await startWritingBtn.waitFor({ state: 'visible', timeout: 10000 }).then(() => startWritingBtn.click()).catch(() => {});
+    await page.waitForTimeout(500);
     await expect(page.getByRole('heading', { name: /What Went Well/i })).toBeVisible({ timeout: 10000 });
   });
 
@@ -91,6 +94,11 @@ test.describe('Board Themes (S-027)', () => {
     await page.waitForTimeout(500);
     // Click Board link for the sprint
     await page.getByRole('link', { name: 'Board', exact: true }).click();
+
+    // Dismiss icebreaker warmup (shows again after page navigation)
+    const startWritingBtn2 = page.getByRole('button', { name: /start writing/i });
+    await startWritingBtn2.waitFor({ state: 'visible', timeout: 10000 }).then(() => startWritingBtn2.click()).catch(() => {});
+    await page.waitForTimeout(500);
 
     // Wait for board page to load
     await expect(page.getByRole('heading', { name: /What Went Well/i })).toBeVisible({ timeout: 10000 });

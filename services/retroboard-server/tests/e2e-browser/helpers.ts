@@ -52,7 +52,7 @@ export async function logoutUser(page: Page): Promise<void> {
 
 export async function createTeamAndBoard(
   page: Page,
-  options: { teamName: string; templateName?: string }
+  options: { teamName: string; templateName?: string; keepIcebreaker?: boolean }
 ): Promise<{ teamName: string; sprintName: string }> {
   // Assumes we're already on the dashboard
 
@@ -105,8 +105,14 @@ export async function createTeamAndBoard(
   // 8. Create board
   await page.getByRole('button', { name: /create board/i }).click();
 
-  // Wait for board to load by waiting for "Add a card" button to be visible
-  await page.getByRole('button', { name: /add a card/i }).first().waitFor({ state: 'visible', timeout: 10000 });
+  // Wait for board to load — icebreaker warmup shows before columns in write phase
+  await page.getByText('🎲 Icebreaker Question').waitFor({ state: 'visible', timeout: 10000 });
+
+  // Auto-dismiss icebreaker warmup unless explicitly kept
+  if (!options.keepIcebreaker) {
+    await page.getByRole('button', { name: /start writing/i }).click();
+    await page.getByRole('button', { name: /add a card/i }).first().waitFor({ state: 'visible', timeout: 10000 });
+  }
 
   return { teamName: options.teamName, sprintName };
 }

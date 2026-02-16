@@ -275,7 +275,7 @@ export function BoardSettingsModal({ open, onClose, teamId, currentTheme = 'defa
           <div>
             <h3 className="text-sm font-medium text-slate-700 mb-1">Custom Sentiment Words</h3>
             <p className="text-xs text-slate-500">
-              Add custom words with sentiment scores (-5.0 to +5.0) to improve analysis for your team.
+              Add custom words with sentiment scores (range: -5 to 5) to improve analysis for your team.
             </p>
           </div>
 

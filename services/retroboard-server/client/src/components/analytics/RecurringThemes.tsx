@@ -22,8 +22,8 @@ export function RecurringThemes({ words, totalSprints: _totalSprints }: Recurrin
     return (
       <div className="flex flex-col items-center justify-center h-64 text-slate-400">
         <Repeat className="h-12 w-12 mb-2 text-slate-300" />
-        <p>No recurring themes detected</p>
-        <p className="text-xs mt-1">Complete more retrospectives to identify patterns</p>
+        <p>No repeating patterns detected yet</p>
+        <p className="text-xs mt-1">Complete more retrospectives to identify common topics</p>
       </div>
     );
   }
@@ -92,9 +92,8 @@ export function RecurringThemes({ words, totalSprints: _totalSprints }: Recurrin
       {/* Footer */}
       <div className="mt-4 pt-4 border-t border-slate-200">
         <p className="text-sm text-slate-500">
-          <span className="font-medium text-slate-700">Recurring themes</span> are topics that appear
-          frequently across your retrospectives. Focus on positive themes to reinforce what's working,
-          and address recurring concerns marked as "Needs Attention."
+          Topics that appear frequently across your retrospectives.
+          Reinforce what works well, and address concerns marked as Needs Attention.
         </p>
       </div>
     </div>

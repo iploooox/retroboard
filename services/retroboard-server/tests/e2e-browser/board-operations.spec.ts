@@ -305,6 +305,11 @@ test.describe('Board Operations', () => {
     await page.getByRole('button', { name: 'Create Board', exact: true }).click();
     await page.waitForTimeout(2000);
 
+    // Dismiss icebreaker warmup (shows before columns in write phase)
+    const startWritingBtn = page.getByRole('button', { name: /start writing/i });
+    await startWritingBtn.waitFor({ state: 'visible', timeout: 10000 }).then(() => startWritingBtn.click()).catch(() => {});
+    await page.waitForTimeout(500);
+
     // Verify template columns exist
     await expect(page.getByText(/what went well|went well/i)).toBeVisible();
     await expect(page.getByText(/delta|what to change/i)).toBeVisible();

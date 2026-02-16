@@ -1,4 +1,5 @@
 import { api } from './api';
+import { useAuthStore } from '@/stores/auth';
 
 // ---- API response types (snake_case, matching server) ----
 
@@ -211,7 +212,7 @@ export const boardApi = {
 
   // Export
   exportBoard: async (boardId: string, format: 'json' | 'markdown' | 'html'): Promise<Blob> => {
-    const token = localStorage.getItem('access_token');
+    const token = useAuthStore.getState().accessToken;
     const response = await fetch(`/api/v1/boards/${boardId}/export?format=${format}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Pencil, Trash2, ThumbsUp, X, Check, Smile, FileCheck } from 'lucide-react';
 import { useBoardStore } from '@/stores/board';
 import { useAuthStore } from '@/stores/auth';
@@ -30,11 +30,26 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(card.content);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [pickerPosition, setPickerPosition] = useState<{ top: number; left: number } | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
+  const pickerButtonRef = useRef<HTMLButtonElement>(null);
+
+  const updatePickerPosition = useCallback(() => {
+    if (pickerButtonRef.current) {
+      const rect = pickerButtonRef.current.getBoundingClientRect();
+      setPickerPosition({
+        top: rect.top - 4, // Above the button with small gap
+        left: rect.left,
+      });
+    }
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+      if (
+        pickerRef.current && !pickerRef.current.contains(event.target as Node) &&
+        pickerButtonRef.current && !pickerButtonRef.current.contains(event.target as Node)
+      ) {
         setShowReactionPicker(false);
       }
     };
@@ -113,9 +128,19 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
 
   const handleReactionClick = async (emoji: string) => {
     try {
-      await boardApi.toggleReaction(card.id, emoji);
+      const result = await boardApi.toggleReaction(card.id, emoji);
       setShowReactionPicker(false);
-      // Reactions will be updated via WebSocket real-time sync
+      // Update card reactions immediately from API response
+      useBoardStore.setState((state) => {
+        const existing = state.cards[card.id];
+        if (!existing) return state;
+        return {
+          cards: {
+            ...state.cards,
+            [card.id]: { ...existing, reactions: result.reactions },
+          },
+        };
+      });
     } catch {
       toast.error('Failed to add reaction');
     }
@@ -199,11 +224,15 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
                   <span className="font-medium">{reaction.count}</span>
                 </button>
               ))}
-              {!isLocked && (
-                <div className="relative" ref={pickerRef}>
+              {!isLocked && isWritePhase && (
+                <div className="relative">
                   <button
+                    ref={pickerButtonRef}
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (!showReactionPicker) {
+                        updatePickerPosition();
+                      }
                       setShowReactionPicker(!showReactionPicker);
                     }}
                     className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600"
@@ -211,8 +240,17 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
                   >
                     <Smile className="h-3.5 w-3.5" />
                   </button>
-                  {showReactionPicker && (
-                    <div className="absolute bottom-full left-0 mb-1 bg-white rounded-lg shadow-lg border border-slate-200 p-2 grid grid-cols-6 gap-1 z-[1000]">
+                  {showReactionPicker && pickerPosition && (
+                    <div
+                      ref={pickerRef}
+                      className="fixed bg-white rounded-lg shadow-lg border border-slate-200 p-2 grid grid-cols-6 gap-1"
+                      style={{
+                        top: pickerPosition.top,
+                        left: pickerPosition.left,
+                        transform: 'translateY(-100%)',
+                        zIndex: 9999,
+                      }}
+                    >
                       {REACTION_EMOJIS.map((emoji) => (
                         <button
                           key={emoji}

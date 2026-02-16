@@ -4,45 +4,48 @@ import { generateUniqueEmail, registerUser, createTeamAndBoard } from './helpers
 /**
  * E2E tests for Icebreaker Generator (S-028)
  *
- * Component: IcebreakerCard (auto-shows during write phase)
+ * Component: IcebreakerCard — fullscreen warmup view shown BEFORE write phase columns.
  * Location: services/retroboard-server/client/src/components/board/IcebreakerCard.tsx
  *
  * Key selectors:
- * - Card heading: "🎲 Icebreaker Question"
- * - Question text: Large text within the card
+ * - Heading: "🎲 Icebreaker Question"
+ * - Question text: Large centered text in a card within the warmup
  * - Category badge: Shows category name (Fun, Team-Building, etc.)
  * - Category filter buttons: "All", "Fun", "Team-Building", "Reflective", "Creative", "Quick"
  * - Refresh button: "New Question" with RefreshCw icon
- * - Dismiss button: X icon with aria-label "Dismiss icebreaker"
+ * - Start Writing button: Prominent button that dismisses warmup and shows columns
+ * - "+ Add Custom" button: Opens custom question form
  *
- * Note: Icebreaker card automatically appears during write phase, no button click needed
+ * Note: Icebreaker warmup automatically appears during write phase, replacing columns
+ * until the user clicks "Start Writing"
  */
 
 test.describe('Icebreaker Generator (S-028)', () => {
-  test('E2E-ICEBREAKER-1: Icebreaker card auto-displays during write phase', async ({ page }) => {
+  test('E2E-ICEBREAKER-1: Icebreaker warmup displays as fullscreen view during write phase', async ({ page }) => {
     const email = generateUniqueEmail();
     const password = 'SecurePass123!';
     const displayName = 'Icebreaker Facilitator';
     const teamName = `Icebreaker Team ${Date.now()}`;
 
-    // Register user and create board (user is facilitator by default)
+    // Register user and create board (keepIcebreaker: warmup stays visible)
     await registerUser(page, { email, password, displayName });
-    await createTeamAndBoard(page, { teamName });
-    await expect(page.getByRole('heading', { name: /What Went Well/i })).toBeVisible({ timeout: 10000 });
+    await createTeamAndBoard(page, { teamName, keepIcebreaker: true });
 
-    // Board should be in Write phase initially - icebreaker auto-shows
+    // Warmup should be visible instead of columns
     await expect(page.getByText('🎲 Icebreaker Question')).toBeVisible({ timeout: 5000 });
 
-    // Wait for icebreaker data to load (question text should appear, not "Loading...")
-    const icebreakerCard = page.locator('div').filter({ hasText: '🎲 Icebreaker Question' }).first();
-    const questionText = icebreakerCard.locator('p.text-lg');
+    // Columns should NOT be visible while warmup is showing
+    await expect(page.getByRole('heading', { name: /What Went Well/i })).not.toBeVisible();
+
+    // Wait for icebreaker data to load (question text should appear)
+    const questionText = page.locator('p.text-xl');
     await expect(questionText).toBeVisible({ timeout: 10000 });
     const question = await questionText.textContent();
     expect(question).toBeTruthy();
-    expect(question).not.toBe('Loading icebreaker...');
+    expect(question).not.toContain('Loading icebreaker...');
 
-    // Verify dismiss button is present
-    await expect(page.getByRole('button', { name: 'Dismiss icebreaker' })).toBeVisible();
+    // Verify "Start Writing" button is present (replaces old dismiss X)
+    await expect(page.getByRole('button', { name: /start writing/i })).toBeVisible();
 
     // Verify refresh button is present
     await expect(page.getByRole('button', { name: 'New Question' })).toBeVisible();
@@ -55,26 +58,25 @@ test.describe('Icebreaker Generator (S-028)', () => {
     const teamName = `Re-roll Team ${Date.now()}`;
 
     await registerUser(page, { email, password, displayName });
-    await createTeamAndBoard(page, { teamName });
-    await expect(page.getByRole('heading', { name: /What Went Well/i })).toBeVisible({ timeout: 10000 });
+    await createTeamAndBoard(page, { teamName, keepIcebreaker: true });
 
     // Wait for initial icebreaker to load
     await expect(page.getByText('🎲 Icebreaker Question')).toBeVisible({ timeout: 5000 });
 
     // Get the initial question text
-    const icebreakerCard = page.locator('div').filter({ hasText: '🎲 Icebreaker Question' }).first();
-    const firstQuestion = await icebreakerCard.locator('p.text-lg').textContent();
+    const questionEl = page.locator('p.text-xl');
+    const firstQuestion = await questionEl.textContent();
     expect(firstQuestion).toBeTruthy();
-    expect(firstQuestion).not.toBe('Loading icebreaker...');
+    expect(firstQuestion).not.toContain('Loading icebreaker...');
 
     // Click "New Question" button
     await page.getByRole('button', { name: 'New Question' }).click();
 
-    // Wait a moment for the new question to load
+    // Wait for the new question to load
     await page.waitForTimeout(1000);
 
     // Get the new question text
-    const secondQuestion = await icebreakerCard.locator('p.text-lg').textContent();
+    const secondQuestion = await questionEl.textContent();
     expect(secondQuestion).toBeTruthy();
 
     // Note: Questions might repeat due to random selection, so we can't guarantee different questions
@@ -88,63 +90,66 @@ test.describe('Icebreaker Generator (S-028)', () => {
     const teamName = `Category Team ${Date.now()}`;
 
     await registerUser(page, { email, password, displayName });
-    await createTeamAndBoard(page, { teamName });
-    await expect(page.getByRole('heading', { name: /What Went Well/i })).toBeVisible({ timeout: 10000 });
+    await createTeamAndBoard(page, { teamName, keepIcebreaker: true });
 
-    // Wait for icebreaker card to appear
+    // Wait for icebreaker warmup to appear
     await expect(page.getByText('🎲 Icebreaker Question')).toBeVisible({ timeout: 5000 });
-
-    const icebreakerCard = page.locator('div').filter({ hasText: '🎲 Icebreaker Question' }).first();
 
     // Verify all category filter buttons are present
     const categories = ['All', 'Fun', 'Team-Building', 'Reflective', 'Creative', 'Quick'];
     for (const category of categories) {
-      await expect(icebreakerCard.getByRole('button', { name: category, exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: category, exact: true })).toBeVisible();
     }
 
     // Click "Fun" category filter
-    await icebreakerCard.getByRole('button', { name: 'Fun', exact: true }).click();
+    await page.getByRole('button', { name: 'Fun', exact: true }).click();
 
     // Wait for new question to load
     await page.waitForTimeout(1000);
 
-    // Verify question text changed (new icebreaker loaded)
-    const questionAfterFun = await icebreakerCard.locator('p.text-lg').textContent();
+    // Verify question text loaded
+    const questionEl = page.locator('p.text-xl');
+    const questionAfterFun = await questionEl.textContent();
     expect(questionAfterFun).toBeTruthy();
-    expect(questionAfterFun).not.toBe('Loading icebreaker...');
+    expect(questionAfterFun).not.toContain('Loading icebreaker...');
 
     // Try another category: "Quick"
-    await icebreakerCard.getByRole('button', { name: 'Quick', exact: true }).click();
+    await page.getByRole('button', { name: 'Quick', exact: true }).click();
     await page.waitForTimeout(1000);
 
-    // Verify question text changed again
-    const questionAfterQuick = await icebreakerCard.locator('p.text-lg').textContent();
+    // Verify question text loaded again
+    const questionAfterQuick = await questionEl.textContent();
     expect(questionAfterQuick).toBeTruthy();
-    expect(questionAfterQuick).not.toBe('Loading icebreaker...');
+    expect(questionAfterQuick).not.toContain('Loading icebreaker...');
 
     // Reset to "All"
-    await icebreakerCard.getByRole('button', { name: 'All', exact: true }).click();
+    await page.getByRole('button', { name: 'All', exact: true }).click();
     await page.waitForTimeout(500);
   });
 
-  test('E2E-ICEBREAKER-4: User can dismiss icebreaker card', async ({ page }) => {
+  test('E2E-ICEBREAKER-4: Clicking Start Writing dismisses warmup and shows columns', async ({ page }) => {
     const email = generateUniqueEmail();
     const password = 'SecurePass123!';
     const displayName = 'Dismiss Tester';
     const teamName = `Dismiss Team ${Date.now()}`;
 
     await registerUser(page, { email, password, displayName });
-    await createTeamAndBoard(page, { teamName });
-    await expect(page.getByRole('heading', { name: /What Went Well/i })).toBeVisible({ timeout: 10000 });
+    await createTeamAndBoard(page, { teamName, keepIcebreaker: true });
 
-    // Wait for icebreaker card to appear
+    // Wait for icebreaker warmup to appear
     await expect(page.getByText('🎲 Icebreaker Question')).toBeVisible({ timeout: 5000 });
 
-    // Click dismiss button
-    await page.getByRole('button', { name: 'Dismiss icebreaker' }).click();
+    // Columns should be hidden
+    await expect(page.getByRole('heading', { name: /What Went Well/i })).not.toBeVisible();
 
-    // Verify icebreaker card is no longer visible
+    // Click "Start Writing" button
+    await page.getByRole('button', { name: /start writing/i }).click();
+
+    // Verify icebreaker warmup is gone
     await expect(page.getByText('🎲 Icebreaker Question')).not.toBeVisible();
+
+    // Verify columns are now visible
+    await expect(page.getByRole('heading', { name: /What Went Well/i })).toBeVisible({ timeout: 5000 });
   });
 
   test('E2E-ICEBREAKER-REALTIME: Icebreaker broadcasts to all participants when facilitator refreshes', async ({ page, context }) => {
@@ -174,8 +179,10 @@ test.describe('Icebreaker Generator (S-028)', () => {
       }
     });
 
-    await createTeamAndBoard(page, { teamName });
-    await expect(page.getByRole('heading', { name: /What Went Well/i })).toBeVisible({ timeout: 10000 });
+    await createTeamAndBoard(page, { teamName, keepIcebreaker: true });
+
+    // Warmup should be visible
+    await expect(page.getByText('🎲 Icebreaker Question')).toBeVisible({ timeout: 5000 });
 
     // Navigate to team page to get invite link (invite functionality is on TeamDetailPage)
     await page.getByRole('link', { name: 'Back to Team' }).click();
@@ -203,7 +210,9 @@ test.describe('Icebreaker Generator (S-028)', () => {
     await page.getByRole('tab', { name: 'Sprints' }).click();
     await page.waitForTimeout(500);
     await page.getByRole('link', { name: 'Board', exact: true }).click();
-    await expect(page.getByRole('heading', { name: /What Went Well/i })).toBeVisible({ timeout: 5000 });
+
+    // Wait for icebreaker warmup (page reload resets showIcebreaker to true)
+    await expect(page.getByText('🎲 Icebreaker Question')).toBeVisible({ timeout: 10000 });
 
     // Setup participant in new browser context (to avoid sharing auth state)
     const participantContext = await context.browser()!.newContext();
@@ -228,16 +237,16 @@ test.describe('Icebreaker Generator (S-028)', () => {
     await participantPage.goto(page.url()); // Same board URL as facilitator
     await participantPage.waitForTimeout(1000);
 
-    // Both should see icebreaker cards
+    // Both should see icebreaker warmup
     await expect(page.getByText('🎲 Icebreaker Question')).toBeVisible({ timeout: 5000 });
     await expect(participantPage.getByText('🎲 Icebreaker Question')).toBeVisible({ timeout: 5000 });
 
     // Get initial questions from both users
-    const facilitatorCard = page.locator('div').filter({ hasText: '🎲 Icebreaker Question' }).first();
-    const participantCard = participantPage.locator('div').filter({ hasText: '🎲 Icebreaker Question' }).first();
+    const facilitatorQuestion = page.locator('p.text-xl');
+    const participantQuestion = participantPage.locator('p.text-xl');
 
-    const initialFacilitatorQuestion = await facilitatorCard.locator('p.text-lg').textContent();
-    const initialParticipantQuestion = await participantCard.locator('p.text-lg').textContent();
+    const initialFacilitatorQuestion = await facilitatorQuestion.textContent();
+    const initialParticipantQuestion = await participantQuestion.textContent();
 
     // Questions might be different initially (each user gets a random one on load)
     expect(initialFacilitatorQuestion).toBeTruthy();
@@ -250,27 +259,27 @@ test.describe('Icebreaker Generator (S-028)', () => {
     await page.waitForTimeout(1500);
 
     // Get new questions from both users
-    const newFacilitatorQuestion = await facilitatorCard.locator('p.text-lg').textContent();
-    const newParticipantQuestion = await participantCard.locator('p.text-lg').textContent();
+    const newFacilitatorQuestion = await facilitatorQuestion.textContent();
+    const newParticipantQuestion = await participantQuestion.textContent();
 
     // Verify facilitator's question changed
     expect(newFacilitatorQuestion).toBeTruthy();
-    expect(newFacilitatorQuestion).not.toBe('Loading icebreaker...');
+    expect(newFacilitatorQuestion).not.toContain('Loading icebreaker...');
 
     // CRITICAL: Verify participant sees the EXACT SAME question as facilitator
     expect(newParticipantQuestion).toBe(newFacilitatorQuestion);
 
     // Verify both see the same category badge
-    const facilitatorCategory = await facilitatorCard.locator('span.bg-indigo-100').textContent();
-    const participantCategory = await participantCard.locator('span.bg-indigo-100').textContent();
+    const facilitatorCategory = await page.locator('span.bg-indigo-100').textContent();
+    const participantCategory = await participantPage.locator('span.bg-indigo-100').textContent();
     expect(participantCategory).toBe(facilitatorCategory);
 
     // Refresh again to verify it continues working
     await page.getByRole('button', { name: 'New Question' }).click();
     await page.waitForTimeout(1500);
 
-    const secondFacilitatorQuestion = await facilitatorCard.locator('p.text-lg').textContent();
-    const secondParticipantQuestion = await participantCard.locator('p.text-lg').textContent();
+    const secondFacilitatorQuestion = await facilitatorQuestion.textContent();
+    const secondParticipantQuestion = await participantQuestion.textContent();
 
     // Both should see the same question again
     expect(secondParticipantQuestion).toBe(secondFacilitatorQuestion);
@@ -285,26 +294,12 @@ test.describe('Icebreaker Generator (S-028)', () => {
     const customQuestion = `What is your favorite debugging technique? (${Date.now()})`;
 
     await registerUser(page, { email, password, displayName });
-    await createTeamAndBoard(page, { teamName });
-    await expect(page.getByRole('heading', { name: /What Went Well/i })).toBeVisible({ timeout: 10000 });
+    await createTeamAndBoard(page, { teamName, keepIcebreaker: true });
 
     // Verify URL contains teamId (should be /teams/{teamId}/sprints/{sprintId}/board)
     await expect(page).toHaveURL(/\/teams\/[a-f0-9-]+\/sprints\/[a-f0-9-]+\/board/);
 
-    // Intercept custom icebreaker API call to see errors
-    page.on('response', async (response) => {
-      if (response.url().includes('/icebreakers/custom') && response.request().method() === 'POST') {
-        console.log(`Custom icebreaker API response: status=${response.status()}`);
-        try {
-          const data = await response.json();
-          console.log('Response data:', JSON.stringify(data, null, 2));
-        } catch (e) {
-          console.log('Failed to parse response:', e);
-        }
-      }
-    });
-
-    // Wait for icebreaker card to appear
+    // Wait for icebreaker warmup to appear
     await expect(page.getByText('🎲 Icebreaker Question')).toBeVisible({ timeout: 5000 });
 
     // Click "Add Custom" button to show the custom question form

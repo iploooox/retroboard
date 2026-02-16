@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ChevronLeft, AlertCircle, LayoutDashboard } from 'lucide-react';
+import { Modal } from '@/components/ui/Modal';
 import { useBoardStore } from '@/stores/board';
 import { useAuthStore } from '@/stores/auth';
 import { usePresenceStore } from '@/stores/presence';
 import { api, ApiError } from '@/lib/api';
+import { facilitationApi } from '@/lib/facilitation-api';
+import { toast } from '@/lib/toast';
 import { getWSClient } from '@/lib/ws-client';
 import { useBoardSync } from '@/hooks/useBoardSync';
 import { Spinner } from '@/components/ui/Spinner';
@@ -164,6 +167,10 @@ export function BoardPage() {
   const [showIcebreaker, setShowIcebreaker] = useState(true);
   const [actionItemInitialCardId, setActionItemInitialCardId] = useState<string | undefined>();
   const [actionItemInitialTitle, setActionItemInitialTitle] = useState<string | undefined>();
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [showPhaseConfirm, setShowPhaseConfirm] = useState(false);
+  const [pendingPhase, setPendingPhase] = useState<BoardPhase | null>(null);
 
   // WebSocket sync
   useBoardSync(board?.id || null, wsConnected);
@@ -229,6 +236,43 @@ export function BoardPage() {
     setActionItemInitialTitle(cardContent);
     setShowActionItems(true);
   };
+
+  const handleInvite = useCallback(async () => {
+    if (!teamId) return;
+    try {
+      const data = await api.post<{ invitation: { invite_url: string } }>(`/teams/${teamId}/invitations`, {
+        role: 'member',
+        expires_in_hours: 168,
+        max_uses: null,
+      });
+      // Normalize to /invite/ path (both /join/ and /invite/ routes work)
+      setInviteLink(data.invitation.invite_url.replace('/join/', '/invite/'));
+      setShowInviteModal(true);
+    } catch {
+      // If creating fails, still show the modal (empty state)
+      setShowInviteModal(true);
+    }
+  }, [teamId]);
+
+  const handlePhaseClick = useCallback((phase: BoardPhase) => {
+    setPendingPhase(phase);
+    setShowPhaseConfirm(true);
+  }, []);
+
+  const handleConfirmPhase = useCallback(async () => {
+    if (!pendingPhase || !board) return;
+    try {
+      await facilitationApi.setPhase(board.id, pendingPhase);
+      useBoardStore.setState((state) => ({
+        board: state.board ? { ...state.board, phase: pendingPhase } : null,
+      }));
+      setShowPhaseConfirm(false);
+      setPendingPhase(null);
+      toast.success(`Phase changed to ${pendingPhase.charAt(0).toUpperCase() + pendingPhase.slice(1)}`);
+    } catch {
+      toast.error('Failed to change phase');
+    }
+  }, [pendingPhase, board]);
 
   const isFacilitator = userRole === 'admin' || userRole === 'facilitator';
   const sortedColumns = [...columns].sort((a, b) => a.position - b.position);
@@ -336,7 +380,7 @@ export function BoardPage() {
       <PresenceBar />
 
       {/* Phase bar */}
-      <PhaseBar currentPhase={board.phase} isFacilitator={isFacilitator} />
+      <PhaseBar currentPhase={board.phase} isFacilitator={isFacilitator} onPhaseClick={isFacilitator ? handlePhaseClick : undefined} />
 
       {/* Board header */}
       <BoardHeader
@@ -344,6 +388,7 @@ export function BoardPage() {
         onOpenSettings={() => setShowSettings(true)}
         onOpenActionItems={() => setShowActionItems(true)}
         onOpenExport={() => setShowExport(true)}
+        onInvite={handleInvite}
       />
 
       {/* Group manager (group phase only) */}
@@ -358,12 +403,12 @@ export function BoardPage() {
         </div>
       )}
 
-      {/* Icebreaker (write phase only) */}
+      {/* Icebreaker warmup (compact banner above columns during write phase) */}
       {board.phase === 'write' && showIcebreaker && teamId && (
         <IcebreakerCard teamId={teamId} boardId={board.id} onDismiss={() => setShowIcebreaker(false)} />
       )}
 
-      {/* Columns */}
+      {/* Board columns — always visible */}
       <div className="flex-1 overflow-x-auto min-h-0" style={{ backgroundColor: 'var(--theme-bg)' }}>
         <div className="flex gap-4 p-4 h-full min-w-min">
           {sortedColumns.map((col) => (
@@ -413,10 +458,57 @@ export function BoardPage() {
         />
       )}
 
+      {/* Invite modal */}
+      <Modal
+        open={showInviteModal}
+        onClose={() => { setShowInviteModal(false); setInviteLink(null); }}
+        title="Invite Team Member"
+      >
+        {inviteLink ? (
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">Share this link to invite someone to the team:</p>
+            <input
+              readOnly
+              value={inviteLink}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-slate-50"
+            />
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500">Creating invite link...</p>
+        )}
+      </Modal>
+
+      {/* Phase change confirmation dialog */}
+      {showPhaseConfirm && pendingPhase && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Change Phase</h3>
+            <p className="text-slate-600 mb-4">
+              Move from <strong>{board.phase.charAt(0).toUpperCase() + board.phase.slice(1)}</strong> to{' '}
+              <strong>{pendingPhase.charAt(0).toUpperCase() + pendingPhase.slice(1)}</strong>?
+            </p>
+            <p className="text-sm text-slate-500 mb-6">
+              This will change the board for all connected participants.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="secondary"
+                onClick={() => { setShowPhaseConfirm(false); setPendingPhase(null); }}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleConfirmPhase}>Change Phase</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Facilitator toolbar (only for facilitators/admins) */}
       {isFacilitator && board && (
         <FacilitatorToolbar
           boardId={board.id}
+          teamId={teamId || ''}
+          sprintId={sprintId || ''}
           currentPhase={board.phase}
           isLocked={isLocked}
           cardsRevealed={cardsRevealed}

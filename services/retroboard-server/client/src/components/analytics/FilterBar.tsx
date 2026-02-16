@@ -7,16 +7,24 @@ interface FilterBarProps {
   onExportCSV: () => void;
   sprintRange?: SprintRangeOption;
   onSprintRangeChange?: (range: SprintRangeOption) => void;
+  dateStart?: string;
+  dateEnd?: string;
+  onDateStartChange?: (date: string) => void;
+  onDateEndChange?: (date: string) => void;
 }
 
 export function FilterBar({
   onExportCSV,
   sprintRange = '10',
   onSprintRangeChange,
+  dateStart = '',
+  dateEnd = '',
+  onDateStartChange,
+  onDateEndChange,
 }: FilterBarProps) {
   return (
     <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         {/* Sprint Range Selector */}
         {onSprintRangeChange && (
           <div className="flex items-center gap-2">
@@ -36,6 +44,32 @@ export function FilterBar({
             </select>
           </div>
         )}
+
+        {/* Date Range Inputs */}
+        <div className="flex items-center gap-2">
+          <label htmlFor="date-start" className="text-sm text-slate-600 font-medium">
+            From:
+          </label>
+          <input
+            type="date"
+            id="date-start"
+            value={dateStart}
+            onChange={(e) => onDateStartChange?.(e.target.value)}
+            className="text-sm border border-slate-300 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="date-end" className="text-sm text-slate-600 font-medium">
+            To:
+          </label>
+          <input
+            type="date"
+            id="date-end"
+            value={dateEnd}
+            onChange={(e) => onDateEndChange?.(e.target.value)}
+            className="text-sm border border-slate-300 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
       </div>
 
       <Button variant="secondary" onClick={onExportCSV}>

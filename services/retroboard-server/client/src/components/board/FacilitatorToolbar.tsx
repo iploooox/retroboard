@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { BoardPhase } from '@/lib/board-api';
-import { Play, Pause, RotateCcw, Lock, Unlock, Eye, ChevronRight } from 'lucide-react';
+import { Play, Pause, RotateCcw, Lock, Unlock, Eye, ChevronRight, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { facilitationApi } from '@/lib/facilitation-api';
+import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 
 const PHASES: Array<{ key: BoardPhase; label: string }> = [
@@ -15,6 +16,8 @@ const PHASES: Array<{ key: BoardPhase; label: string }> = [
 
 interface FacilitatorToolbarProps {
   boardId: string;
+  teamId: string;
+  sprintId: string;
   currentPhase: BoardPhase;
   isLocked?: boolean;
   cardsRevealed?: boolean;
@@ -22,10 +25,13 @@ interface FacilitatorToolbarProps {
   onPhaseChange: (phase: BoardPhase) => void;
   onLockToggle: (locked: boolean) => void;
   onRevealCards: () => void;
+  onBoardCompleted?: () => void;
 }
 
 export function FacilitatorToolbar({
   boardId,
+  teamId,
+  sprintId,
   currentPhase,
   isLocked = false,
   cardsRevealed = false,
@@ -33,45 +39,66 @@ export function FacilitatorToolbar({
   onPhaseChange,
   onLockToggle,
   onRevealCards,
+  onBoardCompleted,
 }: FacilitatorToolbarProps) {
   const [timerDuration] = useState(300); // 5 minutes default
   const [timerRemaining, setTimerRemaining] = useState(300);
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerPaused, setTimerPaused] = useState(false);
   const [isStartingTimer, setIsStartingTimer] = useState(false);
-  const [showPhaseConfirm, setShowPhaseConfirm] = useState(false);
-  const [pendingPhase, setPendingPhase] = useState<BoardPhase | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerStartRef = useRef<number>(0);
+  const timerInitialRef = useRef<number>(300);
 
-  // Client-side countdown interval
+  // Clear interval helper
+  const clearTimerInterval = useCallback(() => {
+    if (intervalRef.current !== null) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  // Client-side countdown using Date.now() arithmetic for accuracy
   useEffect(() => {
-    if (!timerRunning || timerPaused) return;
+    if (!timerRunning || timerPaused) {
+      clearTimerInterval();
+      return;
+    }
 
-    const interval = setInterval(() => {
-      setTimerRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          setTimerRunning(false);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    timerStartRef.current = Date.now();
+    timerInitialRef.current = timerRemaining;
 
-    return () => clearInterval(interval);
-  }, [timerRunning, timerPaused]);
+    intervalRef.current = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - timerStartRef.current) / 1000);
+      const newRemaining = Math.max(0, timerInitialRef.current - elapsed);
+      setTimerRemaining(newRemaining);
+
+      if (newRemaining <= 0) {
+        clearTimerInterval();
+        setTimerRunning(false);
+      }
+    }, 100);
+
+    return clearTimerInterval;
+  }, [timerRunning, timerPaused, clearTimerInterval]);
 
   const currentPhaseIndex = PHASES.findIndex((p) => p.key === currentPhase);
   const nextPhase = currentPhaseIndex < PHASES.length - 1 ? PHASES[currentPhaseIndex + 1] : null;
 
   const handleStartTimer = async () => {
     setIsStartingTimer(true);
+    // Start countdown optimistically so the UI updates immediately
+    setTimerRunning(true);
+    setTimerPaused(false);
+    setTimerRemaining(timerDuration);
     try {
       await facilitationApi.startTimer(boardId, timerDuration);
-      setTimerRunning(true);
-      setTimerPaused(false);
-      setTimerRemaining(timerDuration);
       toast.success('Timer started');
     } catch {
+      // Revert on failure
+      setTimerRunning(false);
+      setTimerPaused(false);
+      setTimerRemaining(timerDuration);
       toast.error('Failed to start timer');
     } finally {
       setIsStartingTimer(false);
@@ -79,28 +106,38 @@ export function FacilitatorToolbar({
   };
 
   const handlePauseTimer = async () => {
+    // Pause immediately for responsive UI
+    clearTimerInterval();
+    setTimerPaused(true);
+    setTimerRunning(false);
     try {
       await facilitationApi.pauseTimer(boardId);
-      setTimerPaused(true);
-      setTimerRunning(false);
       toast.success('Timer paused');
     } catch {
+      // Revert: resume the timer
+      setTimerPaused(false);
+      setTimerRunning(true);
       toast.error('Failed to pause timer');
     }
   };
 
   const handleResumeTimer = async () => {
+    // Resume immediately for responsive UI
+    setTimerPaused(false);
+    setTimerRunning(true);
     try {
       await facilitationApi.resumeTimer(boardId);
-      setTimerPaused(false);
-      setTimerRunning(true);
       toast.success('Timer resumed');
     } catch {
+      // Revert: pause again
+      setTimerPaused(true);
+      setTimerRunning(false);
       toast.error('Failed to resume timer');
     }
   };
 
   const handleResetTimer = async () => {
+    clearTimerInterval();
     try {
       await facilitationApi.stopTimer(boardId);
       setTimerRunning(false);
@@ -112,21 +149,13 @@ export function FacilitatorToolbar({
     }
   };
 
-  const handlePhaseClick = (phase: BoardPhase) => {
-    setPendingPhase(phase);
-    setShowPhaseConfirm(true);
-  };
-
-  const handleConfirmPhase = async () => {
-    if (!pendingPhase) return;
-
+  const handleDirectPhaseAdvance = async (phase: BoardPhase) => {
+    // Optimistic update — show new phase immediately before API completes
+    onPhaseChange(phase);
     try {
-      await facilitationApi.setPhase(boardId, pendingPhase);
-      onPhaseChange(pendingPhase);
-      setShowPhaseConfirm(false);
-      setPendingPhase(null);
-      toast.success(`Phase changed to ${PHASES.find((p) => p.key === pendingPhase)?.label}`);
+      await facilitationApi.setPhase(boardId, phase);
     } catch {
+      onPhaseChange(currentPhase); // Revert on failure
       toast.error('Failed to change phase');
     }
   };
@@ -151,6 +180,16 @@ export function FacilitatorToolbar({
     }
   };
 
+  const handleCompleteRetro = async () => {
+    try {
+      await api.put(`/teams/${teamId}/sprints/${sprintId}/complete`, {});
+      toast.success('Retro completed');
+      onBoardCompleted?.();
+    } catch {
+      toast.error('Failed to complete retro');
+    }
+  };
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -158,37 +197,9 @@ export function FacilitatorToolbar({
   };
 
   return (
-    <>
-      <div className="bg-white border-t border-slate-200 shadow-lg">
+    <div className="bg-white border-t border-slate-200 shadow-lg">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 sm:py-3">
           <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-6">
-            {/* Phase Controls */}
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="text-xs sm:text-sm text-slate-600 font-medium mr-1 sm:mr-2">Phase:</span>
-              {PHASES.map((phase, index) => {
-                const isActive = phase.key === currentPhase;
-                const isCompleted = index < currentPhaseIndex;
-                return (
-                  <button
-                    key={phase.key}
-                    onClick={() => handlePhaseClick(phase.key)}
-                    className={`
-                      px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all
-                      ${isActive
-                        ? 'bg-indigo-600 text-white'
-                        : isCompleted
-                          ? 'bg-indigo-50 text-indigo-700'
-                          : 'bg-slate-50 text-slate-400'
-                      }
-                      hover:brightness-105
-                    `}
-                  >
-                    {phase.label}
-                  </button>
-                );
-              })}
-            </div>
-
             {/* Timer Controls */}
             <div className="flex items-center gap-2 sm:gap-3">
               <span className="text-xs sm:text-sm text-slate-600 font-medium hidden sm:inline">Timer:</span>
@@ -271,45 +282,27 @@ export function FacilitatorToolbar({
             {/* Next Phase Button */}
             {nextPhase && (
               <Button
-                onClick={() => handlePhaseClick(nextPhase.key)}
+                onClick={() => handleDirectPhaseAdvance(nextPhase.key)}
+                className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-2.5 sm:px-4"
+                title={`Advance to ${nextPhase.label} phase`}
+              >
+                <span>Next phase</span>
+                <ChevronRight className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
+              </Button>
+            )}
+
+            {/* Complete Retro Button (action phase only) */}
+            {!nextPhase && currentPhase === 'action' && (
+              <Button
+                onClick={handleCompleteRetro}
                 className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-2.5 sm:px-4"
               >
-                <span className="hidden sm:inline">Next Phase: {nextPhase.label}</span>
-                <span className="sm:hidden">Next: {nextPhase.label}</span>
-                <ChevronRight className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
+                <CheckCircle className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
+                <span>Complete Retro</span>
               </Button>
             )}
           </div>
         </div>
-      </div>
-
-      {/* Phase Confirmation Dialog */}
-      {showPhaseConfirm && pendingPhase && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">Change Phase</h3>
-            <p className="text-slate-600 mb-4">
-              Move from <strong>{PHASES.find((p) => p.key === currentPhase)?.label}</strong> to{' '}
-              <strong>{PHASES.find((p) => p.key === pendingPhase)?.label}</strong>?
-            </p>
-            <p className="text-sm text-slate-500 mb-6">
-              This will change the board for all connected participants.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setShowPhaseConfirm(false);
-                  setPendingPhase(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleConfirmPhase}>Change Phase</Button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 }

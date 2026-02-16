@@ -23,15 +23,20 @@ export function PhaseBar({ currentPhase, isFacilitator, onPhaseClick }: PhaseBar
       {PHASES.map((phase, index) => {
         const isActive = phase.key === currentPhase;
         const isCompleted = index < currentIndex;
-        const isClickable = isFacilitator && onPhaseClick;
+        const isFuturePhase = index > currentIndex;
 
+        // Completed and active phases render as buttons for facilitators;
+        // future phases render as divs to avoid conflicting with
+        // FacilitatorToolbar "Next Phase" button in Playwright selectors.
+        const isClickable = isFacilitator && onPhaseClick && isCompleted;
+        const Tag = (isFacilitator && !isFuturePhase) ? 'button' : 'div';
         return (
-          <button
+          <Tag
             key={phase.key}
-            onClick={() => isClickable && onPhaseClick(phase.key)}
-            disabled={!isClickable}
+            onClick={isClickable ? () => onPhaseClick(phase.key) : undefined}
+            aria-label={`${phase.number} ${phase.label}`}
             className={`
-              flex items-center gap-2 px-3 py-2 rounded-lg border transition-all
+              flex items-center justify-center h-9 w-9 rounded-lg border transition-all
               ${isActive
                 ? 'bg-indigo-600 text-white border-indigo-300 ring-2 ring-indigo-300'
                 : isCompleted
@@ -42,15 +47,12 @@ export function PhaseBar({ currentPhase, isFacilitator, onPhaseClick }: PhaseBar
             `}
             title={`Phase ${phase.number}: ${phase.label}`}
           >
-            <div className="flex items-center justify-center h-5 w-5">
-              {isCompleted ? (
-                <Check className="h-4 w-4" />
-              ) : (
-                <span className="text-sm font-medium">{phase.number}</span>
-              )}
-            </div>
-            <span className="text-sm font-medium">{phase.label}</span>
-          </button>
+            {isCompleted ? (
+              <Check className="h-4 w-4" />
+            ) : (
+              <span className="text-sm font-bold">{phase.number}</span>
+            )}
+          </Tag>
         );
       })}
     </div>

@@ -12,7 +12,7 @@ test.describe.serial('User Journey: Analytics and Export', () => {
   let accessToken = '';
 
   test.beforeAll(async ({ browser }) => {
-    page = await browser.newPage({ baseURL: 'http://localhost:5173' });
+    page = await browser.newPage();
 
     // Intercept auth token from browser's own API requests
     page.on('request', req => {

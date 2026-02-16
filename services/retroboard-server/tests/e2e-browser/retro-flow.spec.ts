@@ -8,7 +8,7 @@ test.describe.serial('Retro Flow - Happy Path', () => {
   let displayName: string;
 
   test.beforeAll(async ({ browser }) => {
-    page = await browser.newPage({ baseURL: 'http://localhost:5173' });
+    page = await browser.newPage();
     email = generateUniqueEmail();
     password = 'SecurePass123!';
     displayName = 'Retro Flow User';
@@ -114,8 +114,14 @@ test.describe.serial('Retro Flow - Happy Path', () => {
     await expect(createBoardButton).toBeVisible({ timeout: 10000 });
     await createBoardButton.click();
 
-    // Wait for board to load and verify columns are visible
+    // Wait for board to load — icebreaker warmup shows first
     await page.waitForTimeout(1500);
+
+    // Dismiss icebreaker warmup to reveal columns
+    const startWritingBtn = page.getByRole('button', { name: /start writing/i });
+    await startWritingBtn.waitFor({ state: 'visible', timeout: 10000 }).then(() => startWritingBtn.click()).catch(() => {});
+    await page.waitForTimeout(500);
+
     await expect(page.getByText(/what went well|went well/i)).toBeVisible();
   });
 

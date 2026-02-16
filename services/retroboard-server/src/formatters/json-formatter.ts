@@ -5,12 +5,21 @@ import type { BoardExportData } from '../repositories/export-repository.js';
  * Escapes < and > as Unicode to prevent XSS when JSON is embedded in HTML
  */
 export function formatAsJSON(boardData: BoardExportData, exportedBy: string): string {
+  // Transform card field names for export compatibility (content → text)
+  const columns = boardData.columns.map((col) => ({
+    ...col,
+    cards: col.cards.map(({ content, ...card }) => ({
+      ...card,
+      text: content,
+    })),
+  }));
+
   const output = {
     exportVersion: '1.0',
     exportedAt: new Date().toISOString(),
     exportedBy,
     board: boardData.board,
-    columns: boardData.columns,
+    columns,
     groups: boardData.groups,
     actionItems: boardData.actionItems,
     analytics: boardData.analytics,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, AlertCircle, TrendingUp } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
@@ -86,7 +86,8 @@ export function AnalyticsPage() {
   const { teamId } = useParams<{ teamId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [teamName, setTeamName] = useState<string>('');
   const [viewMode, setViewMode] = useState<ViewMode>('team');
@@ -96,6 +97,8 @@ export function AnalyticsPage() {
   // Workaround: Users can open two browser tabs to compare sprints
 
   const [sprintRange, setSprintRange] = useState<SprintRangeOption>('10');
+  const [dateStart, setDateStart] = useState('');
+  const [dateEnd, setDateEnd] = useState('');
 
   const [healthData, setHealthData] = useState<HealthDataPoint[]>([]);
   const [healthError, setHealthError] = useState<string | null>(null);
@@ -120,6 +123,9 @@ export function AnalyticsPage() {
   const [topVotedCards, setTopVotedCards] = useState<TopCard[]>([]);
   const [actionItems, setActionItems] = useState<ActionItems | null>(null);
   const [sprintName, setSprintName] = useState<string>('');
+
+  // Track whether we've loaded data at least once (for FilterBar visibility)
+  const hasLoadedOnce = useRef(false);
 
   // Sprint click handler
   const handleSprintClick = (sprintId: string) => {
@@ -202,7 +208,8 @@ export function AnalyticsPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      // Delay revocation to allow download to start
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch {
       // Silent fail
     }
@@ -212,7 +219,11 @@ export function AnalyticsPage() {
     if (!teamId) return;
 
     const fetchTeamAnalytics = async () => {
-      setIsLoading(true);
+      if (hasLoadedOnce.current) {
+        setIsRefreshing(true);
+      } else {
+        setIsInitialLoad(true);
+      }
       setError(null);
 
       try {
@@ -226,7 +237,8 @@ export function AnalyticsPage() {
         } else {
           setError('Failed to load team data');
         }
-        setIsLoading(false);
+        setIsInitialLoad(false);
+        setIsRefreshing(false);
         return;
       }
 
@@ -315,28 +327,35 @@ export function AnalyticsPage() {
         setWordCloudError('Failed to load word cloud data');
       }
 
-      setIsLoading(false);
+      hasLoadedOnce.current = true;
+      setIsInitialLoad(false);
+      setIsRefreshing(false);
     };
 
-    const fetchSprintAnalytics = async (sprintId: string) => {
-      setIsLoading(true);
+    const fetchSprintAnalytics = async (sid: string) => {
+      if (hasLoadedOnce.current) {
+        setIsRefreshing(true);
+      } else {
+        setIsInitialLoad(true);
+      }
       setError(null);
 
       try {
-        const response = await api.get<{
+        interface SprintAnalyticsResponse {
           sprintId: string;
           sprintName: string;
           teamId: string;
           teamName: string;
-          cards: {
+          noDataReason?: string;
+          cards?: {
             total: number;
             byColumn: Array<{ columnId: string; columnName: string; count: number }>;
           };
-          sentiment: {
+          sentiment?: {
             topPositiveCards: Array<{ cardId: string; text: string; sentiment: number; votes: number }>;
             topNegativeCards: Array<{ cardId: string; text: string; sentiment: number; votes: number }>;
           };
-          actionItems: {
+          actionItems?: {
             total: number;
             open: number;
             inProgress: number;
@@ -344,15 +363,35 @@ export function AnalyticsPage() {
             carriedOver: number;
             completionRate: number;
           };
-          wordCloud: Array<{ word: string; frequency: number; sentiment: number }>;
-        }>(`/sprints/${sprintId}/analytics`);
+          wordCloud?: Array<{ word: string; frequency: number; sentiment: number }>;
+        }
+
+        const response = await api.get<SprintAnalyticsResponse>(`/sprints/${sid}/analytics`);
 
         setSprintName(response.sprintName);
         setTeamName(response.teamName);
+
+        // Handle noDataReason (MV not yet refreshed or no board)
+        if (response.noDataReason || !response.cards) {
+          // Set empty data so the view renders without error
+          setCardDistribution([]);
+          setTopVotedCards([]);
+          setActionItems({ total: 0, open: 0, inProgress: 0, done: 0, carriedOver: 0, completionRate: 0 });
+          setWordCloudData([]);
+          setTotalCards(0);
+          hasLoadedOnce.current = true;
+          setIsInitialLoad(false);
+          setIsRefreshing(false);
+          return;
+        }
+
         setCardDistribution(response.cards.byColumn);
-        setTopVotedCards([...response.sentiment.topPositiveCards, ...response.sentiment.topNegativeCards].sort((a, b) => b.votes - a.votes));
-        setActionItems(response.actionItems);
-        setWordCloudData(response.wordCloud);
+        setTopVotedCards([
+          ...(response.sentiment?.topPositiveCards ?? []),
+          ...(response.sentiment?.topNegativeCards ?? []),
+        ].sort((a, b) => b.votes - a.votes));
+        setActionItems(response.actionItems ?? null);
+        setWordCloudData(response.wordCloud ?? []);
         setTotalCards(response.cards.total);
 
         // Also fetch sentiment with column breakdown
@@ -380,14 +419,18 @@ export function AnalyticsPage() {
           // Silent fail
         }
 
-        setIsLoading(false);
+        hasLoadedOnce.current = true;
+        setIsInitialLoad(false);
+        setIsRefreshing(false);
       } catch (err) {
         if (err instanceof ApiError) {
           setError(err.message);
         } else {
           setError('Failed to load sprint analytics');
         }
-        setIsLoading(false);
+        hasLoadedOnce.current = true;
+        setIsInitialLoad(false);
+        setIsRefreshing(false);
       }
     };
 
@@ -412,7 +455,7 @@ export function AnalyticsPage() {
     setSearchParams({});
   };
 
-  if (isLoading) {
+  if (isInitialLoad) {
     return (
       <div className="flex items-center justify-center py-20">
         <Spinner className="h-8 w-8 text-indigo-600" />
@@ -482,16 +525,25 @@ export function AnalyticsPage() {
           onClick={handleBackToTeam}
           className="mb-4 text-sm text-indigo-600 hover:underline"
         >
-          ← Back to Team Overview
+          &larr; Back to Team Overview
         </button>
       )}
 
-      {hasEnoughData && (
-        <FilterBar
-          onExportCSV={handleExportCSV}
-          sprintRange={sprintRange}
-          onSprintRangeChange={viewMode === 'team' ? setSprintRange : undefined}
-        />
+      <FilterBar
+        onExportCSV={handleExportCSV}
+        sprintRange={sprintRange}
+        onSprintRangeChange={viewMode === 'team' ? setSprintRange : undefined}
+        dateStart={dateStart}
+        dateEnd={dateEnd}
+        onDateStartChange={setDateStart}
+        onDateEndChange={setDateEnd}
+      />
+
+      {isRefreshing && (
+        <div className="flex items-center gap-2 mb-4 text-sm text-slate-500">
+          <Spinner className="h-4 w-4 text-indigo-600" />
+          <span>Updating analytics...</span>
+        </div>
       )}
 
       {!hasEnoughData && viewMode === 'team' ? (

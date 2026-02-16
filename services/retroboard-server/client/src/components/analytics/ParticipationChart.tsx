@@ -117,7 +117,7 @@ export function ParticipationChart({ members, teamAverages, teamId }: Participat
                   {member.userName}
                 </span>
                 <span className="text-slate-500 text-xs">
-                  {member.totals.cardsSubmitted}c + {member.totals.votesCast}v | Score: {engagementScore} | {participationRate.toFixed(0)}% participation
+                  {member.totals.cardsSubmitted}c + {member.totals.votesCast}v | Engagement: {engagementScore} | {participationRate.toFixed(0)}% active
                 </span>
               </div>
               <div className="flex gap-1">
@@ -158,8 +158,8 @@ export function ParticipationChart({ members, teamAverages, teamId }: Participat
           </span>
         </div>
         <div className="text-xs text-slate-500 bg-blue-50 border border-blue-200 rounded p-2">
-          <strong>Privacy Notice:</strong> Participation metrics are tracked to help improve team engagement.
-          Individual metrics are only visible to team admins and facilitators.
+          <strong>Privacy:</strong> Individual activity data is tracked to help improve team engagement
+          and is only visible to team admins and facilitators.
         </div>
       </div>
     </div>

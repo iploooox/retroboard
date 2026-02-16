@@ -13,7 +13,14 @@ const app = new Hono();
 app.use(
   '*',
   cors({
-    origin: env.NODE_ENV === 'production' ? [] : ['http://localhost:5173', 'http://localhost:3000'],
+    origin: env.NODE_ENV === 'production'
+      ? []
+      : (origin) => {
+          if (origin && /^http:\/\/localhost:\d+$/.test(origin)) {
+            return origin;
+          }
+          return undefined;
+        },
     credentials: true,
     allowHeaders: ['Authorization', 'Content-Type'],
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

@@ -8,7 +8,7 @@ test.describe.serial('Card Interactions - Full User Journey', () => {
   let displayName: string;
 
   test.beforeAll(async ({ browser }) => {
-    page = await browser.newPage({ baseURL: 'http://localhost:5173' });
+    page = await browser.newPage();
     email = generateUniqueEmail();
     password = 'SecurePass123!';
     displayName = 'Card Journey User';

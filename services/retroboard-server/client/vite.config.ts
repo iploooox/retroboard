@@ -15,14 +15,14 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    port: 5173,
+    port: parseInt(process.env.VITE_PORT || '5173'),
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: `http://localhost:${process.env.VITE_API_PORT || '3000'}`,
         changeOrigin: true,
       },
       '/ws': {
-        target: 'http://localhost:3000',
+        target: `http://localhost:${process.env.VITE_API_PORT || '3000'}`,
         ws: true,
       },
     },

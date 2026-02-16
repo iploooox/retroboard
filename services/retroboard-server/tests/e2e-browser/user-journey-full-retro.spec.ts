@@ -10,7 +10,7 @@ test.describe.serial('User Journey: Complete Retrospective Session', () => {
   let sprintName: string;
 
   test.beforeAll(async ({ browser }) => {
-    page = await browser.newPage({ baseURL: 'http://localhost:5173' });
+    page = await browser.newPage();
     email = generateUniqueEmail();
     password = 'SecurePass123!';
     displayName = 'Retro Journey User';
@@ -78,8 +78,15 @@ test.describe.serial('User Journey: Complete Retrospective Session', () => {
     // Template is auto-selected by default, just submit
     await page.getByRole('button', { name: 'Create Board', exact: true }).click();
 
-    // Wait for board to load
+    // Wait for board to load — icebreaker warmup shows first
     await page.waitForTimeout(2000);
+
+    // Dismiss icebreaker warmup to reveal columns
+    const startWritingBtn = page.getByRole('button', { name: /start writing/i });
+    if (await startWritingBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await startWritingBtn.click();
+      await page.waitForTimeout(500);
+    }
   });
 
   test('E2E-JOURNEY-5: Verify board loaded with columns and WebSocket connection', async () => {
