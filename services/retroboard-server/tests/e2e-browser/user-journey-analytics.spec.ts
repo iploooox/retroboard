@@ -54,7 +54,7 @@ async function completeFullRetro(
   for (const cardText of cards) {
     await page.getByRole('button', { name: /add a card/i }).first().click();
     await page.getByPlaceholder(/what.*mind/i).fill(cardText);
-    await page.keyboard.press('Enter');
+    await page.getByRole('button', { name: /^add card$/i }).click();
     await page.waitForTimeout(400);
   }
 
@@ -159,7 +159,7 @@ test.describe('Analytics Dashboard Journey', () => {
     for (const cardText of cards) {
       await page.getByRole('button', { name: /add a card/i }).first().click();
       await page.getByPlaceholder(/what.*mind/i).fill(cardText);
-      await page.keyboard.press('Enter');
+      await page.getByRole('button', { name: /^add card$/i }).click();
       await page.waitForTimeout(400);
     }
 
@@ -303,7 +303,7 @@ test.describe('Analytics Dashboard Journey', () => {
     // Click "Add a card" button for first column
     await page.getByRole('button', { name: /add a card/i }).first().click();
     await page.getByPlaceholder(/what.*mind/i).fill('Great teamwork this sprint');
-    await page.keyboard.press('Enter');
+    await page.getByRole('button', { name: /^add card$/i }).click();
 
     // Wait for card to be created
     await page.waitForTimeout(500);
@@ -311,7 +311,7 @@ test.describe('Analytics Dashboard Journey', () => {
     // Add another card
     await page.getByRole('button', { name: /add a card/i }).first().click();
     await page.getByPlaceholder(/what.*mind/i).fill('Need better communication');
-    await page.keyboard.press('Enter');
+    await page.getByRole('button', { name: /^add card$/i }).click();
 
     await page.waitForTimeout(500);
 
@@ -428,7 +428,7 @@ test.describe('Analytics Dashboard Journey', () => {
 
     // Verify team overview charts are visible
     await expect(page.getByText('Sprint Health Trend')).toBeVisible();
-    await expect(page.getByText('Participation')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Participation' })).toBeVisible();
 
     // Select a specific sprint
     await sprintSelector.selectOption(sprintId1);
@@ -690,15 +690,17 @@ test.describe('Analytics Dashboard Journey', () => {
     await expect(themesSection).toBeVisible();
 
     // Should show themes in ranked order (#1, #2, #3...)
-    await expect(themesSection.getByText(/#\d+/)).toBeVisible();
+    await expect(themesSection.getByText('#1')).toBeVisible();
 
     // Should show recurrence level badges (Very Common, Common, or Emerging)
     await expect(
-      themesSection.locator('span').filter({ hasText: /Very Common|Common|Emerging/ })
+      themesSection.locator('span').filter({ hasText: /Very Common|Common|Emerging/ }).first()
     ).toBeVisible();
 
-    // Should show sentiment indicators (✅, ⚠️, or 💬)
-    await expect(themesSection.locator('span').filter({ hasText: /✅|⚠️|💬/ })).toBeVisible();
+    // Should show sentiment labels (Positive, Needs Attention, or Neutral)
+    await expect(
+      themesSection.locator('span').filter({ hasText: /Positive|Needs Attention|Neutral/ }).first()
+    ).toBeVisible();
 
     // Verify help text is present
     await expect(
@@ -720,7 +722,7 @@ test.describe('Analytics Dashboard Journey', () => {
     // Add one card
     await page.getByRole('button', { name: /add a card/i }).first().click();
     await page.getByPlaceholder(/what.*mind/i).fill('Single card');
-    await page.keyboard.press('Enter');
+    await page.getByRole('button', { name: /^add card$/i }).click();
     await page.waitForTimeout(500);
 
     // Navigate to team page

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { generateUniqueEmail } from './helpers';
+import { generateUniqueEmail, registerUser } from './helpers';
 
 test.describe.serial('Retro Flow - Happy Path', () => {
   let page: Page;
@@ -15,15 +15,7 @@ test.describe.serial('Retro Flow - Happy Path', () => {
   });
 
   test('E2E-FLOW-1: Register and reach dashboard', async () => {
-    await page.goto('/register');
-    await page.getByLabel('Display Name').fill(displayName);
-    await page.getByLabel('Email').fill(email);
-    await page.locator('#register-password').fill(password);
-    await page.getByRole('button', { name: /create account/i }).click();
-
-    // Skip onboarding to get to dashboard
-    await expect(page).toHaveURL('/onboarding', { timeout: 10000 });
-    await page.getByRole('button', { name: /skip for now/i }).click();
+    await registerUser(page, { email, password, displayName });
     await expect(page).toHaveURL('/dashboard', { timeout: 10000 });
   });
 

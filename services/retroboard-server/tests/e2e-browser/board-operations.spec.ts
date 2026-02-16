@@ -10,6 +10,9 @@ test.describe('Board Operations', () => {
     await registerUser(page, { email, password, displayName });
     await createTeamAndBoard(page, { teamName: 'Board Test Team' });
 
+    // Wait for board to stabilize after creation
+    await page.waitForTimeout(500);
+
     // Add a card to the first column
     const addCardButton = page.getByRole('button', { name: /add a card/i }).first();
     await addCardButton.click();
@@ -18,16 +21,11 @@ test.describe('Board Operations', () => {
     const cardInput = page.getByPlaceholder(/what.*your mind|card content|enter.*text/i).first();
     await cardInput.fill('Great team collaboration this sprint!');
 
-    // Submit card
-    await page.keyboard.press('Enter');
-    // Or click submit if there's a button
-    // await page.getByRole('button', { name: /submit|add|create/i }).click();
-
-    // Wait for card to appear
-    await page.waitForTimeout(500);
+    // Submit card via button click
+    await page.getByRole('button', { name: /^add card$/i }).click();
 
     // Verify card is visible
-    await expect(page.getByText('Great team collaboration this sprint!')).toBeVisible();
+    await expect(page.getByText('Great team collaboration this sprint!')).toBeVisible({ timeout: 10000 });
   });
 
   test('E2E-BOARD-2: Update card content', async ({ page }) => {

@@ -25,7 +25,7 @@ test.describe('Vote Real-time Sync', () => {
     await addCardButton.click();
     const cardInput = page1.getByPlaceholder(/what.*your mind|card content|enter.*text/i).first();
     await cardInput.fill('Test card for voting');
-    await page1.keyboard.press('Enter');
+    await page1.getByRole('button', { name: /^add card$/i }).click();
     await page1.waitForTimeout(500);
 
     // Verify card is visible to User 1
@@ -155,7 +155,7 @@ test.describe('Vote Real-time Sync', () => {
       await addCardButton.click();
       const cardInput = page1.getByPlaceholder(/what.*your mind|card content|enter.*text/i).first();
       await cardInput.fill(`Card ${i}`);
-      await page1.keyboard.press('Enter');
+      await page1.getByRole('button', { name: /^add card$/i }).click();
       await page1.waitForTimeout(300);
     }
 
@@ -199,26 +199,29 @@ test.describe('Vote Real-time Sync', () => {
     await swBtn2.waitFor({ state: 'visible', timeout: 10000 }).then(() => swBtn2.click()).catch(() => {});
     await page1.waitForTimeout(500);
 
-    // User 1: Transition to vote phase
+    // User 1: Jump directly to Vote phase using phase stepper (same approach as SYNC-1)
     await page1.getByRole('button', { name: 'Vote' }).click();
     await page1.waitForTimeout(500);
     await page1.getByRole('button', { name: 'Change Phase' }).click();
     await page1.waitForTimeout(1000);
 
-    // User 1: Cast multiple votes (default limit is usually 5 per user)
-    const card1Element = page1.getByText('Card 1').locator('..');
-    await card1Element.hover();
+    // Verify both users see Vote phase
+    await expect(page1.getByTestId('phase-badge')).toContainText(/vote/i, { timeout: 5000 });
+    await expect(page2.getByTestId('phase-badge')).toContainText(/vote/i, { timeout: 5000 });
 
-    // Vote 3 times on Card 1
-    for (let i = 0; i < 3; i++) {
-      const voteBtn = page1.locator('button[aria-label="Vote"]').first();
-      await voteBtn.click();
-      await page1.waitForTimeout(500);
-    }
+    // User 1: Cast 2 votes on Card 1 (UI allows max 2 per-card clicks due to vote limit)
+    // Vote 1
+    await page1.locator('button[aria-label="Vote"]').first().click();
+    await page1.waitForTimeout(1000);
+    await expect(page1.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 5000 });
 
-    // Verify User 2 sees 3 votes on Card 1 in real-time
-    await page2.waitForTimeout(2000);
-    await expect(page2.getByTestId('card-votes').first()).toContainText('3 votes', { timeout: 5000 });
+    // Vote 2
+    await page1.locator('button[aria-label="Vote"]').first().click();
+    await page1.waitForTimeout(1000);
+    await expect(page1.getByTestId('card-votes').first()).toContainText('2 votes', { timeout: 5000 });
+
+    // Verify User 2 sees 2 votes on Card 1 in real-time via WebSocket
+    await expect(page2.getByTestId('card-votes').first()).toContainText('2 votes', { timeout: 10000 });
 
     // Verify User 2 sees their remaining votes decreased (if UI shows this)
     // This depends on UI implementation - adjust selector as needed

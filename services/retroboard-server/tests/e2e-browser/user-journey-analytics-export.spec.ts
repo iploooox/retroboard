@@ -79,6 +79,13 @@ test.describe.serial('User Journey: Analytics and Export', () => {
     // Verify we're on the board page
     expect(page.url()).toContain('/board');
 
+    // Safety: dismiss icebreaker if still showing
+    const startWritingBtn = page.getByRole('button', { name: /start writing/i });
+    if (await startWritingBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await startWritingBtn.click();
+      await page.waitForTimeout(500);
+    }
+
     // Wait for board to fully load - check for any column heading
     await page.waitForTimeout(1000);
 
@@ -98,19 +105,19 @@ test.describe.serial('User Journey: Analytics and Export', () => {
     // Card 1 - Positive column
     await addButtons[0].click();
     await page.getByPlaceholder(/what.*your mind/i).fill('Great collaboration on the API design');
-    await page.keyboard.press('Enter');
+    await page.getByRole('button', { name: /^add card$/i }).click();
     await expect(page.getByText('Great collaboration on the API design')).toBeVisible();
 
     // Card 2 - Delta/Improvement column
     await addButtons[1].click();
     await page.getByPlaceholder(/what.*your mind/i).fill('Need better documentation');
-    await page.keyboard.press('Enter');
+    await page.getByRole('button', { name: /^add card$/i }).click();
     await expect(page.getByText('Need better documentation')).toBeVisible();
 
     // Card 3 - Add another to first column for more data
     await addButtons[0].click();
     await page.getByPlaceholder(/what.*your mind/i).fill('Update testing guidelines');
-    await page.keyboard.press('Enter');
+    await page.getByRole('button', { name: /^add card$/i }).click();
     await expect(page.getByText('Update testing guidelines')).toBeVisible();
 
     // Wait for cards to be saved

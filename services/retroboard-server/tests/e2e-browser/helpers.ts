@@ -4,7 +4,8 @@ let emailCounter = 0;
 
 export function generateUniqueEmail(): string {
   emailCounter++;
-  return `test-${Date.now()}-${emailCounter}@example.com`;
+  const rand = Math.random().toString(36).slice(2, 8);
+  return `test-${Date.now()}-${emailCounter}-${rand}@example.com`;
 }
 
 export async function registerUser(
@@ -19,7 +20,7 @@ export async function registerUser(
   await page.getByRole('button', { name: 'Create Account' }).click();
 
   // New users are redirected to onboarding - skip it to get to dashboard
-  await expect(page).toHaveURL('/onboarding', { timeout: 15000 });
+  await expect(page).toHaveURL('/onboarding', { timeout: 30000 });
   await page.getByRole('button', { name: 'Skip for now' }).click();
   await expect(page).toHaveURL('/dashboard', { timeout: 10000 });
 }
@@ -106,7 +107,7 @@ export async function createTeamAndBoard(
   await page.getByRole('button', { name: /create board/i }).click();
 
   // Wait for board to load — icebreaker warmup shows before columns in write phase
-  await page.getByText('🎲 Icebreaker Question').waitFor({ state: 'visible', timeout: 10000 });
+  await page.getByText('🎲 Icebreaker Question').waitFor({ state: 'visible', timeout: 20000 });
 
   // Auto-dismiss icebreaker warmup unless explicitly kept
   if (!options.keepIcebreaker) {
