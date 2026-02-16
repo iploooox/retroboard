@@ -8,9 +8,9 @@ export function formatAsJSON(boardData: BoardExportData, exportedBy: string): st
   // Transform card field names for export compatibility (content → text)
   const columns = boardData.columns.map((col) => ({
     ...col,
-    cards: col.cards.map(({ content, ...card }) => ({
+    cards: col.cards.map((card) => ({
       ...card,
-      text: content,
+      text: card.content,
     })),
   }));
 

@@ -205,7 +205,26 @@ test.describe.serial('User Journey: Analytics and Export', () => {
   });
 
   test('ANALYTICS-6: Export board as JSON', async () => {
-    // boardId was captured via response interception in beforeAll
+    // If boardId was not captured via response interception, fetch it from the API
+    if (!boardId) {
+      const fetchedBoardId = await page.evaluate(
+        async ({ sprintId, token }) => {
+          const res = await fetch(`/api/v1/sprints/${sprintId}/board`, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            return data?.data?.id || null;
+          }
+          return null;
+        },
+        { sprintId, token: accessToken }
+      );
+      if (fetchedBoardId) boardId = fetchedBoardId;
+    }
     expect(boardId).toBeTruthy();
 
     // Fetch JSON export via API

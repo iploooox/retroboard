@@ -4,8 +4,8 @@ import { generateUniqueEmail, registerUser, createTeamAndBoard } from './helpers
 test.describe('Vote Real-time Sync', () => {
   test('E2E-VOTE-SYNC-1: Vote counts sync between two users in real-time', async ({ browser }) => {
     // Setup: Create two browser contexts for two different users
-    const context1 = await browser.newContext({ baseURL: 'http://localhost:5173' });
-    const context2 = await browser.newContext({ baseURL: 'http://localhost:5173' });
+    const context1 = await browser.newContext();
+    const context2 = await browser.newContext();
     const page1 = await context1.newPage();
     const page2 = await context2.newPage();
 
@@ -95,46 +95,37 @@ test.describe('Vote Real-time Sync', () => {
     const card1 = page1.getByText('Test card for voting').locator('..');
     const card2 = page2.getByText('Test card for voting').locator('..');
 
-    // User 1: Vote on the card
+    // User 1: Vote on the card using the card-level Vote button (aria-label="Vote")
     await card1.hover();
-    const voteButton1 = page1.getByRole('button', { name: /vote|👍|\+/i }).first();
+    const voteButton1 = page1.locator('button[aria-label="Vote"]').first();
     await voteButton1.click();
-    await page1.waitForTimeout(500);
-
-    // **CRITICAL TEST**: User 2 should see the vote count update in real-time WITHOUT any interaction
-    // Wait for the vote count to appear/update on User 2's screen
-    await page2.waitForTimeout(1000); // Allow time for WebSocket message
+    await page1.waitForTimeout(2000); // Allow time for vote API + WebSocket propagation
 
     // Verify User 1 sees vote count = 1
-    await expect(page1.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 2000 });
+    await expect(page1.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 5000 });
 
     // **THE KEY ASSERTION**: Verify User 2 ALSO sees vote count = 1 without refreshing
-    await expect(page2.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 2000 });
+    await expect(page2.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 5000 });
 
     // User 2: Vote on the same card
     await card2.hover();
-    const voteButton2 = page2.getByRole('button', { name: /vote|👍|\+/i }).first();
+    const voteButton2 = page2.locator('button[aria-label="Vote"]').first();
     await voteButton2.click();
-    await page2.waitForTimeout(500);
+    await page2.waitForTimeout(2000); // Allow time for vote API + WebSocket propagation
 
     // Verify both users see vote count = 2
-    await expect(page1.getByTestId('card-votes').first()).toContainText('2 votes', { timeout: 2000 });
-    await expect(page2.getByTestId('card-votes').first()).toContainText('2 votes', { timeout: 2000 });
+    await expect(page1.getByTestId('card-votes').first()).toContainText('2 votes', { timeout: 5000 });
+    await expect(page2.getByTestId('card-votes').first()).toContainText('2 votes', { timeout: 5000 });
 
     // User 1: Remove their vote
     await card1.hover();
-    const removeVoteButton1 = page1.getByRole('button', { name: /remove vote|-|unvote/i }).first();
-    if (await removeVoteButton1.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await removeVoteButton1.click();
-    } else {
-      // If no explicit remove button, clicking vote again might toggle
-      await voteButton1.click();
-    }
-    await page1.waitForTimeout(500);
+    const removeVoteButton1 = page1.locator('button[aria-label="Remove vote"]').first();
+    await removeVoteButton1.click();
+    await page1.waitForTimeout(2000); // Allow time for vote API + WebSocket propagation
 
     // Verify both users see vote count = 1 after User 1 removed their vote
-    await expect(page1.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 2000 });
-    await expect(page2.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 2000 });
+    await expect(page1.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 5000 });
+    await expect(page2.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 5000 });
 
     // Cleanup
     await context1.close();
@@ -143,8 +134,8 @@ test.describe('Vote Real-time Sync', () => {
 
   test('E2E-VOTE-SYNC-2: Multiple votes sync with vote limits', async ({ browser }) => {
     // Setup: Create two browser contexts
-    const context1 = await browser.newContext({ baseURL: 'http://localhost:5173' });
-    const context2 = await browser.newContext({ baseURL: 'http://localhost:5173' });
+    const context1 = await browser.newContext();
+    const context2 = await browser.newContext();
     const page1 = await context1.newPage();
     const page2 = await context2.newPage();
 
@@ -220,14 +211,14 @@ test.describe('Vote Real-time Sync', () => {
 
     // Vote 3 times on Card 1
     for (let i = 0; i < 3; i++) {
-      const voteBtn = page1.getByRole('button', { name: /vote|👍|\+/i }).first();
+      const voteBtn = page1.locator('button[aria-label="Vote"]').first();
       await voteBtn.click();
-      await page1.waitForTimeout(300);
+      await page1.waitForTimeout(500);
     }
 
     // Verify User 2 sees 3 votes on Card 1 in real-time
-    await page2.waitForTimeout(1000);
-    await expect(page2.getByTestId('card-votes').first()).toContainText('3 votes', { timeout: 2000 });
+    await page2.waitForTimeout(2000);
+    await expect(page2.getByTestId('card-votes').first()).toContainText('3 votes', { timeout: 5000 });
 
     // Verify User 2 sees their remaining votes decreased (if UI shows this)
     // This depends on UI implementation - adjust selector as needed

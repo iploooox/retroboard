@@ -408,22 +408,22 @@ export function BoardPage() {
 
       {/* Board columns area — hidden when icebreaker warmup is active (Rule 10: fullscreen overlay) */}
       <div className="flex-1 overflow-x-auto min-h-0 relative" style={{ backgroundColor: 'var(--theme-bg)' }}>
-        <div className="flex gap-4 p-4 h-full min-w-min">
-          {sortedColumns.map((col) => (
-            <BoardColumn
-              key={col.id}
-              columnId={col.id}
-              name={col.name}
-              color={col.color}
-              isFacilitator={isFacilitator}
-              onCreateActionItem={handleCreateActionItemFromCard}
-            />
-          ))}
-        </div>
-
-        {/* Icebreaker warmup (fullscreen overlay during write phase — per Rule 10) */}
-        {board.phase === 'write' && showIcebreaker && teamId && (
+        {board.phase === 'write' && showIcebreaker && teamId ? (
+          /* Icebreaker warmup replaces columns during write phase — per Rule 10 */
           <IcebreakerCard teamId={teamId} boardId={board.id} onDismiss={() => setShowIcebreaker(false)} />
+        ) : (
+          <div className="flex gap-4 p-4 h-full min-w-min">
+            {sortedColumns.map((col) => (
+              <BoardColumn
+                key={col.id}
+                columnId={col.id}
+                name={col.name}
+                color={col.color}
+                isFacilitator={isFacilitator}
+                onCreateActionItem={handleCreateActionItemFromCard}
+              />
+            ))}
+          </div>
         )}
       </div>
 

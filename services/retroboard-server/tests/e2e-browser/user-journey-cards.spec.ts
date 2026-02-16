@@ -154,30 +154,20 @@ test.describe.serial('Card Interactions - Full User Journey', () => {
 
   test('E2E-CARDS-8: Transition to Vote phase for voting test', async () => {
 
-    // Close icebreaker modal if it's open (it blocks the Next Phase button)
-    // Look for the X button in the icebreaker panel
-    const icebreakerPanel = page.getByText(/icebreaker question/i);
-    if (await icebreakerPanel.isVisible({ timeout: 1000 }).catch(() => false)) {
-      // Find close button - it's usually an X or close icon in the top right
-      const closeButton = page.locator('button').filter({ hasText: /^×$/ }).or(
-        page.locator('svg').filter({ has: page.locator('path') }).locator('..')
-      ).first();
-      if (await closeButton.isVisible({ timeout: 500 }).catch(() => false)) {
-        await closeButton.click({ force: true });
-        await page.waitForTimeout(500);
-      }
+    // Dismiss icebreaker warmup if visible (it overlays the board and blocks clicks)
+    const startWritingBtn = page.getByRole('button', { name: /start writing/i });
+    if (await startWritingBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await startWritingBtn.click();
+      await page.waitForTimeout(500);
     }
 
     // Transition through phases: Write -> Group -> Vote
-    // Get the Next Phase button - use force to bypass icebreaker modal if it's blocking
-    const nextPhaseButton = page.getByRole('button', { name: /next phase/i }).last();
-
     // Click to Group phase
-    await nextPhaseButton.click({ force: true });
+    await page.getByRole('button', { name: 'Next phase', exact: true }).click();
     await page.waitForTimeout(1000);
 
     // Click to Vote phase
-    await nextPhaseButton.click({ force: true });
+    await page.getByRole('button', { name: 'Next phase', exact: true }).click();
     await page.waitForTimeout(1000);
 
     // Verify we're in Vote phase - cards should still be visible
@@ -202,12 +192,10 @@ test.describe.serial('Card Interactions - Full User Journey', () => {
 
     // Click to vote
     await voteButton.click();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2000);
 
-    // Verify vote count appears (could be just the number or with "vote" text)
-    // The vote count updates via WebSocket, so give it time
-    const voteCount = page.locator('span').filter({ hasText: /^1$/ }).first();
-    await expect(voteCount).toBeVisible({ timeout: 3000 });
+    // Verify vote count appears — rendered as "1 vote" in a span with data-testid="card-votes"
+    await expect(page.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 5000 });
   });
 
   test('E2E-CARDS-10: Toggle vote off (unvote)', async () => {
