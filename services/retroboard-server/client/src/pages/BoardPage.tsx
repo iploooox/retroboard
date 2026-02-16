@@ -208,8 +208,7 @@ export function BoardPage() {
       reset();
       resetPresence();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sprintId]); // Only sprintId — Zustand store functions are stable
+  }, [sprintId, fetchBoard, reset, resetPresence]);
 
   // Connect to WebSocket when board loads
   useEffect(() => {

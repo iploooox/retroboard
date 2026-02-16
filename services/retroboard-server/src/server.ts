@@ -111,8 +111,7 @@ if (isMainModule) {
 
   // Attach WebSocket server
   import('./ws/index.js').then(({ setupWebSocket }) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setupWebSocket(httpServer as any);
+    setupWebSocket(httpServer as import('node:http').Server);
     console.log('WebSocket server attached');
   });
 }

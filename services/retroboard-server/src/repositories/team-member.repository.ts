@@ -1,7 +1,8 @@
+import postgres from 'postgres';
 import { sql } from '../db/connection.js';
 
 export const teamMemberRepository = {
-  async addMember(teamId: string, userId: string, role: 'admin' | 'facilitator' | 'member', tx?: typeof sql) {
+  async addMember(teamId: string, userId: string, role: 'admin' | 'facilitator' | 'member', tx?: postgres.TransactionSql) {
     const db = tx || sql;
     const [member] = await db`
       INSERT INTO team_members (team_id, user_id, role)

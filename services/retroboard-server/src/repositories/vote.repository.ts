@@ -1,6 +1,4 @@
 import { sql } from '../db/connection.js';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type TX = any;
 
 export interface VoteResult {
   card_id: string;
@@ -19,7 +17,7 @@ export async function castVote(
   userId: string,
   boardId: string,
 ): Promise<VoteOutcome> {
-  return sql.begin(async (tx: TX) => {
+  return sql.begin(async (tx) => {
     // Lock the board row to prevent race conditions
     const [board] = await tx`
       SELECT max_votes_per_user, max_votes_per_card
@@ -86,7 +84,7 @@ export async function removeVote(
   userId: string,
   boardId: string,
 ): Promise<VoteOutcome> {
-  return sql.begin(async (tx: TX) => {
+  return sql.begin(async (tx) => {
     // Find highest vote_number for this card/user (LIFO)
     const [highest] = await tx`
       SELECT vote_number FROM card_votes

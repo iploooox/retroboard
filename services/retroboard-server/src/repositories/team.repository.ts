@@ -1,6 +1,4 @@
 import { sql } from '../db/connection.js';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type TX = any;
 
 export interface CreateTeamData {
   name: string;
@@ -12,7 +10,7 @@ export interface CreateTeamData {
 
 export const teamRepository = {
   async create(data: CreateTeamData) {
-    return sql.begin(async (tx: TX) => {
+    return sql.begin(async (tx) => {
       const [team] = await tx`
         INSERT INTO teams (name, slug, description, avatar_url, created_by)
         VALUES (${data.name}, ${data.slug}, ${data.description}, ${data.avatar_url}, ${data.created_by})

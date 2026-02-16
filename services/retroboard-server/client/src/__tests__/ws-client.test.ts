@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { WSClient } from '@/lib/ws-client';
 
-// Type for accessing WSClient internals in tests
-type WSClientInternal = WSClient & {
+// Type for accessing WSClient internals in tests (use mapped type to bypass private access)
+interface WSClientInternal {
   ws: MockWebSocket | null;
   state: string;
-};
+}
 
 // Mock WebSocket
 class MockWebSocket {
@@ -73,7 +73,7 @@ describe('WSClient', () => {
     client.connect('board-123', 'token-abc');
 
     // Simulate connection open
-    const internalClient = client as WSClientInternal;
+    const internalClient = client as unknown as WSClientInternal;
     const ws = internalClient.ws;
     if (ws) {
       ws.readyState = MockWebSocket.OPEN;

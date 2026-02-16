@@ -169,6 +169,7 @@ test.describe.serial('User Journey: Analytics and Export', () => {
     await expect(page.getByText('Review and improve documentation')).toBeVisible();
   });
 
+  // Skipped: requires multi-sprint createCompletedSprint helper that cannot create 2nd sprint through UI
   test.skip('ANALYTICS-5: Fetch sprint analytics via API', async () => {
     // Wait a moment to ensure all data from previous tests is persisted
     await page.waitForTimeout(1000);

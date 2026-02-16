@@ -1,7 +1,5 @@
 import { sql } from '../db/connection.js';
 import type { BoardPhase, FocusItemType } from '../validation/boards.js';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type TX = any;
 
 export interface BoardRow {
   id: string;
@@ -69,7 +67,7 @@ export async function createBoard(data: {
   max_votes_per_card: number;
   created_by: string;
 }): Promise<{ board: BoardRow; columns: ColumnRow[] }> {
-  return sql.begin(async (tx: TX) => {
+  return sql.begin(async (tx) => {
     // Create the board
     const [boardRow] = await tx`
       INSERT INTO boards (sprint_id, template_id, anonymous_mode, max_votes_per_user, max_votes_per_card, created_by)

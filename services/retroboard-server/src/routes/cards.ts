@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { requireAuth } from '../middleware/auth.js';
 import * as boardRepo from '../repositories/board.repository.js';
 import * as cardRepo from '../repositories/card.repository.js';
@@ -117,8 +117,7 @@ cardsRouter.post('/boards/:id/cards', async (c) => {
 });
 
 // PUT/PATCH /boards/:id/cards/:cardId — Edit card
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const updateCardHandler = async (c: any) => {
+const updateCardHandler = async (c: Context) => {
   const boardId = c.req.param('id');
   const cardId = c.req.param('cardId');
   const user = c.get('user');
@@ -208,8 +207,7 @@ cardsRouter.delete('/boards/:id/cards/:cardId', async (c) => {
 // ---------- Votes ----------
 
 // POST /boards/:id/cards/:cardId/vote(s) — Cast vote
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const castVoteHandler = async (c: any) => {
+const castVoteHandler = async (c: Context) => {
   const boardId = c.req.param('id');
   const cardId = c.req.param('cardId');
   const user = c.get('user');
@@ -248,8 +246,7 @@ cardsRouter.post('/boards/:id/cards/:cardId/vote', castVoteHandler);
 cardsRouter.post('/boards/:id/cards/:cardId/votes', castVoteHandler);
 
 // DELETE /boards/:id/cards/:cardId/vote(s) — Remove vote
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const removeVoteHandler = async (c: any) => {
+const removeVoteHandler = async (c: Context) => {
   const boardId = c.req.param('id');
   const cardId = c.req.param('cardId');
   const user = c.get('user');

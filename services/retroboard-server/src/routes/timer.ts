@@ -3,7 +3,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { formatErrorResponse } from '../utils/errors.js';
 import * as boardRepo from '../repositories/board.repository.js';
 import * as timerRepo from '../repositories/timer.repository.js';
-import { TimerService } from '../services/timer-service.js';
+import { TimerService, type TimerRepository } from '../services/timer-service.js';
 import { broadcastToBoard } from '../ws/index.js';
 
 const repo = {
@@ -17,8 +17,7 @@ const broadcast = (boardId: string, event: Record<string, unknown>) => {
   broadcastToBoard(boardId, event as { type: string; payload: Record<string, unknown> });
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const timerService = new TimerService(repo as any, broadcast);
+export const timerService = new TimerService(repo as TimerRepository, broadcast);
 
 const timerRouter = new Hono();
 timerRouter.use('*', requireAuth);

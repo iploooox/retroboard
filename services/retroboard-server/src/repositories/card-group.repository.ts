@@ -1,6 +1,4 @@
 import { sql } from '../db/connection.js';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type TX = any;
 
 export interface GroupRow {
   id: string;
@@ -25,7 +23,7 @@ export async function create(
   title: string,
   cardIds: string[] = [],
 ): Promise<GroupRow & { card_ids: string[] }> {
-  return sql.begin(async (tx: TX) => {
+  return sql.begin(async (tx) => {
     const [maxPos] = await tx`
       SELECT COALESCE(MAX(position), -1)::int AS max_pos
       FROM card_groups WHERE board_id = ${boardId}
@@ -61,7 +59,7 @@ export async function update(
     position?: number;
   },
 ): Promise<(GroupRow & { card_ids: string[] }) | null> {
-  return sql.begin(async (tx: TX) => {
+  return sql.begin(async (tx) => {
     // Update title/position if provided
     if (fields.title !== undefined || fields.position !== undefined) {
       const sets: ReturnType<typeof sql>[] = [];
@@ -102,7 +100,7 @@ export async function update(
 }
 
 export async function remove(groupId: string): Promise<{ ungrouped_card_ids: string[] } | null> {
-  return sql.begin(async (tx: TX) => {
+  return sql.begin(async (tx) => {
     // Get card_ids in this group
     const cardRows = await tx`
       SELECT card_id FROM card_group_members WHERE group_id = ${groupId}

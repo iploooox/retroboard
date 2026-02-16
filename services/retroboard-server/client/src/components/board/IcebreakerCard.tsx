@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, X, Plus } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
@@ -28,7 +28,7 @@ export function IcebreakerCard({ teamId, boardId, onDismiss }: IcebreakerCardPro
   const [customCategory, setCustomCategory] = useState<string>('Fun');
   const [isSubmittingCustom, setIsSubmittingCustom] = useState(false);
 
-  const fetchIcebreaker = async (category?: string) => {
+  const fetchIcebreaker = useCallback(async (category?: string) => {
     setIsLoading(true);
     try {
       let query = `?teamId=${teamId}&boardId=${boardId}`;
@@ -42,13 +42,11 @@ export function IcebreakerCard({ teamId, boardId, onDismiss }: IcebreakerCardPro
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [teamId, boardId]);
 
   useEffect(() => {
     fetchIcebreaker();
-    // Only fetch on mount - fetchIcebreaker is stable but would cause infinite loop if added to deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchIcebreaker]);
 
   // Listen for WebSocket icebreaker updates
   useEffect(() => {

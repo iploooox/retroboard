@@ -42,8 +42,7 @@ async function migrate(databaseUrl?: string) {
       const content = fs.readFileSync(filePath, 'utf-8');
 
       console.log(`Applying migration: ${file}`);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await sql.begin(async (tx: any) => {
+      await sql.begin(async (tx) => {
         await tx.unsafe(content);
         await tx`INSERT INTO schema_migrations (filename) VALUES (${file})`;
       });

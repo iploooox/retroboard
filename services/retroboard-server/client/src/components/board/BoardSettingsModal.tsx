@@ -94,7 +94,7 @@ export function BoardSettingsModal({ open, onClose, teamId, currentTheme = 'defa
       setNewScore('0');
       await loadCustomWords();
     } catch (error) {
-      if (error instanceof ApiError && error.response?.status === 409) {
+      if (error instanceof ApiError && error.status === 409) {
         toast.error('This word already exists');
       } else {
         toast.error('Failed to add word');

@@ -1,3 +1,4 @@
+import postgres from 'postgres';
 import { sql } from '../db/connection.js';
 
 export interface CreateInvitationData {
@@ -71,7 +72,7 @@ export const invitationRepository = {
     return count;
   },
 
-  async atomicJoin(inviteId: string, tx?: typeof sql) {
+  async atomicJoin(inviteId: string, tx?: postgres.TransactionSql) {
     const db = tx || sql;
     const [result] = await db`
       UPDATE team_invitations
