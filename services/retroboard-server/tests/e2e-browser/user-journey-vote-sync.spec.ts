@@ -88,8 +88,8 @@ test.describe('Vote Real-time Sync', () => {
     await page1.waitForTimeout(1000);
 
     // Verify both users see the vote phase
-    await expect(page1.getByText(/vote phase|voting/i)).toBeVisible({ timeout: 5000 });
-    await expect(page2.getByText(/vote phase|voting/i)).toBeVisible({ timeout: 5000 });
+    await expect(page1.getByTestId('phase-badge')).toContainText(/vote/i, { timeout: 5000 });
+    await expect(page2.getByTestId('phase-badge')).toContainText(/vote/i, { timeout: 5000 });
 
     // Get initial vote count on both pages (should be 0)
     const card1 = page1.getByText('Test card for voting').locator('..');
@@ -106,10 +106,10 @@ test.describe('Vote Real-time Sync', () => {
     await page2.waitForTimeout(1000); // Allow time for WebSocket message
 
     // Verify User 1 sees vote count = 1
-    await expect(page1.getByText(/1.*vote|vote.*1/i)).toBeVisible({ timeout: 2000 });
+    await expect(page1.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 2000 });
 
     // **THE KEY ASSERTION**: Verify User 2 ALSO sees vote count = 1 without refreshing
-    await expect(page2.getByText(/1.*vote|vote.*1/i)).toBeVisible({ timeout: 2000 });
+    await expect(page2.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 2000 });
 
     // User 2: Vote on the same card
     await card2.hover();
@@ -118,8 +118,8 @@ test.describe('Vote Real-time Sync', () => {
     await page2.waitForTimeout(500);
 
     // Verify both users see vote count = 2
-    await expect(page1.getByText(/2.*vote|vote.*2/i)).toBeVisible({ timeout: 2000 });
-    await expect(page2.getByText(/2.*vote|vote.*2/i)).toBeVisible({ timeout: 2000 });
+    await expect(page1.getByTestId('card-votes').first()).toContainText('2 votes', { timeout: 2000 });
+    await expect(page2.getByTestId('card-votes').first()).toContainText('2 votes', { timeout: 2000 });
 
     // User 1: Remove their vote
     await card1.hover();
@@ -133,8 +133,8 @@ test.describe('Vote Real-time Sync', () => {
     await page1.waitForTimeout(500);
 
     // Verify both users see vote count = 1 after User 1 removed their vote
-    await expect(page1.getByText(/1.*vote|vote.*1/i)).toBeVisible({ timeout: 2000 });
-    await expect(page2.getByText(/1.*vote|vote.*1/i)).toBeVisible({ timeout: 2000 });
+    await expect(page1.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 2000 });
+    await expect(page2.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 2000 });
 
     // Cleanup
     await context1.close();
@@ -227,7 +227,7 @@ test.describe('Vote Real-time Sync', () => {
 
     // Verify User 2 sees 3 votes on Card 1 in real-time
     await page2.waitForTimeout(1000);
-    await expect(page2.getByText(/3.*vote|vote.*3/i)).toBeVisible({ timeout: 2000 });
+    await expect(page2.getByTestId('card-votes').first()).toContainText('3 votes', { timeout: 2000 });
 
     // Verify User 2 sees their remaining votes decreased (if UI shows this)
     // This depends on UI implementation - adjust selector as needed

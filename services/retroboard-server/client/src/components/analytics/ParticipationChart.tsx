@@ -158,7 +158,7 @@ export function ParticipationChart({ members, teamAverages, teamId }: Participat
           </span>
         </div>
         <div className="text-xs text-slate-500 bg-blue-50 border border-blue-200 rounded p-2">
-          <strong>Privacy:</strong> Individual activity data is tracked to help improve team engagement
+          <strong>Privacy:</strong> Individual participation data is tracked to help improve team engagement
           and is only visible to team admins and facilitators.
         </div>
       </div>

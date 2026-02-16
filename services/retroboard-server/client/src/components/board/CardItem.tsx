@@ -302,8 +302,8 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
                     </button>
                   )}
                   {card.vote_count > 0 && (
-                    <span className="text-xs font-medium ml-0.5" style={{ color: 'var(--theme-text-secondary, #475569)' }}>
-                      {card.vote_count}
+                    <span className="text-xs font-medium ml-0.5" data-testid="card-votes" style={{ color: 'var(--theme-text-secondary, #475569)' }}>
+                      {card.vote_count} {card.vote_count === 1 ? 'vote' : 'votes'}
                     </span>
                   )}
                 </div>

@@ -5,7 +5,7 @@ import { sql } from '../db/connection.js';
  * Returns raw sentiment score (-5 to +5)
  */
 export async function calculateSentiment(text: string): Promise<number> {
-  const [result] = await sql`SELECT calculate_card_sentiment(${text}) AS score`;
+  const [result] = await sql`SELECT calculate_card_sentiment(${text}, NULL::uuid) AS score`;
   return Number(result.score) || 0;
 }
 
@@ -30,14 +30,14 @@ export async function getTopSentimentCards(
     SELECT
       c.id AS card_id,
       c.content AS text,
-      calculate_card_sentiment(c.content) AS sentiment,
+      calculate_card_sentiment(c.content, NULL::uuid) AS sentiment,
       COUNT(v.id)::int AS vote_count
     FROM cards c
     JOIN boards b ON c.board_id = b.id
     LEFT JOIN card_votes v ON v.card_id = c.id
     WHERE b.sprint_id = ${sprintId}
     GROUP BY c.id, c.content
-    ORDER BY calculate_card_sentiment(c.content) DESC
+    ORDER BY calculate_card_sentiment(c.content, NULL::uuid) DESC
     LIMIT ${limit}
   `;
 
@@ -45,14 +45,14 @@ export async function getTopSentimentCards(
     SELECT
       c.id AS card_id,
       c.content AS text,
-      calculate_card_sentiment(c.content) AS sentiment,
+      calculate_card_sentiment(c.content, NULL::uuid) AS sentiment,
       COUNT(v.id)::int AS vote_count
     FROM cards c
     JOIN boards b ON c.board_id = b.id
     LEFT JOIN card_votes v ON v.card_id = c.id
     WHERE b.sprint_id = ${sprintId}
     GROUP BY c.id, c.content
-    ORDER BY calculate_card_sentiment(c.content) ASC
+    ORDER BY calculate_card_sentiment(c.content, NULL::uuid) ASC
     LIMIT ${limit}
   `;
 
@@ -80,11 +80,11 @@ export async function getSentimentByColumn(sprintId: string) {
     SELECT
       col.id AS column_id,
       col.name AS column_name,
-      AVG(calculate_card_sentiment(c.content)) AS avg_sentiment,
+      AVG(calculate_card_sentiment(c.content, NULL::uuid)) AS avg_sentiment,
       COUNT(*)::int AS card_count,
-      COUNT(*) FILTER (WHERE calculate_card_sentiment(c.content) > 0.5)::int AS positive,
-      COUNT(*) FILTER (WHERE calculate_card_sentiment(c.content) < -0.5)::int AS negative,
-      COUNT(*) FILTER (WHERE calculate_card_sentiment(c.content) BETWEEN -0.5 AND 0.5)::int AS neutral
+      COUNT(*) FILTER (WHERE calculate_card_sentiment(c.content, NULL::uuid) > 0.5)::int AS positive,
+      COUNT(*) FILTER (WHERE calculate_card_sentiment(c.content, NULL::uuid) < -0.5)::int AS negative,
+      COUNT(*) FILTER (WHERE calculate_card_sentiment(c.content, NULL::uuid) BETWEEN -0.5 AND 0.5)::int AS neutral
     FROM cards c
     JOIN columns col ON c.column_id = col.id
     JOIN boards b ON c.board_id = b.id

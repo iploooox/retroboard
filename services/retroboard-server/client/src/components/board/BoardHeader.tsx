@@ -38,7 +38,7 @@ export function BoardHeader({ isFacilitator, onOpenSettings, onOpenActionItems, 
     <div className="bg-white border-b border-slate-200 px-4 py-3">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
-          <Badge variant={phaseBadgeVariant[board.phase]}>
+          <Badge variant={phaseBadgeVariant[board.phase]} data-testid="phase-badge">
             {phaseLabels[board.phase]} Phase
           </Badge>
           {board.phase === 'vote' && (

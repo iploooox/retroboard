@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, HTMLAttributes } from 'react';
 
-interface BadgeProps {
+interface BadgeProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'children'> {
   variant?: 'gray' | 'green' | 'blue' | 'yellow' | 'red' | 'purple';
   children: ReactNode;
 }
@@ -14,9 +14,9 @@ const variants = {
   purple: 'bg-purple-100 text-purple-700',
 };
 
-export function Badge({ variant = 'gray', children }: BadgeProps) {
+export function Badge({ variant = 'gray', children, className, ...props }: BadgeProps) {
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${variants[variant]}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${variants[variant]} ${className ?? ''}`} {...props}>
       {children}
     </span>
   );

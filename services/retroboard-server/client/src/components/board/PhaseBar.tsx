@@ -25,11 +25,9 @@ export function PhaseBar({ currentPhase, isFacilitator, onPhaseClick }: PhaseBar
         const isCompleted = index < currentIndex;
         const isFuturePhase = index > currentIndex;
 
-        // Completed and active phases render as buttons for facilitators;
-        // future phases render as divs to avoid conflicting with
-        // FacilitatorToolbar "Next Phase" button in Playwright selectors.
-        const isClickable = isFacilitator && onPhaseClick && isCompleted;
-        const Tag = (isFacilitator && !isFuturePhase) ? 'button' : 'div';
+        // Facilitators can click any non-active phase (completed or future) to jump to it
+        const isClickable = isFacilitator && onPhaseClick && !isActive;
+        const Tag = (isFacilitator && !isActive) ? 'button' : 'div';
         return (
           <Tag
             key={phase.key}
@@ -41,7 +39,9 @@ export function PhaseBar({ currentPhase, isFacilitator, onPhaseClick }: PhaseBar
                 ? 'bg-indigo-600 text-white border-indigo-300 ring-2 ring-indigo-300'
                 : isCompleted
                   ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                  : 'bg-slate-50 text-slate-400 border-slate-200'
+                  : isFuturePhase && isFacilitator
+                    ? 'bg-slate-50 text-slate-500 border-slate-300 hover:bg-slate-100'
+                    : 'bg-slate-50 text-slate-400 border-slate-200'
               }
               ${isClickable ? 'cursor-pointer hover:brightness-105' : 'cursor-default'}
             `}
