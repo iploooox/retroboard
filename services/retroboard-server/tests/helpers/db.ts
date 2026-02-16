@@ -69,7 +69,7 @@ export async function createTestTeam(createdBy: string, overrides: {
     INSERT INTO teams (name, slug, created_by)
     VALUES (
       ${overrides.name || 'Test Team'},
-      ${overrides.slug || `test-team-${Date.now()}`},
+      ${overrides.slug || `test-team-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`},
       ${createdBy}
     )
     RETURNING *
