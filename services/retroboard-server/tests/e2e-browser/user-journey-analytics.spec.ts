@@ -52,11 +52,11 @@ async function completeFullRetro(
   }
 
   // Move to group phase
-  await page.getByRole('button', { name: 'Next phase', exact: true }).click();
+  await page.getByTestId('next-phase-button').click();
   await page.waitForTimeout(500);
 
   // Move to vote phase (facilitator action)
-  await page.getByRole('button', { name: 'Next phase', exact: true }).click();
+  await page.getByTestId('next-phase-button').click();
   await page.waitForTimeout(500);
 
   // Vote on first card (2 votes)
@@ -69,11 +69,11 @@ async function completeFullRetro(
   }
 
   // Move to discuss phase
-  await page.getByRole('button', { name: 'Next phase', exact: true }).click();
+  await page.getByTestId('next-phase-button').click();
   await page.waitForTimeout(500);
 
   // Move to action phase
-  await page.getByRole('button', { name: 'Next phase', exact: true }).click();
+  await page.getByTestId('next-phase-button').click();
   await page.waitForTimeout(1000);
 
   // Navigate back to team page to complete the sprint
@@ -151,11 +151,11 @@ test.describe('Analytics Dashboard Journey', () => {
 
     // Move through phases to complete
     // write → group
-    await page.getByRole('button', { name: 'Next phase', exact: true }).click();
+    await page.getByTestId('next-phase-button').click();
     await page.waitForTimeout(500);
 
     // group → vote
-    await page.getByRole('button', { name: 'Next phase', exact: true }).click();
+    await page.getByTestId('next-phase-button').click();
     await page.waitForTimeout(500);
 
     // Vote on first card
@@ -166,11 +166,11 @@ test.describe('Analytics Dashboard Journey', () => {
     }
 
     // vote → discuss
-    await page.getByRole('button', { name: 'Next phase', exact: true }).click();
+    await page.getByTestId('next-phase-button').click();
     await page.waitForTimeout(500);
 
     // discuss → action
-    await page.getByRole('button', { name: 'Next phase', exact: true }).click();
+    await page.getByTestId('next-phase-button').click();
     await page.waitForTimeout(1000);
 
     // Navigate back to team page to complete the sprint

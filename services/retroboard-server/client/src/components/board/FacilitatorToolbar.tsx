@@ -285,6 +285,8 @@ export function FacilitatorToolbar({
                 onClick={() => handleDirectPhaseAdvance(nextPhase.key)}
                 className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-2.5 sm:px-4"
                 title={`Advance to ${nextPhase.label} phase`}
+                aria-label="Next phase"
+                data-testid="next-phase-button"
               >
                 <span>Next Phase: {nextPhase.label}</span>
                 <ChevronRight className="h-3.5 sm:h-4 w-3.5 sm:w-4" />

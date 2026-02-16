@@ -27,12 +27,13 @@ export function PhaseBar({ currentPhase, isFacilitator, onPhaseClick }: PhaseBar
 
         // Facilitators can click any non-active phase (completed or future) to jump to it
         const isClickable = isFacilitator && onPhaseClick && !isActive;
-        const Tag = (isFacilitator && !isActive) ? 'button' : 'div';
+        const Tag = isFacilitator ? 'button' : 'div';
         return (
           <Tag
             key={phase.key}
             onClick={isClickable ? () => onPhaseClick(phase.key) : undefined}
-            aria-label={phase.label}
+            data-testid={`phase-step-${phase.key}`}
+            aria-label={`${phase.number} ${phase.label}`}
             className={`
               flex items-center justify-center h-9 w-9 rounded-lg border transition-all
               ${isActive

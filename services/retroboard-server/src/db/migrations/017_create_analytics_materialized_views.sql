@@ -85,7 +85,7 @@ LEFT JOIN sentiment_lexicon sl ON sl.word = t.word
 WHERE length(t.word) > 3
   AND t.word NOT IN (SELECT sw.word FROM stop_words sw)
 GROUP BY b.sprint_id, t.word, sl.score
-HAVING COUNT(*) >= 2;
+HAVING COUNT(*) >= 1;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_word_freq_sprint_word
   ON mv_word_frequency (sprint_id, word);

@@ -283,15 +283,6 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
             <div className="flex items-center gap-1">
               {(isVotePhase || card.vote_count > 0) && (
                 <div className="flex items-center gap-1">
-                  {canUnvote && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleUnvote(); }}
-                      className="p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600"
-                      aria-label="Remove vote"
-                    >
-                      <ThumbsUp className="h-3.5 w-3.5 fill-current" />
-                    </button>
-                  )}
                   {canVote && (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleVote(); }}
@@ -299,6 +290,15 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
                       aria-label="Vote"
                     >
                       <ThumbsUp className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  {canUnvote && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleUnvote(); }}
+                      className="p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600"
+                      aria-label="Remove vote"
+                    >
+                      <ThumbsUp className="h-3.5 w-3.5 fill-current" />
                     </button>
                   )}
                   {card.vote_count > 0 && (

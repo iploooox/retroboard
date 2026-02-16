@@ -119,11 +119,11 @@ test.describe.serial('User Journey: Analytics and Export', () => {
 
   test('ANALYTICS-3: Advance to vote phase and add votes', async () => {
     // Move to group phase
-    await page.getByRole('button', { name: 'Next phase', exact: true }).click();
+    await page.getByTestId('next-phase-button').click();
     await page.waitForTimeout(500);
 
     // Move to vote phase
-    await page.getByRole('button', { name: 'Next phase', exact: true }).click();
+    await page.getByTestId('next-phase-button').click();
     await page.waitForTimeout(500);
 
     // Vote on cards (use aria-label to avoid phase stepper buttons)
@@ -140,11 +140,11 @@ test.describe.serial('User Journey: Analytics and Export', () => {
 
   test('ANALYTICS-4: Advance to action phase and create action items', async () => {
     // Move to discuss phase
-    await page.getByRole('button', { name: 'Next phase', exact: true }).click();
+    await page.getByTestId('next-phase-button').click();
     await page.waitForTimeout(500);
 
     // Move to action phase
-    await page.getByRole('button', { name: 'Next phase', exact: true }).click();
+    await page.getByTestId('next-phase-button').click();
     await page.waitForTimeout(500);
 
     // Open action items panel

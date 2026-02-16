@@ -654,6 +654,12 @@ export function AnalyticsPage() {
           <ChartCard
             title="Participation"
             helpText="Cards submitted and votes cast per team member"
+            notice={
+              <span className="bg-blue-50 border border-blue-200 rounded p-2 inline-block">
+                <strong>Privacy:</strong> Individual participation data is tracked to help improve team dynamics
+                and is only visible to team admins and facilitators.
+              </span>
+            }
           >
             {participationError ? (
               <div className="flex items-center justify-center h-64 text-red-500">

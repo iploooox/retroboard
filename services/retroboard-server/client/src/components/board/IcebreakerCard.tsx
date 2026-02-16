@@ -95,101 +95,86 @@ export function IcebreakerCard({ teamId, boardId, onDismiss }: IcebreakerCardPro
   };
 
   return (
-    <div
-      className="shrink-0 border-b px-4 py-3"
-      style={{
-        backgroundColor: 'var(--theme-card-bg, #ffffff)',
-        borderColor: 'var(--theme-column-border, #cbd5e1)',
-      }}
-    >
-      {/* Compact banner: title + question + actions in one row */}
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 flex-wrap">
-          {/* Title */}
-          <span
-            className="text-sm font-bold shrink-0"
-            style={{ color: 'var(--theme-text-primary)' }}
-          >
-            🎲 Icebreaker Question
-          </span>
+    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm px-4">
+      <div className="max-w-2xl w-full text-center space-y-6">
+        {/* Title */}
+        <h2 className="text-2xl font-bold text-slate-900">
+          🎲 Icebreaker Question
+        </h2>
 
-          {/* Question text */}
-          <div className="flex-1 min-w-0">
-            {icebreaker ? (
-              <span className="flex items-center gap-2 flex-wrap">
-                <span
-                  className="text-sm font-medium"
-                  style={{ color: 'var(--theme-text-primary)' }}
-                >
-                  &ldquo;{icebreaker.question}&rdquo;
-                </span>
-                <span className="inline-block px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-700 rounded-full">
-                  {icebreaker.category}
-                </span>
+        {/* Question card */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-8">
+          {icebreaker ? (
+            <div className="space-y-4">
+              <p className="text-xl font-medium text-slate-800">
+                {icebreaker.question}
+              </p>
+              <span className="inline-block px-3 py-1 text-sm font-medium bg-indigo-100 text-indigo-700 rounded-full">
+                {icebreaker.category}
               </span>
-            ) : (
-              <span className="text-sm text-slate-400 italic">Loading...</span>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Category filter */}
-            <div className="hidden sm:flex items-center gap-1">
-              <button
-                onClick={() => handleCategoryChange(null)}
-                className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${
-                  selectedCategory === null
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-white text-slate-500 border border-slate-300 hover:border-indigo-300'
-                }`}
-              >
-                All
-              </button>
-              {CATEGORIES.map((category) => (
-                <button
-                  key={category}
-                  onClick={() => handleCategoryChange(category)}
-                  className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${
-                    selectedCategory === category
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-white text-slate-500 border border-slate-300 hover:border-indigo-300'
-                  }`}
-                >
-                  {category}
-                </button>
-              ))}
             </div>
+          ) : (
+            <p className="text-xl text-slate-400 italic">Loading icebreaker...</p>
+          )}
+        </div>
 
+        {/* Category filter buttons */}
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          <button
+            onClick={() => handleCategoryChange(null)}
+            className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+              selectedCategory === null
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white text-slate-500 border border-slate-300 hover:border-indigo-300'
+            }`}
+          >
+            All
+          </button>
+          {CATEGORIES.map((category) => (
             <button
-              type="button"
-              onClick={() => setShowCustomForm(!showCustomForm)}
-              className="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-              title="Add custom question"
+              key={category}
+              onClick={() => handleCategoryChange(category)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                selectedCategory === category
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-white text-slate-500 border border-slate-300 hover:border-indigo-300'
+              }`}
             >
-              <Plus className="h-4 w-4" />
+              {category}
             </button>
+          ))}
+        </div>
 
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={isLoading}
-              className="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-50"
-              title="New question"
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </button>
+        {/* Action buttons */}
+        <div className="flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowCustomForm(!showCustomForm)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Add Custom
+          </button>
 
-            <Button size="sm" onClick={onDismiss}>
-              Start Writing
-            </Button>
-          </div>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            New Question
+          </button>
+
+          <Button onClick={onDismiss}>
+            Start Writing
+          </Button>
         </div>
 
         {/* Custom Question Form (expandable) */}
         {showCustomForm && (
-          <div className="mt-3 border border-slate-200 rounded-lg p-3 space-y-2 bg-white">
-            <p className="text-xs font-medium text-slate-600">Add Custom Question</p>
+          <div className="border border-slate-200 rounded-lg p-4 space-y-3 bg-white text-left">
+            <p className="text-sm font-medium text-slate-600">Add Custom Question</p>
             <textarea
               value={customQuestion}
               onChange={(e) => setCustomQuestion(e.target.value)}

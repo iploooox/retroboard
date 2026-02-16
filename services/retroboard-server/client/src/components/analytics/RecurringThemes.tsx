@@ -11,12 +11,13 @@ interface RecurringThemesProps {
   totalSprints: number;
 }
 
-export function RecurringThemes({ words, totalSprints: _totalSprints }: RecurringThemesProps) {
-  // Identify recurring themes as words that appear frequently
-  // Use a threshold: words appearing at least 3 times OR in the top 30% by frequency
+export function RecurringThemes({ words, totalSprints }: RecurringThemesProps) {
+  // Identify recurring themes as words that appear frequently across sprints
+  // Use a dynamic threshold based on available data
+  const minFreq = Math.max(2, Math.ceil(totalSprints * 0.5));
   const sortedWords = [...words].sort((a, b) => b.frequency - a.frequency);
   const threshold = Math.max(3, Math.ceil(sortedWords.length * 0.3));
-  const recurringWords = sortedWords.slice(0, threshold).filter(w => w.frequency >= 3);
+  const recurringWords = sortedWords.slice(0, threshold).filter(w => w.frequency >= minFreq);
 
   if (recurringWords.length === 0) {
     return (

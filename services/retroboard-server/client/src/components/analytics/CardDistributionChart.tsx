@@ -64,7 +64,7 @@ export function CardDistributionChart({ data }: CardDistributionChartProps) {
 
       {/* Summary */}
       <div className="pt-4 border-t border-slate-200 text-sm text-slate-500">
-        Total cards: <span className="font-semibold text-slate-900">{total}</span>
+        All cards: <span className="font-semibold text-slate-900">{total}</span>
       </div>
     </div>
   );

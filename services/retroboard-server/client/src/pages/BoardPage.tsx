@@ -344,6 +344,9 @@ export function BoardPage() {
     useBoardStore.setState((state) => ({
       board: state.board ? { ...state.board, phase } : null,
     }));
+    // Dismiss any open phase confirmation dialog to prevent stale overlays
+    setShowPhaseConfirm(false);
+    setPendingPhase(null);
   };
 
   const handleLockToggle = (locked: boolean) => {
@@ -403,13 +406,8 @@ export function BoardPage() {
         </div>
       )}
 
-      {/* Icebreaker warmup (compact banner above columns during write phase) */}
-      {board.phase === 'write' && showIcebreaker && teamId && (
-        <IcebreakerCard teamId={teamId} boardId={board.id} onDismiss={() => setShowIcebreaker(false)} />
-      )}
-
-      {/* Board columns — always visible */}
-      <div className="flex-1 overflow-x-auto min-h-0" style={{ backgroundColor: 'var(--theme-bg)' }}>
+      {/* Board columns area — hidden when icebreaker warmup is active (Rule 10: fullscreen overlay) */}
+      <div className="flex-1 overflow-x-auto min-h-0 relative" style={{ backgroundColor: 'var(--theme-bg)' }}>
         <div className="flex gap-4 p-4 h-full min-w-min">
           {sortedColumns.map((col) => (
             <BoardColumn
@@ -422,6 +420,11 @@ export function BoardPage() {
             />
           ))}
         </div>
+
+        {/* Icebreaker warmup (fullscreen overlay during write phase — per Rule 10) */}
+        {board.phase === 'write' && showIcebreaker && teamId && (
+          <IcebreakerCard teamId={teamId} boardId={board.id} onDismiss={() => setShowIcebreaker(false)} />
+        )}
       </div>
 
       {/* Action items panel */}

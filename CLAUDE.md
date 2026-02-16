@@ -30,14 +30,21 @@ When you find a bug during implementation or testing, log it in `bugs/{BUG-ID}/`
 
 ## Agent Coordination Protocol
 
-### Team Composition (Non-Negotiable)
-- EVERY agent team MUST include: dev agents (Sonnet) + PO (Opus) + E2E tester (Sonnet)
-- NEVER spawn dev agents alone. Sonnet cuts corners without oversight.
+### Task Specificity (Non-Negotiable)
+"Fix E2E tests" is NOT a valid task. Every agent task MUST include:
+- **Exact file and line** of the failure
+- **Root cause** (what's wrong and why)
+- **Exact fix** (which file to change, what to change, how)
+- **Verification command** (the specific playwright test command to run)
+
+Bad task: "Fix analytics E2E failures"
+Good task: "In ParticipationChart.tsx, add data-testid='participation-heading' to the h3 on line 42. This fixes analytics.spec.ts:539 where getByText('Participation') matches both the heading and the privacy notice. Verify: npx playwright test tests/e2e-browser/user-journey-analytics.spec.ts --grep 'participation'"
+
+### Agent Model and Composition
+- Use Opus for all dev agents. Sonnet is too slow and cuts corners.
 - PO runs on Opus. PO does NOT write code. PO reads code and challenges.
-- Testers do NOT write implementation code. They only write E2E tests.
+- PO only checks code AFTER dev claims done — not constantly polling git status.
 - ALL priority levels must be fixed — low priority ≠ skip or defer.
-- NEVER use standalone Task agents. ALWAYS use TeamCreate.
-- Dev agents and E2E testers MUST spawn in plan mode (`"mode": "plan"`). They write a plan first, orchestrator approves before they can edit. PO does NOT need plan mode (read-only role).
 
 ### Closed-Loop E2E Verification
 The real bugs are integration cracks (PUT vs PATCH, CSS not applying, props passing UUIDs). Unit tests prove nothing about whether a feature works for a real user.

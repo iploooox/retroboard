@@ -138,7 +138,7 @@ export function VoteDistributionChart({ cards, totalCards }: VoteDistributionCha
       {/* Legend */}
       <div className="pt-4 border-t border-slate-200">
         <div className="text-sm text-slate-500 mb-3">
-          <strong>Total votes cast:</strong> {totalVotes} across {cardsWithVotes} {cardsWithVotes === 1 ? 'card' : 'cards'}
+          <strong>Votes cast:</strong> {totalVotes} across {cardsWithVotes} {cardsWithVotes === 1 ? 'card' : 'cards'}
         </div>
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="flex items-center gap-1">

@@ -6,9 +6,10 @@ interface ChartCardProps {
   children: ReactNode;
   span?: 'full' | 'half';
   helpText?: string;
+  notice?: string;
 }
 
-export function ChartCard({ title, children, span = 'half', helpText }: ChartCardProps) {
+export function ChartCard({ title, children, span = 'half', helpText, notice }: ChartCardProps) {
   return (
     <div
       className={`bg-white rounded-xl border border-slate-200 p-6 ${
@@ -28,6 +29,7 @@ export function ChartCard({ title, children, span = 'half', helpText }: ChartCar
         )}
       </div>
       {children}
+      {notice}
     </div>
   );
 }
