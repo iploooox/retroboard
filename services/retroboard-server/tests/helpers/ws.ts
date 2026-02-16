@@ -2,7 +2,8 @@ import { createServer } from 'node:http';
 import WebSocket from 'ws';
 import { getAuthToken } from './auth.js';
 
-const TEST_PORT = Number(process.env.TEST_PORT) || 3001;
+// Use port 0 to let the OS assign a free port per fork (avoids EADDRINUSE in parallel)
+let assignedPort: number | null = null;
 
 interface WSMessage {
   type: string;
@@ -170,8 +171,9 @@ async function ensureServerStarted(): Promise<void> {
     const cleanup = setupWebSocket(server);
 
     await new Promise<void>((resolve) => {
-      server.listen(TEST_PORT, resolve);
+      server.listen(0, resolve);
     });
+    assignedPort = (server.address() as { port: number }).port;
 
     globalThis.__wsServerCleanup = async () => {
       await cleanup();
@@ -198,7 +200,7 @@ export async function createTestWSClient(options: {
 }): Promise<TestWSClient> {
   await ensureServerStarted();
   const token = options.token ?? (await getAuthToken()).token;
-  let url = `ws://localhost:${TEST_PORT}/ws?token=${token}&boardId=${options.boardId}`;
+  let url = `ws://localhost:${assignedPort}/ws?token=${token}&boardId=${options.boardId}`;
   if (options.lastEventId) url += `&lastEventId=${options.lastEventId}`;
 
   return new Promise((resolve, reject) => {
