@@ -2,9 +2,24 @@ cd services/retroboard-server
 
 echo "Running ESLint..."
 npx eslint src/ tests/ --quiet
-
 if [ $? -ne 0 ]; then
   echo ""
   echo "ESLint failed. Fix errors before committing."
+  exit 1
+fi
+
+echo "Running TypeScript type-check (server)..."
+npx tsc --noEmit
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "Server TypeScript compilation failed. Fix errors before committing."
+  exit 1
+fi
+
+echo "Running TypeScript type-check (client)..."
+cd client && npx tsc --noEmit
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "Client TypeScript compilation failed. Fix errors before committing."
   exit 1
 fi

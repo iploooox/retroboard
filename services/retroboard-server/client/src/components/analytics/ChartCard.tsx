@@ -6,7 +6,7 @@ interface ChartCardProps {
   children: ReactNode;
   span?: 'full' | 'half';
   helpText?: string;
-  notice?: string;
+  notice?: ReactNode;
 }
 
 export function ChartCard({ title, children, span = 'half', helpText, notice }: ChartCardProps) {

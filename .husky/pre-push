@@ -1,0 +1,9 @@
+cd services/retroboard-server
+
+echo "Running unit tests..."
+npx vitest run
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "Tests failed. Fix errors before pushing."
+  exit 1
+fi

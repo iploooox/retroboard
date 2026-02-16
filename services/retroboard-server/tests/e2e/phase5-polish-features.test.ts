@@ -327,16 +327,16 @@ describe('E2E: Phase 5 Happy Path — Polish Features', () => {
     const addReactionRes = await app.request(`/api/v1/cards/${card1.id}/reactions`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ emoji: 'thumbsup' }),
+      body: JSON.stringify({ emoji: '👍' }),
     });
     expect(addReactionRes.status).toBe(200);
     const reactionData = await addReactionRes.json();
     expect(reactionData.ok).toBe(true);
     expect(reactionData.data.added).toBe(true);
-    expect(reactionData.data.emoji).toBe('thumbsup');
+    expect(reactionData.data.emoji).toBe('👍');
     expect(reactionData.data.reactions).toBeDefined();
     expect(reactionData.data.reactions.length).toBeGreaterThan(0);
-    const thumbsUpReaction = reactionData.data.reactions.find((r: { emoji: string }) => r.emoji === 'thumbsup');
+    const thumbsUpReaction = reactionData.data.reactions.find((r: { emoji: string }) => r.emoji === '👍');
     expect(thumbsUpReaction).toBeDefined();
     expect(thumbsUpReaction.count).toBe(1);
 
@@ -344,13 +344,13 @@ describe('E2E: Phase 5 Happy Path — Polish Features', () => {
     const removeReactionRes = await app.request(`/api/v1/cards/${card1.id}/reactions`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ emoji: 'thumbsup' }),
+      body: JSON.stringify({ emoji: '👍' }),
     });
     expect(removeReactionRes.status).toBe(200);
     const removedData = await removeReactionRes.json();
     expect(removedData.ok).toBe(true);
     expect(removedData.data.added).toBe(false);
-    const remainingReactions = removedData.data.reactions.filter((r: { emoji: string; count: number }) => r.emoji === 'thumbsup' && r.count > 0);
+    const remainingReactions = removedData.data.reactions.filter((r: { emoji: string; count: number }) => r.emoji === '👍' && r.count > 0);
     expect(remainingReactions.length).toBe(0);
 
     // ========== 4. BOARD THEMES ==========
