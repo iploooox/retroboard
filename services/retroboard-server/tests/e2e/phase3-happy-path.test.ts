@@ -184,11 +184,12 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       // Bob should receive card_created event
       const bobCardCreated = await bobWS.waitForMessage('card_created');
       expect(bobCardCreated.type).toBe('card_created');
-      expect(getPayload(bobCardCreated).id).toBe(cardA1.id);
-      expect(getPayload(bobCardCreated).content).toBe('Great collaboration');
+      const createdCard = getPayload(bobCardCreated).card as Record<string, unknown>;
+      expect(createdCard.id).toBe(cardA1.id);
+      expect(createdCard.content).toBe('Great collaboration');
       // Note: WebSocket events include full data; anonymous filtering is client-side
-      expect(getPayload(bobCardCreated).authorId).toBeDefined();
-      expect(getPayload(bobCardCreated).authorName).toBe('Alice');
+      expect(createdCard.author_id).toBeDefined();
+      expect(createdCard.author_name).toBe('Alice');
 
       // Bob adds a card
       const addCardB1 = await app.request(`/api/v1/boards/${boardId}/cards`, {
@@ -285,7 +286,8 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       // Bob should receive vote_added
       const bobVoteAdded = await bobWS.waitForMessage('vote_added');
       expect(bobVoteAdded.type).toBe('vote_added');
-      expect(getPayload(bobVoteAdded).id).toBeDefined(); // Vote ID
+      expect(getPayload(bobVoteAdded).cardId).toBe(cardA1.id);
+      expect(getPayload(bobVoteAdded).voteCount).toBeDefined();
 
       // Bob votes on cardB1
       const voteB1 = await app.request(`/api/v1/boards/${boardId}/cards/${cardB1.id}/vote`, {
@@ -294,10 +296,10 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       });
       expect(voteB1.status).toBe(201);
 
-      // Alice should receive vote_added
+      // Alice should receive vote_added (may be her own or Bob's depending on order)
       const aliceVoteAdded = await aliceWS.waitForMessage('vote_added');
       expect(aliceVoteAdded.type).toBe('vote_added');
-      expect(getPayload(aliceVoteAdded).id).toBeDefined();
+      expect(getPayload(aliceVoteAdded).cardId).toBeDefined();
 
       // ========== DISCUSS PHASE: Focus ==========
 
