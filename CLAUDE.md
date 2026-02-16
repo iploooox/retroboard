@@ -14,6 +14,14 @@ This project uses **Skills-Driven Development** (SDD). Load the SDD skill for al
 
 See `epics/INDEX.md` for current status.
 
+## Coding Standards
+
+Read `docs/coding-standards.md` before writing any code. These rules are derived from real bugs and are non-negotiable.
+
+## Bug Logging
+
+When you find a bug during implementation or testing, log it in `bugs/{BUG-ID}/` following the structure in `bugs/README.md`. Map it to a coding standard category. If it's a new class of bug, add a new rule to `docs/coding-standards.md`.
+
 ## Tech Constraints
 
 - **Database**: PostgreSQL only — no Redis, no SQLite, no other stores
