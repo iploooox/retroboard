@@ -11,37 +11,19 @@ export type TestGroup = { id: string; board_id: string; title: string; position:
 export type TestActionItem = { id: string; board_id: string; card_id: string | null; title: string; description: string | null; assignee_id: string | null; due_date: string | null; status: string; carried_from_id: string | null; created_by: string; updated_at?: Date };
 export type TestVote = { id: string; card_id: string; user_id: string; vote_number: number };
 
-const TABLES_TO_TRUNCATE = [
-  'action_items',
-  'card_reactions',
-  'card_group_members',
-  'card_groups',
-  'card_votes',
-  'cards',
-  'columns',
-  'boards',
-  'template_columns',
-  'templates',
-  'sprints',
-  'team_invitations',
-  'team_members',
-  'refresh_tokens',
-  'rate_limits',
-];
-
 export async function truncateTables() {
-  // Delete custom icebreakers and history first (preserves system icebreakers)
-  await sql`DELETE FROM team_icebreaker_history`;
-  await sql`DELETE FROM icebreakers WHERE is_system = false`;
-
-  // Truncate all tables except teams (to avoid cascading to icebreakers)
-  await sql.unsafe(
-    `TRUNCATE TABLE ${TABLES_TO_TRUNCATE.join(', ')} CASCADE`,
-  );
-
-  // Delete teams manually to avoid CASCADE to icebreakers
-  await sql`DELETE FROM teams`;
-  await sql`DELETE FROM users`;
+  // Single round-trip: all cleanup in one sql.unsafe() call
+  await sql.unsafe(`
+    DELETE FROM team_icebreaker_history;
+    DELETE FROM icebreakers WHERE is_system = false;
+    TRUNCATE TABLE
+      action_items, card_reactions, card_group_members, card_groups,
+      card_votes, cards, columns, boards, template_columns, templates,
+      sprints, team_invitations, team_members, refresh_tokens, rate_limits
+    CASCADE;
+    DELETE FROM teams;
+    DELETE FROM users;
+  `);
 }
 
 export async function createTestUser(overrides: {

@@ -37,6 +37,10 @@ vi.mock('@/components/board/CreateBoardModal', () => ({
   CreateBoardModal: () => <div data-testid="create-board-modal" />,
 }));
 
+vi.mock('@/components/board/IcebreakerCard', () => ({
+  IcebreakerCard: () => <div data-testid="icebreaker-card" />,
+}));
+
 vi.mock('@/lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/api')>();
   return {
@@ -52,7 +56,7 @@ const mockBoardData: BoardData = {
   id: 'board-1',
   sprint_id: 'sprint-1',
   template_id: 'tpl-1',
-  phase: 'write',
+  phase: 'discuss',
   anonymous_mode: false,
   max_votes_per_user: 5,
   max_votes_per_card: 3,

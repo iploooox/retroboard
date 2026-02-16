@@ -1,0 +1,375 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  SERVER_DIR: services/retroboard-server
+  CLIENT_DIR: services/retroboard-server/client
+
+jobs:
+  # ─── Tier 1: Fast checks (no DB) ───────────────────────────────────────────
+
+  lint-typecheck:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/retroboard-server
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            services/retroboard-server/package-lock.json
+            services/retroboard-server/client/package-lock.json
+
+      - name: Install server dependencies
+        run: npm ci
+
+      - name: Install client dependencies
+        run: npm ci
+        working-directory: services/retroboard-server/client
+
+      - name: ESLint
+        id: eslint
+        run: |
+          npx eslint src/ tests/ 2>&1 | tee /tmp/eslint-output.txt
+          exit ${PIPESTATUS[0]}
+
+      - name: ESLint summary
+        if: always()
+        run: |
+          if [ "${{ steps.eslint.outcome }}" = "failure" ]; then
+            {
+              echo "## :x: ESLint Failures"
+              echo ""
+              echo '```'
+              tail -100 /tmp/eslint-output.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## :white_check_mark: ESLint — passed" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: TypeScript (server)
+        id: tsc_server
+        run: |
+          npx tsc --noEmit 2>&1 | tee /tmp/tsc-server-output.txt
+          exit ${PIPESTATUS[0]}
+
+      - name: TypeScript (server) summary
+        if: always()
+        run: |
+          if [ "${{ steps.tsc_server.outcome }}" = "failure" ]; then
+            {
+              echo "## :x: TypeScript Errors (server)"
+              echo ""
+              echo '```'
+              tail -100 /tmp/tsc-server-output.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## :white_check_mark: TypeScript (server) — passed" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: TypeScript (client)
+        id: tsc_client
+        run: |
+          npx tsc --noEmit 2>&1 | tee /tmp/tsc-client-output.txt
+          exit ${PIPESTATUS[0]}
+        working-directory: services/retroboard-server/client
+
+      - name: TypeScript (client) summary
+        if: always()
+        run: |
+          if [ "${{ steps.tsc_client.outcome }}" = "failure" ]; then
+            {
+              echo "## :x: TypeScript Errors (client)"
+              echo ""
+              echo '```'
+              tail -100 /tmp/tsc-client-output.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## :white_check_mark: TypeScript (client) — passed" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  unit-tests-client:
+    name: Unit Tests (client)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/retroboard-server/client
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: services/retroboard-server/client/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run client tests
+        id: client_tests
+        run: |
+          npx vitest run --reporter=verbose --reporter=github-actions 2>&1 | tee /tmp/client-test-output.txt
+          exit ${PIPESTATUS[0]}
+
+      - name: Client tests summary
+        if: always()
+        run: |
+          if [ "${{ steps.client_tests.outcome }}" = "failure" ]; then
+            {
+              echo "## :x: Client Unit Test Failures"
+              echo ""
+              echo '```'
+              tail -100 /tmp/client-test-output.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## :white_check_mark: Client Unit Tests — passed" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  # ─── Tier 2: Tests requiring database ──────────────────────────────────────
+
+  unit-tests-server:
+    name: Unit Tests (server)
+    runs-on: ubuntu-latest
+    needs: [lint-typecheck]
+    defaults:
+      run:
+        working-directory: services/retroboard-server
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      JWT_SECRET: ci-test-secret-must-be-at-least-32-characters-long
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: services/retroboard-server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run server tests
+        id: server_tests
+        run: |
+          npx vitest run --reporter=verbose --reporter=github-actions 2>&1 | tee /tmp/server-test-output.txt
+          exit ${PIPESTATUS[0]}
+
+      - name: Server tests summary
+        if: always()
+        run: |
+          if [ "${{ steps.server_tests.outcome }}" = "failure" ]; then
+            {
+              echo "## :x: Server Unit Test Failures"
+              echo ""
+              echo '```'
+              tail -150 /tmp/server-test-output.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## :white_check_mark: Server Unit Tests — passed" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [lint-typecheck, unit-tests-client]
+    defaults:
+      run:
+        working-directory: services/retroboard-server
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: retroboard_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/retroboard_ci
+      JWT_SECRET: ci-test-secret-must-be-at-least-32-characters-long
+      PLAYWRIGHT_BASE_URL: http://localhost:5173
+      DISABLE_RATE_LIMIT: 'true'
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            services/retroboard-server/package-lock.json
+            services/retroboard-server/client/package-lock.json
+
+      - name: Install server dependencies
+        run: npm ci
+
+      - name: Install client dependencies
+        run: npm ci
+        working-directory: services/retroboard-server/client
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('services/retroboard-server/package-lock.json') }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium
+
+      - name: Install Playwright OS dependencies
+        run: npx playwright install-deps chromium
+
+      - name: Run migrations
+        run: npx tsx src/db/migrate.ts
+
+      - name: Run seeds
+        run: npx tsx src/db/seed.ts
+
+      - name: Start backend server
+        run: |
+          npx tsx src/server.ts > /tmp/backend-server.log 2>&1 &
+          echo "BACKEND_PID=$!" >> "$GITHUB_ENV"
+
+      - name: Start frontend dev server
+        run: |
+          npx vite --port 5173 > /tmp/frontend-server.log 2>&1 &
+          echo "FRONTEND_PID=$!" >> "$GITHUB_ENV"
+        working-directory: services/retroboard-server/client
+
+      - name: Wait for backend
+        run: |
+          echo "Waiting for backend on port 3000..."
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3000/api/v1/health > /dev/null 2>&1; then
+              echo "Backend ready after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::Backend failed to start within 60s"
+          echo "--- Backend logs ---"
+          cat /tmp/backend-server.log
+          exit 1
+
+      - name: Wait for frontend
+        run: |
+          echo "Waiting for frontend on port 5173..."
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:5173 > /dev/null 2>&1; then
+              echo "Frontend ready after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::Frontend failed to start within 60s"
+          echo "--- Frontend logs ---"
+          cat /tmp/frontend-server.log
+          exit 1
+
+      - name: Run Playwright tests
+        id: e2e_tests
+        run: |
+          npx playwright test --reporter=github,html 2>&1 | tee /tmp/playwright-output.txt
+          exit ${PIPESTATUS[0]}
+
+      - name: E2E summary
+        if: always()
+        run: |
+          if [ "${{ steps.e2e_tests.outcome }}" = "failure" ]; then
+            {
+              echo "## :x: E2E Test Failures"
+              echo ""
+              echo "### Failed tests"
+              echo '```'
+              grep -E '(FAIL|Error|✘|×|failed)' /tmp/playwright-output.txt | head -30 || true
+              echo '```'
+              echo ""
+              echo "### Playwright output (last 150 lines)"
+              echo '```'
+              tail -150 /tmp/playwright-output.txt
+              echo '```'
+              echo ""
+              echo "### Backend server logs (last 50 lines)"
+              echo '```'
+              tail -50 /tmp/backend-server.log 2>/dev/null || echo "No backend logs found"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## :white_check_mark: E2E Tests — passed" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload Playwright report
+        if: failure() && steps.e2e_tests.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: services/retroboard-server/playwright-report/
+          retention-days: 14
+
+      - name: Upload Playwright traces
+        if: failure() && steps.e2e_tests.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: services/retroboard-server/test-results/
+          retention-days: 14
+
+      - name: Upload server logs
+        if: failure() && steps.e2e_tests.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs
+          path: /tmp/backend-server.log
+          retention-days: 14
+
+      - name: Stop servers
+        if: always()
+        run: |
+          kill $BACKEND_PID 2>/dev/null || true
+          kill $FRONTEND_PID 2>/dev/null || true

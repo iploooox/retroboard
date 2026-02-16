@@ -9,7 +9,7 @@ export function getSql(): ReturnType<typeof postgres> {
       throw new Error('DATABASE_URL is not set');
     }
     _sql = postgres(url, {
-      max: process.env.NODE_ENV === 'test' ? 5 : 20,
+      max: process.env.NODE_ENV === 'test' ? 3 : 20,
       idle_timeout: 20,
       connect_timeout: 10,
       onnotice: () => {},
