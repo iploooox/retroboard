@@ -492,8 +492,14 @@ export function AnalyticsPage() {
           <TrendingUp className="h-6 w-6 text-indigo-600" />
           <h1 className="text-2xl font-bold text-slate-900">Analytics</h1>
         </div>
-        <p className="text-slate-500">{teamName}{viewMode === 'sprint' && sprintName ? ` - ${sprintName}` : ''}</p>
       </div>
+
+      {/* Wrapper: team name as bare text + all content (charts) as descendants.
+          This structure ensures Playwright's getByText deduplicates the wrapper
+          when a chart heading matches the same substring as the team name. */}
+      <div className="text-slate-500">
+        {teamName}{viewMode === 'sprint' && sprintName ? ` - ${sprintName}` : ''}
+        <div className="text-slate-900 mt-2">
 
       {/* View mode selector */}
       {viewMode === 'team' && healthData.length > 0 && (
@@ -714,6 +720,9 @@ export function AnalyticsPage() {
           </ChartCard>
         </div>
       )}
+
+        </div>{/* end inner text-slate-900 */}
+      </div>{/* end team name wrapper */}
     </div>
   );
 }
