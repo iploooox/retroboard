@@ -32,7 +32,7 @@ export function PhaseBar({ currentPhase, isFacilitator, onPhaseClick }: PhaseBar
           <Tag
             key={phase.key}
             onClick={isClickable ? () => onPhaseClick(phase.key) : undefined}
-            aria-label={`${phase.number} ${phase.label}`}
+            aria-label={phase.label}
             className={`
               flex items-center justify-center h-9 w-9 rounded-lg border transition-all
               ${isActive
