@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { getWSClient } from '@/lib/ws-client';
 import { useBoardStore } from '@/stores/board';
+import { useAuthStore } from '@/stores/auth';
 import { usePresenceStore } from '@/stores/presence';
 import type { BoardCard, BoardGroup, BoardPhase } from '@/lib/board-api';
 
@@ -66,15 +67,25 @@ export function useBoardSync(boardId: string | null, enabled: boolean) {
       if (msg.eventId && seenEventIds.has(msg.eventId)) return;
       if (msg.eventId) seenEventIds.add(msg.eventId);
 
-      const { cardId, voteCount, userRemainingVotes } = msg.payload;
+      const { cardId, userId, voteCount, userRemainingVotes } = msg.payload;
+      const currentUserId = useAuthStore.getState().user?.id;
+
       useBoardStore.setState((state) => {
         const card = state.cards[cardId];
         if (!card) return state;
 
-        return {
+        const updates: Partial<typeof state> = {
           cards: { ...state.cards, [cardId]: { ...card, vote_count: voteCount } },
-          userVotesRemaining: userRemainingVotes,
         };
+
+        // Only update user-specific vote tracking if the current user is the voter
+        if (userId === currentUserId) {
+          updates.userVotesRemaining = userRemainingVotes;
+          updates.userCardVotes = { ...state.userCardVotes, [cardId]: (state.userCardVotes[cardId] ?? 0) + 1 };
+          updates.userVotesCast = state.userVotesCast + 1;
+        }
+
+        return updates as typeof state;
       });
     };
 
@@ -85,15 +96,25 @@ export function useBoardSync(boardId: string | null, enabled: boolean) {
       if (msg.eventId && seenEventIds.has(msg.eventId)) return;
       if (msg.eventId) seenEventIds.add(msg.eventId);
 
-      const { cardId, voteCount, userRemainingVotes } = msg.payload;
+      const { cardId, userId, voteCount, userRemainingVotes } = msg.payload;
+      const currentUserId = useAuthStore.getState().user?.id;
+
       useBoardStore.setState((state) => {
         const card = state.cards[cardId];
         if (!card) return state;
 
-        return {
+        const updates: Partial<typeof state> = {
           cards: { ...state.cards, [cardId]: { ...card, vote_count: voteCount } },
-          userVotesRemaining: userRemainingVotes,
         };
+
+        // Only update user-specific vote tracking if the current user is the voter
+        if (userId === currentUserId) {
+          updates.userVotesRemaining = userRemainingVotes;
+          updates.userCardVotes = { ...state.userCardVotes, [cardId]: Math.max(0, (state.userCardVotes[cardId] ?? 0) - 1) };
+          updates.userVotesCast = Math.max(0, state.userVotesCast - 1);
+        }
+
+        return updates as typeof state;
       });
     };
 

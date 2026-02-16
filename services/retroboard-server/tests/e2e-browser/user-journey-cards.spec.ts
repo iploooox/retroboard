@@ -18,8 +18,18 @@ test.describe.serial('Card Interactions - Full User Journey', () => {
     await registerUser(page, { email, password, displayName });
     await createTeamAndBoard(page, { teamName: 'Card Journey Team' });
 
+    // Dismiss icebreaker warmup if it's still showing (safety net)
+    const startWritingBtn = page.getByRole('button', { name: /start writing/i });
+    if (await startWritingBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await startWritingBtn.click();
+      await page.waitForTimeout(500);
+    }
+
     // Verify we're on a board in Write phase
     await expect(page.getByText('Write Phase')).toBeVisible();
+
+    // Wait for facilitator toolbar to load (role is fetched async)
+    await expect(page.getByTestId('next-phase-button')).toBeVisible({ timeout: 5000 });
   });
 
   test('E2E-CARDS-2: Verify empty state when no cards exist', async () => {
@@ -162,15 +172,20 @@ test.describe.serial('Card Interactions - Full User Journey', () => {
     }
 
     // Transition through phases: Write -> Group -> Vote
+    // Use data-testid for reliable selection (matches FacilitatorToolbar)
+    const nextPhaseButton = page.getByTestId('next-phase-button');
+
     // Click to Group phase
-    await page.getByRole('button', { name: 'Next phase', exact: true }).click();
-    await page.waitForTimeout(1000);
+    await nextPhaseButton.click();
+    await page.waitForTimeout(500);
+    await expect(page.getByText('Group Phase')).toBeVisible();
 
     // Click to Vote phase
-    await page.getByRole('button', { name: 'Next phase', exact: true }).click();
-    await page.waitForTimeout(1000);
+    await nextPhaseButton.click();
+    await page.waitForTimeout(500);
+    await expect(page.getByText('Vote Phase')).toBeVisible();
 
-    // Verify we're in Vote phase - cards should still be visible
+    // Verify cards are still visible in Vote phase
     const cardElement = page.getByText('Excellent team collaboration this sprint!');
     await expect(cardElement).toBeVisible();
 

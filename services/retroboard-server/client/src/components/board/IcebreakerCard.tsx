@@ -95,7 +95,7 @@ export function IcebreakerCard({ teamId, boardId, onDismiss }: IcebreakerCardPro
   };
 
   return (
-    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm px-4">
+    <div className="flex-1 flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm px-4">
       <div className="max-w-2xl w-full text-center space-y-6">
         {/* Title */}
         <h2 className="text-2xl font-bold text-slate-900">
