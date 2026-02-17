@@ -319,6 +319,21 @@ export function useBoardSync(boardId: string | null, enabled: boolean) {
       useBoardStore.getState().removeIcebreakerResponse(msg.payload.id);
     };
 
+    // Icebreaker reaction events (S-005)
+    const handleIcebreakerReactionUpdated = (msg: {
+      payload: { responseId: string; emoji: string; count: number };
+      eventId: string;
+    }) => {
+      if (msg.eventId && seenEventIds.has(msg.eventId)) return;
+      if (msg.eventId) seenEventIds.add(msg.eventId);
+
+      useBoardStore.getState().updateIcebreakerReactionCount(
+        msg.payload.responseId,
+        msg.payload.emoji,
+        msg.payload.count,
+      );
+    };
+
     // Register all handlers
     ws.on('card_created', handleCardCreated as never);
     ws.on('card_updated', handleCardUpdated as never);
@@ -339,6 +354,7 @@ export function useBoardSync(boardId: string | null, enabled: boolean) {
     ws.on('icebreaker_question_changed', handleIcebreakerChanged as never);
     ws.on('icebreaker_response_added', handleIcebreakerResponseAdded as never);
     ws.on('icebreaker_response_removed', handleIcebreakerResponseRemoved as never);
+    ws.on('icebreaker_reaction_updated', handleIcebreakerReactionUpdated as never);
 
     // Cleanup
     return () => {
@@ -361,6 +377,7 @@ export function useBoardSync(boardId: string | null, enabled: boolean) {
       ws.off('icebreaker_question_changed', handleIcebreakerChanged as never);
       ws.off('icebreaker_response_added', handleIcebreakerResponseAdded as never);
       ws.off('icebreaker_response_removed', handleIcebreakerResponseRemoved as never);
+      ws.off('icebreaker_reaction_updated', handleIcebreakerReactionUpdated as never);
     };
   }, [enabled, boardId, board]);
 }

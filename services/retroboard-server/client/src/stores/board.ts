@@ -53,6 +53,9 @@ interface BoardState {
   addIcebreakerResponse: (response: IcebreakerResponse) => void;
   removeIcebreakerResponse: (responseId: string) => void;
   setIcebreakerResponses: (responses: IcebreakerResponse[]) => void;
+  // Icebreaker reaction actions (S-005)
+  toggleIcebreakerReaction: (responseId: string, emoji: string) => Promise<void>;
+  updateIcebreakerReactionCount: (responseId: string, emoji: string, count: number) => void;
   reset: () => void;
 }
 
@@ -547,7 +550,13 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       if (state.icebreakerResponses.some((r) => r.id === response.id)) {
         return state;
       }
-      return { icebreakerResponses: [...state.icebreakerResponses, response] };
+      // Ensure reactions fields are initialized for new responses
+      const newResponse: IcebreakerResponse = {
+        ...response,
+        reactions: response.reactions ?? {},
+        myReactions: response.myReactions ?? [],
+      };
+      return { icebreakerResponses: [...state.icebreakerResponses, newResponse] };
     });
   },
 
@@ -559,6 +568,73 @@ export const useBoardStore = create<BoardState>((set, get) => ({
 
   setIcebreakerResponses: (responses: IcebreakerResponse[]) => {
     set({ icebreakerResponses: responses });
+  },
+
+  // Icebreaker reaction actions (S-005)
+  toggleIcebreakerReaction: async (responseId: string, emoji: string) => {
+    const { board, icebreakerResponses } = get();
+    if (!board) return;
+
+    const responseIndex = icebreakerResponses.findIndex((r) => r.id === responseId);
+    if (responseIndex === -1) return;
+
+    const response = icebreakerResponses[responseIndex];
+    const isCurrentlyReacted = response.myReactions.includes(emoji);
+    const currentCount = response.reactions[emoji] ?? 0;
+
+    // Optimistic update
+    const optimisticResponses = [...icebreakerResponses];
+    const optimisticResponse = { ...response };
+    const optimisticReactions = { ...response.reactions };
+
+    if (isCurrentlyReacted) {
+      // Removing reaction
+      const newCount = Math.max(0, currentCount - 1);
+      if (newCount === 0) {
+        delete optimisticReactions[emoji];
+      } else {
+        optimisticReactions[emoji] = newCount;
+      }
+      optimisticResponse.myReactions = response.myReactions.filter((e) => e !== emoji);
+    } else {
+      // Adding reaction
+      optimisticReactions[emoji] = currentCount + 1;
+      optimisticResponse.myReactions = [...response.myReactions, emoji];
+    }
+
+    optimisticResponse.reactions = optimisticReactions;
+    optimisticResponses[responseIndex] = optimisticResponse;
+    set({ icebreakerResponses: optimisticResponses });
+
+    try {
+      await boardApi.toggleIcebreakerReaction(board.id, responseId, emoji);
+      // Server response will confirm via WS broadcast; optimistic update is sufficient
+    } catch (err) {
+      // Rollback on error
+      set({ icebreakerResponses: icebreakerResponses });
+      toast.error(err instanceof ApiError ? err.message : 'Failed to toggle reaction');
+    }
+  },
+
+  updateIcebreakerReactionCount: (responseId: string, emoji: string, count: number) => {
+    set((state) => {
+      const idx = state.icebreakerResponses.findIndex((r) => r.id === responseId);
+      if (idx === -1) return state;
+
+      const responses = [...state.icebreakerResponses];
+      const response = { ...responses[idx] };
+      const reactions = { ...response.reactions };
+
+      if (count > 0) {
+        reactions[emoji] = count;
+      } else {
+        delete reactions[emoji];
+      }
+
+      response.reactions = reactions;
+      responses[idx] = response;
+      return { icebreakerResponses: responses };
+    });
   },
 
   reset: () => set(initialState),

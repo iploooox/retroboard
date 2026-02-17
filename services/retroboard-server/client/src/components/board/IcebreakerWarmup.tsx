@@ -4,6 +4,7 @@ import { useBoardStore } from '@/stores/board';
 import { boardApi } from '@/lib/board-api';
 import type { IcebreakerResponse } from '@/lib/board-api';
 import { toast } from '@/lib/toast';
+import { IcebreakerReactionBar } from './IcebreakerReactionBar';
 
 const CATEGORIES = ['Fun', 'Team-Building', 'Reflective', 'Creative', 'Quick'] as const;
 
@@ -374,7 +375,7 @@ export function IcebreakerWarmup({ boardId, isFacilitator }: IcebreakerWarmupPro
               return (
                 <div
                   key={response.id}
-                  className={`icebreaker-card relative rounded-xl shadow-md px-5 py-4 ${animClass}`}
+                  className={`icebreaker-card group relative rounded-xl shadow-md px-5 py-4 ${animClass}`}
                   style={{
                     '--card-rotation': `${rotation}deg`,
                     '--cascade-delay': cascadeDelay,
@@ -386,6 +387,11 @@ export function IcebreakerWarmup({ boardId, isFacilitator }: IcebreakerWarmupPro
                   <p className="text-slate-800 text-sm leading-relaxed break-words">
                     {response.content}
                   </p>
+                  <IcebreakerReactionBar
+                    responseId={response.id}
+                    reactions={response.reactions ?? {}}
+                    myReactions={response.myReactions ?? []}
+                  />
                   {isFacilitator && (
                     <button
                       type="button"

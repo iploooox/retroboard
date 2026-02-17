@@ -257,6 +257,130 @@ icebreakersRouter.delete('/boards/:boardId/icebreaker', async (c) => {
   return c.json(okRes({ deleted: true }));
 });
 
+// ---- Icebreaker Response Reactions (S-005) ----
+
+const VALID_EMOJIS = ['laugh', 'fire', 'heart', 'bullseye', 'clap', 'skull'] as const;
+type ValidEmoji = typeof VALID_EMOJIS[number];
+
+function isValidEmoji(emoji: string): emoji is ValidEmoji {
+  return (VALID_EMOJIS as readonly string[]).includes(emoji);
+}
+
+// POST /api/v1/boards/:boardId/icebreaker/responses/:responseId/reactions — Toggle reaction
+icebreakersRouter.post('/boards/:boardId/icebreaker/responses/:responseId/reactions', async (c) => {
+  const boardId = c.req.param('boardId');
+  const responseId = c.req.param('responseId');
+  const user = c.get('user');
+
+  // Validate IDs
+  if (!uuidParam.safeParse(boardId).success) {
+    return c.json(errRes('VALIDATION_ERROR', 'Invalid board ID format'), 400);
+  }
+  if (!uuidParam.safeParse(responseId).success) {
+    return c.json(errRes('VALIDATION_ERROR', 'Invalid response ID format'), 400);
+  }
+
+  const body = await c.req.json().catch(() => ({}));
+  const schema = z.object({
+    emoji: z.string().min(1),
+  });
+
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return c.json(errRes('VALIDATION_ERROR', 'Validation failed'), 400);
+  }
+
+  const { emoji } = parsed.data;
+
+  // Validate emoji value
+  if (!isValidEmoji(emoji)) {
+    return c.json(errRes('VALIDATION_ERROR', `Invalid emoji. Must be one of: ${VALID_EMOJIS.join(', ')}`), 400);
+  }
+
+  // Get board + team info
+  const [boardRow] = await sql`
+    SELECT b.id, b.phase, s.team_id
+    FROM boards b
+    JOIN sprints s ON b.sprint_id = s.id
+    WHERE b.id = ${boardId}
+  `;
+
+  if (!boardRow) {
+    return c.json(errRes('BOARD_NOT_FOUND', 'Board not found'), 404);
+  }
+
+  // Phase guard
+  if (boardRow.phase !== 'icebreaker') {
+    return c.json(errRes('INVALID_PHASE', 'Can only react during icebreaker phase'), 422);
+  }
+
+  const teamId = boardRow.team_id as string;
+
+  // Check user is team member
+  const [member] = await sql`
+    SELECT 1 FROM team_members WHERE team_id = ${teamId} AND user_id = ${user.id}
+  `;
+
+  if (!member) {
+    return c.json(errRes('FORBIDDEN', 'Not a team member'), 403);
+  }
+
+  // Verify response exists and is not deleted
+  const [responseRow] = await sql`
+    SELECT id FROM icebreaker_responses
+    WHERE id = ${responseId} AND board_id = ${boardId} AND deleted_at IS NULL
+  `;
+
+  if (!responseRow) {
+    return c.json(errRes('NOT_FOUND', 'Response not found'), 404);
+  }
+
+  // Toggle: check if reaction already exists
+  const [existing] = await sql`
+    SELECT id FROM icebreaker_response_reactions
+    WHERE response_id = ${responseId} AND user_id = ${user.id} AND emoji = ${emoji}
+  `;
+
+  let action: 'added' | 'removed';
+
+  if (existing) {
+    // Remove existing reaction
+    await sql`
+      DELETE FROM icebreaker_response_reactions
+      WHERE id = ${existing.id}
+    `;
+    action = 'removed';
+  } else {
+    // Add new reaction
+    await sql`
+      INSERT INTO icebreaker_response_reactions (response_id, user_id, emoji)
+      VALUES (${responseId}, ${user.id}, ${emoji})
+    `;
+    action = 'added';
+  }
+
+  // Get updated count for this emoji on this response
+  const [countRow] = await sql`
+    SELECT COUNT(*)::int AS count
+    FROM icebreaker_response_reactions
+    WHERE response_id = ${responseId} AND emoji = ${emoji}
+  `;
+
+  const count = (countRow?.count as number) ?? 0;
+
+  // Broadcast to all board participants
+  broadcastToBoard(boardId, {
+    type: 'icebreaker_reaction_updated',
+    payload: {
+      responseId,
+      emoji,
+      count,
+    },
+  });
+
+  return c.json(okRes({ action, emoji, count }));
+});
+
 // ---- Icebreaker Response Wall (S-003) ----
 
 // In-memory rate limiter: userId -> lastSubmitTimestamp
@@ -408,10 +532,53 @@ icebreakersRouter.get('/boards/:boardId/icebreaker/responses', async (c) => {
     ORDER BY created_at ASC
   `;
 
+  if (responses.length === 0) {
+    return c.json(okRes({ responses: [], count: 0 }));
+  }
+
+  const responseIds = responses.map((r) => r.id as string);
+
+  // Get aggregated reaction counts per response per emoji (single query, no N+1)
+  const reactionCounts = await sql`
+    SELECT response_id, emoji, COUNT(*)::int AS count
+    FROM icebreaker_response_reactions
+    WHERE response_id = ANY(${responseIds})
+    GROUP BY response_id, emoji
+  `;
+
+  // Get current user's reactions (single query)
+  const myReactions = await sql`
+    SELECT response_id, emoji
+    FROM icebreaker_response_reactions
+    WHERE response_id = ANY(${responseIds})
+      AND user_id = ${user.id}
+  `;
+
+  // Build lookup maps
+  const reactionsMap = new Map<string, Record<string, number>>();
+  for (const row of reactionCounts) {
+    const rid = row.response_id as string;
+    if (!reactionsMap.has(rid)) {
+      reactionsMap.set(rid, {});
+    }
+    reactionsMap.get(rid)![row.emoji as string] = row.count as number;
+  }
+
+  const myReactionsMap = new Map<string, string[]>();
+  for (const row of myReactions) {
+    const rid = row.response_id as string;
+    if (!myReactionsMap.has(rid)) {
+      myReactionsMap.set(rid, []);
+    }
+    myReactionsMap.get(rid)!.push(row.emoji as string);
+  }
+
   const formatted = responses.map((r) => ({
     id: r.id as string,
     content: r.content as string,
     created_at: (r.created_at as Date).toISOString(),
+    reactions: reactionsMap.get(r.id as string) ?? {},
+    myReactions: myReactionsMap.get(r.id as string) ?? [],
   }));
 
   return c.json(okRes({ responses: formatted, count: formatted.length }));

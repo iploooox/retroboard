@@ -57,6 +57,14 @@ export interface IcebreakerResponse {
   id: string;
   content: string;
   created_at: string;
+  reactions: Record<string, number>;
+  myReactions: string[];
+}
+
+export interface ToggleReactionResult {
+  action: 'added' | 'removed';
+  emoji: string;
+  count: number;
 }
 
 export interface IcebreakerResponsesResult {
@@ -260,4 +268,8 @@ export const boardApi = {
 
   deleteIcebreakerResponse: (boardId: string, responseId: string) =>
     api.delete<OkResponse<{ id: string; deleted: boolean }>>(`/boards/${boardId}/icebreaker/responses/${responseId}`).then(r => r.data),
+
+  // Icebreaker Response Reactions (S-005)
+  toggleIcebreakerReaction: (boardId: string, responseId: string, emoji: string) =>
+    api.post<OkResponse<ToggleReactionResult>>(`/boards/${boardId}/icebreaker/responses/${responseId}/reactions`, { emoji }).then(r => r.data),
 };
