@@ -171,6 +171,7 @@ export function BoardPage() {
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [showPhaseConfirm, setShowPhaseConfirm] = useState(false);
   const [pendingPhase, setPendingPhase] = useState<BoardPhase | null>(null);
+  const [icebreakerTimerSeconds, setIcebreakerTimerSeconds] = useState<number | null>(null);
 
   // WebSocket sync
   useBoardSync(board?.id || null, wsConnected);
@@ -189,12 +190,13 @@ export function BoardPage() {
         // Fallback to member role
       });
 
-    // Fetch team data to get current theme
-    api.get<{ team: { theme?: string } }>(`/teams/${teamId}`)
+    // Fetch team data to get current theme and icebreaker settings
+    api.get<{ team: { theme?: string; icebreaker_timer_seconds?: number | null } }>(`/teams/${teamId}`)
       .then((response) => {
         if (response.team.theme) {
           setTeamTheme(response.team.theme);
         }
+        setIcebreakerTimerSeconds(response.team.icebreaker_timer_seconds ?? null);
       })
       .catch(() => {
         // Use default theme
@@ -410,7 +412,7 @@ export function BoardPage() {
       <div className="flex-1 overflow-x-auto min-h-0 relative" style={{ backgroundColor: 'var(--theme-bg)' }}>
         {board.phase === 'icebreaker' && teamId ? (
           /* Icebreaker warmup replaces columns during icebreaker phase — per Rule 10 */
-          <IcebreakerWarmup teamId={teamId} boardId={board.id} isFacilitator={isFacilitator} />
+          <IcebreakerWarmup boardId={board.id} isFacilitator={isFacilitator} timerSeconds={icebreakerTimerSeconds} />
         ) : (
           <div className="flex gap-4 p-4 h-full min-w-min">
             {sortedColumns.map((col) => (

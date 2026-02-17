@@ -97,25 +97,40 @@ export async function createBoard(data: {
       columns.push(formatColumn(col));
     }
 
-    // Auto-select an icebreaker question (boards start in icebreaker phase)
+    // Check team icebreaker settings and auto-select icebreaker if enabled
     const boardId = boardRow.id as string;
     let icebreaker: { id: string; question: string; category: string } | null = null;
     try {
-      // Get team_id from the sprint (within transaction)
-      const [sprintRow] = await tx`SELECT team_id FROM sprints WHERE id = ${data.sprint_id}`;
+      // Get team_id and icebreaker settings from the sprint's team (within transaction)
+      const [sprintRow] = await tx`
+        SELECT s.team_id, t.icebreaker_enabled, t.icebreaker_default_category
+        FROM sprints s
+        JOIN teams t ON t.id = s.team_id
+        WHERE s.id = ${data.sprint_id}
+      `;
       if (sprintRow) {
         const teamId = sprintRow.team_id as string;
-        const selected = await icebreakerService.getRandom(teamId);
-        if (selected) {
-          await tx`UPDATE boards SET icebreaker_id = ${selected.id} WHERE id = ${boardId}`;
-          // Record history within the transaction (board not committed yet, FK needs same tx)
-          await tx`
-            INSERT INTO team_icebreaker_history (team_id, icebreaker_id, board_id, used_at)
-            VALUES (${teamId}, ${selected.id}, ${boardId}, NOW())
-          `;
-          // Update the boardRow data to reflect the new icebreaker_id
-          boardRow.icebreaker_id = selected.id;
-          icebreaker = selected;
+        const icebreakerEnabled = sprintRow.icebreaker_enabled as boolean;
+        const defaultCategory = sprintRow.icebreaker_default_category as string | null;
+
+        if (!icebreakerEnabled) {
+          // Skip icebreaker phase — start in write
+          await tx`UPDATE boards SET phase = 'write' WHERE id = ${boardId}`;
+          boardRow.phase = 'write';
+        } else {
+          // Auto-select an icebreaker question (boards start in icebreaker phase)
+          const selected = await icebreakerService.getRandom(teamId, defaultCategory ?? undefined);
+          if (selected) {
+            await tx`UPDATE boards SET icebreaker_id = ${selected.id} WHERE id = ${boardId}`;
+            // Record history within the transaction (board not committed yet, FK needs same tx)
+            await tx`
+              INSERT INTO team_icebreaker_history (team_id, icebreaker_id, board_id, used_at)
+              VALUES (${teamId}, ${selected.id}, ${boardId}, NOW())
+            `;
+            // Update the boardRow data to reflect the new icebreaker_id
+            boardRow.icebreaker_id = selected.id;
+            icebreaker = selected;
+          }
         }
       }
     } catch {

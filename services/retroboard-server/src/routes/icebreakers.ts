@@ -100,6 +100,91 @@ icebreakersRouter.post('/teams/:teamId/icebreakers/custom', async (c) => {
   return c.json(okRes(icebreaker), 201);
 });
 
+// GET /api/v1/teams/:teamId/icebreakers/custom — List custom questions for team
+icebreakersRouter.get('/teams/:teamId/icebreakers/custom', async (c) => {
+  const teamId = c.req.param('teamId');
+  const user = c.get('user');
+
+  // Check user is team member
+  const [member] = await sql`
+    SELECT 1 FROM team_members WHERE team_id = ${teamId} AND user_id = ${user.id}
+  `;
+
+  if (!member) {
+    return c.json(errRes('FORBIDDEN', 'Not a team member'), 403);
+  }
+
+  // Check team exists and not deleted
+  const [team] = await sql`
+    SELECT id FROM teams WHERE id = ${teamId} AND deleted_at IS NULL
+  `;
+
+  if (!team) {
+    return c.json(errRes('NOT_FOUND', 'Team not found'), 404);
+  }
+
+  const questions = await sql`
+    SELECT i.id, i.question, i.category, i.created_by, i.created_at,
+           u.display_name AS created_by_name
+    FROM icebreakers i
+    LEFT JOIN users u ON u.id = i.created_by
+    WHERE i.team_id = ${teamId} AND i.is_system = false
+    ORDER BY i.created_at DESC
+  `;
+
+  const formatted = questions.map((q) => ({
+    id: q.id as string,
+    question: q.question as string,
+    category: q.category as string,
+    created_by: q.created_by as string,
+    created_by_name: (q.created_by_name as string) ?? null,
+    created_at: (q.created_at as Date).toISOString(),
+  }));
+
+  return c.json(okRes({ questions: formatted, count: formatted.length }));
+});
+
+// DELETE /api/v1/teams/:teamId/icebreakers/:icebreakerId — Delete custom question (admin-only)
+icebreakersRouter.delete('/teams/:teamId/icebreakers/:icebreakerId', async (c) => {
+  const teamId = c.req.param('teamId');
+  const icebreakerId = c.req.param('icebreakerId');
+  const user = c.get('user');
+
+  // Check user is admin
+  const [member] = await sql`
+    SELECT role FROM team_members WHERE team_id = ${teamId} AND user_id = ${user.id}
+  `;
+
+  if (!member) {
+    return c.json(errRes('FORBIDDEN', 'Not a team member'), 403);
+  }
+
+  if (member.role !== 'admin') {
+    return c.json(errRes('FORBIDDEN', 'Only admins can delete custom icebreakers'), 403);
+  }
+
+  // Check icebreaker exists, belongs to team, and is not system
+  const [icebreaker] = await sql`
+    SELECT id, is_system, team_id FROM icebreakers WHERE id = ${icebreakerId}
+  `;
+
+  if (!icebreaker) {
+    return c.json(errRes('NOT_FOUND', 'Icebreaker not found'), 404);
+  }
+
+  if (icebreaker.is_system) {
+    return c.json(errRes('FORBIDDEN', 'Cannot delete system icebreakers'), 403);
+  }
+
+  if (icebreaker.team_id !== teamId) {
+    return c.json(errRes('FORBIDDEN', 'Icebreaker does not belong to this team'), 403);
+  }
+
+  await sql`DELETE FROM icebreakers WHERE id = ${icebreakerId}`;
+
+  return c.json(okRes({ id: icebreakerId, deleted: true }));
+});
+
 // PATCH /api/v1/boards/:boardId/icebreaker — Reroll icebreaker question (facilitator only)
 icebreakersRouter.patch('/boards/:boardId/icebreaker', async (c) => {
   const boardId = c.req.param('boardId');
@@ -386,6 +471,15 @@ icebreakersRouter.post('/boards/:boardId/icebreaker/responses/:responseId/reacti
 // In-memory rate limiter: userId -> lastSubmitTimestamp
 const responseRateLimit = new Map<string, number>();
 const RATE_LIMIT_MS = 2000; // 1 response per 2 seconds
+const RATE_LIMIT_CLEANUP_THRESHOLD = 10_000;
+
+function cleanupRateLimit() {
+  if (responseRateLimit.size <= RATE_LIMIT_CLEANUP_THRESHOLD) return;
+  const cutoff = Date.now() - RATE_LIMIT_MS;
+  for (const [key, ts] of responseRateLimit) {
+    if (ts < cutoff) responseRateLimit.delete(key);
+  }
+}
 
 // POST /api/v1/boards/:boardId/icebreaker/responses — Submit anonymous response
 icebreakersRouter.post('/boards/:boardId/icebreaker/responses', async (c) => {
@@ -453,6 +547,7 @@ icebreakersRouter.post('/boards/:boardId/icebreaker/responses', async (c) => {
   }
 
   // Rate limiting (in-memory)
+  cleanupRateLimit();
   const now = Date.now();
   const lastSubmit = responseRateLimit.get(user.id);
   if (lastSubmit && now - lastSubmit < RATE_LIMIT_MS) {

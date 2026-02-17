@@ -19,7 +19,7 @@ describe('S-007: Icebreaker Summary Endpoint', () => {
   let adminUser: { id: string };
   let memberToken: string;
   let memberUser: { id: string };
-  let member2Token: string;
+  let _member2Token: string;
   let member2User: { id: string };
   let nonMemberToken: string;
   let team: { id: string };
@@ -39,7 +39,7 @@ describe('S-007: Icebreaker Summary Endpoint', () => {
     memberUser = memberAuth.user;
 
     const member2Auth = await getAuthToken({ email: 'member2@example.com', displayName: 'Member 2' });
-    member2Token = member2Auth.token;
+    _member2Token = member2Auth.token;
     member2User = member2Auth.user;
 
     const nonMemberAuth = await getAuthToken({ email: 'nonmember@example.com', displayName: 'Non Member' });

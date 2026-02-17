@@ -34,7 +34,6 @@ export function EnergyRecap() {
     engine.mount(document.body);
 
     // Spawn a celebration burst with staggered timing
-    let frameId: number;
     const spawnBurst = () => {
       for (let i = 0; i < BURST_COUNT; i++) {
         const emojiIndex = i % CELEBRATION_EMOJIS.length;
@@ -47,7 +46,7 @@ export function EnergyRecap() {
     };
 
     // Slight delay so the overlay fades in first
-    frameId = requestAnimationFrame(spawnBurst);
+    const frameId = requestAnimationFrame(spawnBurst);
 
     // Auto-dismiss after 3 seconds
     timerRef.current = setTimeout(() => {

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Sparkles, RefreshCw, Send, X, Play } from 'lucide-react';
+import { Sparkles, RefreshCw, Send, X, Play, Clock } from 'lucide-react';
 import { useBoardStore } from '@/stores/board';
 import { boardApi } from '@/lib/board-api';
 import type { IcebreakerResponse } from '@/lib/board-api';
@@ -65,8 +65,8 @@ function getCardRotation(responseId: string): number {
 
 interface IcebreakerWarmupProps {
   boardId: string;
-  teamId: string;
   isFacilitator: boolean;
+  timerSeconds?: number | null;
 }
 
 /**
@@ -76,7 +76,7 @@ interface IcebreakerWarmupProps {
  * Facilitators get controls to reroll and filter by category.
  * All participants can submit anonymous responses that appear on a shared wall.
  */
-export function IcebreakerWarmup({ boardId, isFacilitator }: IcebreakerWarmupProps) {
+export function IcebreakerWarmup({ boardId, isFacilitator, timerSeconds }: IcebreakerWarmupProps) {
   const icebreaker = useBoardStore((s) => s.board?.icebreaker ?? null);
   const responses = useBoardStore((s) => s.icebreakerResponses);
   const fetchIcebreakerResponses = useBoardStore((s) => s.fetchIcebreakerResponses);
@@ -92,6 +92,30 @@ export function IcebreakerWarmup({ boardId, isFacilitator }: IcebreakerWarmupPro
   const [showStartConfirm, setShowStartConfirm] = useState(false);
   const [isStartingRetro, setIsStartingRetro] = useState(false);
   const wallRef = useRef<HTMLDivElement>(null);
+
+  // Countdown timer state
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(
+    timerSeconds != null && timerSeconds > 0 ? timerSeconds : null,
+  );
+  const [timerExpired, setTimerExpired] = useState(false);
+
+  // Start countdown timer when component mounts (if timerSeconds is set)
+  useEffect(() => {
+    if (timerSeconds == null || timerSeconds <= 0) return;
+
+    const interval = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev == null || prev <= 1) {
+          setTimerExpired(true);
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timerSeconds]);
 
   // Track whether this is the initial load (for cascade vs entrance animation)
   const isInitialLoadRef = useRef(true);
@@ -317,6 +341,23 @@ export function IcebreakerWarmup({ boardId, isFacilitator }: IcebreakerWarmupPro
               {CATEGORY_DISPLAY[icebreaker.category] || icebreaker.category}
             </span>
           </div>
+
+          {/* Countdown timer */}
+          {timeRemaining != null && (
+            <div className="flex justify-center" data-testid="icebreaker-timer">
+              {timerExpired ? (
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 text-amber-800 font-medium text-sm animate-pulse" data-testid="icebreaker-timer-expired">
+                  <Clock className="h-4 w-4" />
+                  Time&apos;s up!
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 text-slate-700 font-mono text-sm" data-testid="icebreaker-timer-countdown">
+                  <Clock className="h-4 w-4" />
+                  {Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, '0')}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Facilitator controls -- only visible to facilitators */}
           {isFacilitator && (
