@@ -306,6 +306,8 @@ export function useBoardSync(boardId: string | null, enabled: boolean) {
         id: msg.payload.id,
         content: msg.payload.content,
         created_at: msg.payload.created_at,
+        reactions: {},
+        myReactions: [],
       });
     };
 

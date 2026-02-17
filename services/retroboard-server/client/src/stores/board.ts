@@ -578,7 +578,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     const responseIndex = icebreakerResponses.findIndex((r) => r.id === responseId);
     if (responseIndex === -1) return;
 
-    const response = icebreakerResponses[responseIndex];
+    const response = icebreakerResponses[responseIndex]!;
     const isCurrentlyReacted = response.myReactions.includes(emoji);
     const currentCount = response.reactions[emoji] ?? 0;
 
@@ -622,7 +622,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       if (idx === -1) return state;
 
       const responses = [...state.icebreakerResponses];
-      const response = { ...responses[idx] };
+      const response = { ...responses[idx]! };
       const reactions = { ...response.reactions };
 
       if (count > 0) {

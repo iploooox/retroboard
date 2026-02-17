@@ -64,6 +64,7 @@ const mockBoardData: BoardData = {
   focus_item_type: null,
   icebreaker_id: null,
   icebreaker_active: true,
+  icebreaker: null,
   created_by: 'user-1',
   created_at: '',
   updated_at: '',

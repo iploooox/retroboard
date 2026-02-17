@@ -5,6 +5,7 @@ import { boardApi } from '@/lib/board-api';
 import type { IcebreakerResponse } from '@/lib/board-api';
 import { toast } from '@/lib/toast';
 import { IcebreakerReactionBar } from './IcebreakerReactionBar';
+import { VibeBar } from './VibeBar';
 
 const CATEGORIES = ['Fun', 'Team-Building', 'Reflective', 'Creative', 'Quick'] as const;
 
@@ -408,6 +409,11 @@ export function IcebreakerWarmup({ boardId, isFacilitator }: IcebreakerWarmupPro
             })}
           </div>
         </div>
+      </div>
+
+      {/* Vibe bar — above input bar (S-006) */}
+      <div className="flex-shrink-0">
+        <VibeBar />
       </div>
 
       {/* Input bar -- fixed at bottom */}
