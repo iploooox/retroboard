@@ -4,6 +4,7 @@ import { icebreakerService } from '../services/icebreaker-service.js';
 import { sql } from '../db/connection.js';
 import { z } from 'zod';
 import { broadcastToBoard } from '../ws/index.js';
+import { uuidParam } from '../validation/boards.js';
 
 function okRes(data: unknown) {
   return { ok: true, data };
@@ -97,6 +98,85 @@ icebreakersRouter.post('/teams/:teamId/icebreakers/custom', async (c) => {
   const icebreaker = await icebreakerService.createCustom(teamId, question, category, user.id);
 
   return c.json(okRes(icebreaker), 201);
+});
+
+// PATCH /api/v1/boards/:boardId/icebreaker — Reroll icebreaker question (facilitator only)
+icebreakersRouter.patch('/boards/:boardId/icebreaker', async (c) => {
+  const boardId = c.req.param('boardId');
+  const user = c.get('user');
+
+  // Validate boardId is a valid UUID
+  if (!uuidParam.safeParse(boardId).success) {
+    return c.json(errRes('VALIDATION_ERROR', 'Invalid board ID format'), 400);
+  }
+
+  const body = await c.req.json().catch(() => ({}));
+  const category = typeof body?.category === 'string' ? body.category : undefined;
+
+  // Validate category if provided
+  if (category && !icebreakerService.isValidCategory(category)) {
+    return c.json(errRes('VALIDATION_ERROR', 'Invalid category'), 400);
+  }
+
+  // Get board + team info (include phase for guard check)
+  const [boardRow] = await sql`
+    SELECT b.id, b.phase, s.team_id
+    FROM boards b
+    JOIN sprints s ON b.sprint_id = s.id
+    WHERE b.id = ${boardId}
+  `;
+
+  if (!boardRow) {
+    return c.json(errRes('BOARD_NOT_FOUND', 'Board not found'), 404);
+  }
+
+  // Phase guard — only allow reroll during icebreaker phase
+  if (boardRow.phase !== 'icebreaker') {
+    return c.json(errRes('INVALID_PHASE', 'Can only change icebreaker during icebreaker phase'), 422);
+  }
+
+  const teamId = boardRow.team_id as string;
+
+  // Check user role — only facilitator/admin
+  const [member] = await sql`
+    SELECT role FROM team_members WHERE team_id = ${teamId} AND user_id = ${user.id}
+  `;
+
+  if (!member) {
+    return c.json(errRes('FORBIDDEN', 'Not a team member'), 403);
+  }
+
+  if (member.role !== 'admin' && member.role !== 'facilitator') {
+    return c.json(errRes('FORBIDDEN', 'Only facilitators and admins can change the icebreaker question'), 403);
+  }
+
+  // Get random icebreaker (with optional category filter)
+  const icebreaker = await icebreakerService.getRandom(teamId, category);
+
+  if (!icebreaker) {
+    return c.json(errRes('NO_ICEBREAKER', 'No icebreaker questions available'), 404);
+  }
+
+  // Update board's icebreaker_id and record history atomically
+  await sql.begin(async (tx) => {
+    await tx`UPDATE boards SET icebreaker_id = ${icebreaker.id} WHERE id = ${boardId}`;
+    await tx`
+      INSERT INTO team_icebreaker_history (team_id, icebreaker_id, board_id, used_at)
+      VALUES (${teamId}, ${icebreaker.id}, ${boardId}, NOW())
+    `;
+  });
+
+  // Broadcast to all board participants
+  broadcastToBoard(boardId, {
+    type: 'icebreaker_question_changed',
+    payload: {
+      id: icebreaker.id,
+      question: icebreaker.question,
+      category: icebreaker.category,
+    },
+  });
+
+  return c.json(okRes(icebreaker));
 });
 
 // POST /api/v1/boards/:boardId/icebreaker

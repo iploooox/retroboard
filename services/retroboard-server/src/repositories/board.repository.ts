@@ -1,5 +1,6 @@
 import { sql } from '../db/connection.js';
 import type { BoardPhase, FocusItemType } from '../validation/boards.js';
+import { icebreakerService } from '../services/icebreaker-service.js';
 
 export interface BoardRow {
   id: string;
@@ -70,7 +71,7 @@ export async function createBoard(data: {
   max_votes_per_user: number;
   max_votes_per_card: number;
   created_by: string;
-}): Promise<{ board: BoardRow; columns: ColumnRow[] }> {
+}): Promise<{ board: BoardRow & { icebreaker: { id: string; question: string; category: string } | null }; columns: ColumnRow[] }> {
   return sql.begin(async (tx) => {
     // Create the board
     const [boardRow] = await tx`
@@ -96,7 +97,32 @@ export async function createBoard(data: {
       columns.push(formatColumn(col));
     }
 
-    return { board: formatBoard(boardRow), columns };
+    // Auto-select an icebreaker question (boards start in icebreaker phase)
+    const boardId = boardRow.id as string;
+    let icebreaker: { id: string; question: string; category: string } | null = null;
+    try {
+      // Get team_id from the sprint (within transaction)
+      const [sprintRow] = await tx`SELECT team_id FROM sprints WHERE id = ${data.sprint_id}`;
+      if (sprintRow) {
+        const teamId = sprintRow.team_id as string;
+        const selected = await icebreakerService.getRandom(teamId);
+        if (selected) {
+          await tx`UPDATE boards SET icebreaker_id = ${selected.id} WHERE id = ${boardId}`;
+          // Record history within the transaction (board not committed yet, FK needs same tx)
+          await tx`
+            INSERT INTO team_icebreaker_history (team_id, icebreaker_id, board_id, used_at)
+            VALUES (${teamId}, ${selected.id}, ${boardId}, NOW())
+          `;
+          // Update the boardRow data to reflect the new icebreaker_id
+          boardRow.icebreaker_id = selected.id;
+          icebreaker = selected;
+        }
+      }
+    } catch {
+      // Icebreaker auto-select is non-critical — board creation succeeds regardless
+    }
+
+    return { board: { ...formatBoard(boardRow), icebreaker }, columns };
   });
 }
 
@@ -122,7 +148,7 @@ export async function getColumns(boardId: string): Promise<ColumnRow[]> {
 }
 
 export async function getFullBoard(sprintId: string, userId: string): Promise<{
-  board: BoardRow;
+  board: BoardRow & { icebreaker: { id: string; question: string; category: string } | null };
   columns: (ColumnRow & { cards: unknown[] })[];
   groups: unknown[];
   user_votes_remaining: number;
@@ -134,6 +160,12 @@ export async function getFullBoard(sprintId: string, userId: string): Promise<{
   if (!boardRow) return null;
 
   const board = formatBoard(boardRow);
+
+  // Fetch full icebreaker object if board has one
+  let icebreaker: { id: string; question: string; category: string } | null = null;
+  if (board.icebreaker_id) {
+    icebreaker = await icebreakerService.getById(board.icebreaker_id);
+  }
 
   const columnsRows = await sql`
     SELECT * FROM columns WHERE board_id = ${board.id} ORDER BY position
@@ -231,7 +263,7 @@ export async function getFullBoard(sprintId: string, userId: string): Promise<{
   }));
 
   return {
-    board,
+    board: { ...board, icebreaker },
     columns,
     groups,
     user_votes_remaining: userVotesRemaining,

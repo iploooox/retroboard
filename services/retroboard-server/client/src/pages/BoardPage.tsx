@@ -409,7 +409,7 @@ export function BoardPage() {
       <div className="flex-1 overflow-x-auto min-h-0 relative" style={{ backgroundColor: 'var(--theme-bg)' }}>
         {board.phase === 'icebreaker' && teamId ? (
           /* Icebreaker warmup replaces columns during icebreaker phase — per Rule 10 */
-          <IcebreakerWarmup teamId={teamId} boardId={board.id} />
+          <IcebreakerWarmup teamId={teamId} boardId={board.id} isFacilitator={isFacilitator} />
         ) : (
           <div className="flex gap-4 p-4 h-full min-w-min">
             {sortedColumns.map((col) => (

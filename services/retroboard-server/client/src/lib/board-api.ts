@@ -47,6 +47,12 @@ export interface BoardGroup {
   created_at: string;
 }
 
+export interface IcebreakerQuestion {
+  id: string;
+  question: string;
+  category: string;
+}
+
 export interface Board {
   id: string;
   sprint_id: string;
@@ -59,6 +65,7 @@ export interface Board {
   focus_item_type: 'card' | 'group' | null;
   icebreaker_id: string | null;
   icebreaker_active: boolean;
+  icebreaker: IcebreakerQuestion | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -228,4 +235,8 @@ export const boardApi = {
   // Reactions
   toggleReaction: (cardId: string, emoji: string) =>
     api.post<OkResponse<{ added: boolean; emoji: string; reactions: CardReaction[] }>>(`/cards/${cardId}/reactions`, { emoji }).then(r => r.data),
+
+  // Icebreaker
+  rerollIcebreaker: (boardId: string, category?: string) =>
+    api.patch<OkResponse<IcebreakerQuestion>>(`/boards/${boardId}/icebreaker`, category ? { category } : {}).then(r => r.data),
 };

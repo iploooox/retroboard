@@ -101,6 +101,13 @@ export class IcebreakerService {
     `;
   }
 
+  async getById(id: string): Promise<{ id: string; question: string; category: string } | null> {
+    const [row] = await sql`
+      SELECT id, question, category FROM icebreakers WHERE id = ${id}
+    `;
+    return row ? { id: row.id as string, question: row.question as string, category: row.category as string } : null;
+  }
+
   isValidCategory(category: string): boolean {
     return VALID_CATEGORIES.includes(category);
   }

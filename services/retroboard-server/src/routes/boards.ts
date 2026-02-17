@@ -12,6 +12,7 @@ import {
 import { FacilitationService } from '../services/facilitation-service.js';
 import { timerService } from './timer.js';
 import { sql } from '../db/connection.js';
+import { icebreakerService } from '../services/icebreaker-service.js';
 
 const facilitationService = new FacilitationService(timerService);
 
@@ -642,10 +643,17 @@ boardsRouter.get('/boards/:id', async (c) => {
     WHERE t.id = ${teamId}
   `;
 
+  // Fetch full icebreaker object if board has one
+  let icebreaker: { id: string; question: string; category: string } | null = null;
+  if (board.icebreaker_id) {
+    icebreaker = await icebreakerService.getById(board.icebreaker_id);
+  }
+
   return c.json({
     ok: true,
     data: {
       ...board,
+      icebreaker,
       columns,
       cards,
       team: teamData ? {

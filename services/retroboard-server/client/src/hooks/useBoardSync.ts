@@ -274,6 +274,26 @@ export function useBoardSync(boardId: string | null, enabled: boolean) {
       });
     };
 
+    // Icebreaker events
+    const handleIcebreakerChanged = (msg: {
+      payload: { id: string; question: string; category: string };
+      eventId: string;
+    }) => {
+      if (msg.eventId && seenEventIds.has(msg.eventId)) return;
+      if (msg.eventId) seenEventIds.add(msg.eventId);
+
+      const { id, question, category } = msg.payload;
+      useBoardStore.setState((state) => ({
+        board: state.board
+          ? {
+              ...state.board,
+              icebreaker_id: id,
+              icebreaker: { id, question, category },
+            }
+          : null,
+      }));
+    };
+
     // Register all handlers
     ws.on('card_created', handleCardCreated as never);
     ws.on('card_updated', handleCardUpdated as never);
@@ -291,6 +311,7 @@ export function useBoardSync(boardId: string | null, enabled: boolean) {
     ws.on('board_locked', handleBoardLocked(true) as never);
     ws.on('board_unlocked', handleBoardLocked(false) as never);
     ws.on('cards_revealed', handleCardsRevealed as never);
+    ws.on('icebreaker_question_changed', handleIcebreakerChanged as never);
 
     // Cleanup
     return () => {
@@ -310,6 +331,7 @@ export function useBoardSync(boardId: string | null, enabled: boolean) {
       ws.off('board_locked', handleBoardLocked(true) as never);
       ws.off('board_unlocked', handleBoardLocked(false) as never);
       ws.off('cards_revealed', handleCardsRevealed as never);
+      ws.off('icebreaker_question_changed', handleIcebreakerChanged as never);
     };
   }, [enabled, boardId, board]);
 }

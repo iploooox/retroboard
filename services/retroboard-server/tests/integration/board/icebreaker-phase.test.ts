@@ -67,7 +67,9 @@ describe('Icebreaker phase — S-001', () => {
 
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.data.icebreaker_id).toBeNull();
+      // S-002: icebreaker_id is now auto-selected on board creation
+      expect(body.data.icebreaker_id).toBeTruthy();
+      expect(typeof body.data.icebreaker_id).toBe('string');
       expect(body.data.icebreaker_active).toBe(true);
     });
   });
