@@ -3,7 +3,7 @@ import { useAuthStore } from '@/stores/auth';
 
 // ---- API response types (snake_case, matching server) ----
 
-export type BoardPhase = 'write' | 'group' | 'vote' | 'discuss' | 'action';
+export type BoardPhase = 'icebreaker' | 'write' | 'group' | 'vote' | 'discuss' | 'action';
 
 export interface CardReaction {
   emoji: string;
@@ -57,6 +57,8 @@ export interface Board {
   max_votes_per_card: number;
   focus_item_id: string | null;
   focus_item_type: 'card' | 'group' | null;
+  icebreaker_id: string | null;
+  icebreaker_active: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;

@@ -374,6 +374,9 @@ boardsRouter.put('/boards/:id/phase', async (c) => {
     if (message === 'INVALID_PHASE') {
       return c.json(formatErrorResponse('INVALID_PHASE', 'Invalid phase'), 400);
     }
+    if (message === 'INVALID_TRANSITION') {
+      return c.json(formatErrorResponse('INVALID_TRANSITION', 'Phase transition not allowed'), 422);
+    }
     throw err;
   }
 });

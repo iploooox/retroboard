@@ -4,8 +4,8 @@ import { generateUniqueEmail, registerUser, createTeamAndBoard } from './helpers
 /**
  * E2E tests for Icebreaker Generator (S-028)
  *
- * Component: IcebreakerCard — fullscreen warmup view shown BEFORE write phase columns.
- * Location: services/retroboard-server/client/src/components/board/IcebreakerCard.tsx
+ * Component: IcebreakerWarmup — fullscreen warmup view shown BEFORE write phase columns.
+ * Location: services/retroboard-server/client/src/components/board/IcebreakerWarmup.tsx
  *
  * Key selectors:
  * - Heading: "🎲 Icebreaker Question"

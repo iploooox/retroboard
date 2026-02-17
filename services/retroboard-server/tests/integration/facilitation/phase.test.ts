@@ -51,21 +51,20 @@ describe('PUT /api/v1/boards/:id/phase — Facilitation Phase Management', () =>
     await addTeamMember(team.id, memberUser.id, 'member');
   });
 
-  it('3.3.1: Facilitator changes phase (free set, skip forward write→vote)', async () => {
-    // The NEW facilitation-enhanced phase endpoint allows any phase transition
+  it('3.3.1: Facilitator changes phase (write→group)', async () => {
     const res = await app.request(`/api/v1/boards/${board.id}/phase`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${facilitatorToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ phase: 'vote' }),
+      body: JSON.stringify({ phase: 'group' }),
     });
 
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.ok).toBe(true);
-    expect(body.data.phase).toBe('vote');
+    expect(body.data.phase).toBe('group');
     expect(body.data.previous_phase).toBe('write');
   });
 
@@ -141,7 +140,7 @@ describe('PUT /api/v1/boards/:id/phase — Facilitation Phase Management', () =>
     expect(timer).toBeUndefined();
   });
 
-  it('3.3.6: Phase change backwards (discuss→write)', async () => {
+  it('3.3.6: Phase change backwards (discuss→vote)', async () => {
     await sql`UPDATE boards SET phase = 'discuss' WHERE id = ${board.id as string}`;
 
     const res = await app.request(`/api/v1/boards/${board.id}/phase`, {
@@ -150,13 +149,13 @@ describe('PUT /api/v1/boards/:id/phase — Facilitation Phase Management', () =>
         'Authorization': `Bearer ${facilitatorToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ phase: 'write' }),
+      body: JSON.stringify({ phase: 'vote' }),
     });
 
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.ok).toBe(true);
-    expect(body.data.phase).toBe('write');
+    expect(body.data.phase).toBe('vote');
     expect(body.data.previous_phase).toBe('discuss');
   });
 

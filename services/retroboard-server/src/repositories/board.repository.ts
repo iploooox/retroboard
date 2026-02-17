@@ -14,6 +14,8 @@ export interface BoardRow {
   is_locked: boolean;
   cards_revealed: boolean;
   phase_durations: Record<string, number>;
+  icebreaker_id: string | null;
+  icebreaker_active: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -42,6 +44,8 @@ function formatBoard(row: Record<string, unknown>): BoardRow {
     is_locked: row.is_locked as boolean,
     cards_revealed: row.cards_revealed as boolean,
     phase_durations: row.phase_durations as Record<string, number>,
+    icebreaker_id: (row.icebreaker_id as string) ?? null,
+    icebreaker_active: (row.icebreaker_active as boolean) ?? true,
     created_by: row.created_by as string,
     created_at: (row.created_at as Date).toISOString(),
     updated_at: (row.updated_at as Date).toISOString(),

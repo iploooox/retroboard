@@ -37,8 +37,8 @@ vi.mock('@/components/board/CreateBoardModal', () => ({
   CreateBoardModal: () => <div data-testid="create-board-modal" />,
 }));
 
-vi.mock('@/components/board/IcebreakerCard', () => ({
-  IcebreakerCard: () => <div data-testid="icebreaker-card" />,
+vi.mock('@/components/board/IcebreakerWarmup', () => ({
+  IcebreakerWarmup: () => <div data-testid="icebreaker-warmup" />,
 }));
 
 vi.mock('@/lib/api', async (importOriginal) => {
@@ -62,6 +62,8 @@ const mockBoardData: BoardData = {
   max_votes_per_card: 3,
   focus_item_id: null,
   focus_item_type: null,
+  icebreaker_id: null,
+  icebreaker_active: true,
   created_by: 'user-1',
   created_at: '',
   updated_at: '',

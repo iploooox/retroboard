@@ -1,5 +1,5 @@
 import { sql } from '../db/connection.js';
-import { BOARD_PHASES } from '../validation/boards.js';
+import { BOARD_PHASES, ALLOWED_TRANSITIONS } from '../validation/boards.js';
 import type { BoardPhase } from '../validation/boards.js';
 import type { TimerService } from './timer-service.js';
 import * as analyticsRepo from '../repositories/analytics.repository.js';
@@ -20,6 +20,13 @@ export class FacilitationService {
     }
     const board = boardResult[0];
     const previousPhase = board.phase as string;
+
+    // Enforce allowed transitions
+    const currentPhase = previousPhase as BoardPhase;
+    const targetPhase = phase as BoardPhase;
+    if (!ALLOWED_TRANSITIONS[currentPhase]?.includes(targetPhase)) {
+      throw new Error('INVALID_TRANSITION');
+    }
 
     // Check for running timer and stop it
     let timerStopped = false;

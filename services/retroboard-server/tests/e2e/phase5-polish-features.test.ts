@@ -117,6 +117,15 @@ describe('E2E: Phase 5 Happy Path — Polish Features', () => {
     const boardBody = await createBoardRes.json();
     const board = boardBody.data;
     const boardId = board.id;
+
+    // Advance from icebreaker to write phase so card operations work
+    const advanceRes = await app.request(`/api/v1/boards/${boardId}/phase`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phase: 'write' }),
+    });
+    expect(advanceRes.status).toBe(200);
+
     const wentWellCol = board.columns[0];
     const deltaCol = board.columns[1];
 
@@ -143,25 +152,7 @@ describe('E2E: Phase 5 Happy Path — Polish Features', () => {
     expect(card2Res.status).toBe(201);
     const card2 = (await card2Res.json()).data;
 
-    // Change phase to vote
-    const toVoteRes = await app.request(`/api/v1/boards/${boardId}/phase`, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phase: 'vote' }),
-    });
-    expect(toVoteRes.status).toBe(200);
-
-    // Cast votes
-    await app.request(`/api/v1/boards/${boardId}/cards/${card1.id}/vote`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${tokenA}` },
-    });
-    await app.request(`/api/v1/boards/${boardId}/cards/${card2.id}/vote`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${tokenB}` },
-    });
-
-    // Change phase to group
+    // Step through phases: write -> group (create groups first, then vote)
     const toGroupRes = await app.request(`/api/v1/boards/${boardId}/phase`, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
@@ -180,7 +171,31 @@ describe('E2E: Phase 5 Happy Path — Polish Features', () => {
     });
     expect(createGroupRes.status).toBe(201);
 
-    // Change phase to action
+    // Step through phases: group -> vote -> discuss -> action
+    const toVoteRes = await app.request(`/api/v1/boards/${boardId}/phase`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phase: 'vote' }),
+    });
+    expect(toVoteRes.status).toBe(200);
+
+    // Cast votes
+    await app.request(`/api/v1/boards/${boardId}/cards/${card1.id}/vote`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenA}` },
+    });
+    await app.request(`/api/v1/boards/${boardId}/cards/${card2.id}/vote`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenB}` },
+    });
+
+    const toDiscussRes = await app.request(`/api/v1/boards/${boardId}/phase`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phase: 'discuss' }),
+    });
+    expect(toDiscussRes.status).toBe(200);
+
     const toActionRes = await app.request(`/api/v1/boards/${boardId}/phase`, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },

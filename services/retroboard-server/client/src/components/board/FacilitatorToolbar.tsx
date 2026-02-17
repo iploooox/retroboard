@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 
 const PHASES: Array<{ key: BoardPhase; label: string }> = [
+  { key: 'icebreaker', label: 'Icebreaker' },
   { key: 'write', label: 'Write' },
   { key: 'group', label: 'Group' },
   { key: 'vote', label: 'Vote' },

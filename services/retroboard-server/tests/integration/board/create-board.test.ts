@@ -45,7 +45,7 @@ describe('POST /api/v1/sprints/:sprintId/board — Create Board', () => {
     expect(body.ok).toBe(true);
     expect(body.data.sprint_id).toBe(sprint.id);
     expect(body.data.template_id).toBe(SYSTEM_TEMPLATE_WWD);
-    expect(body.data.phase).toBe('write');
+    expect(body.data.phase).toBe('icebreaker');
     expect(body.data.anonymous_mode).toBe(false);
     expect(body.data.max_votes_per_user).toBe(5);
     expect(body.data.max_votes_per_card).toBe(3);

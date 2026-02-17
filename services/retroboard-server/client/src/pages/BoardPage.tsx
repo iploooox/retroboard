@@ -23,7 +23,7 @@ import { ConnectionStatus } from '@/components/board/ConnectionStatus';
 import { PresenceBar } from '@/components/board/PresenceBar';
 import { PhaseBar } from '@/components/board/PhaseBar';
 import { FacilitatorToolbar } from '@/components/board/FacilitatorToolbar';
-import { IcebreakerCard } from '@/components/board/IcebreakerCard';
+import { IcebreakerWarmup } from '@/components/board/IcebreakerWarmup';
 import type { BoardPhase } from '@/lib/board-api';
 
 interface TeamMember {
@@ -164,7 +164,6 @@ export function BoardPage() {
   const [boardNotFound, setBoardNotFound] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
   const [teamTheme, setTeamTheme] = useState<string>('default');
-  const [showIcebreaker, setShowIcebreaker] = useState(true);
   const [actionItemInitialCardId, setActionItemInitialCardId] = useState<string | undefined>();
   const [actionItemInitialTitle, setActionItemInitialTitle] = useState<string | undefined>();
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -408,9 +407,9 @@ export function BoardPage() {
 
       {/* Board columns area — hidden when icebreaker warmup is active (Rule 10: fullscreen overlay) */}
       <div className="flex-1 overflow-x-auto min-h-0 relative" style={{ backgroundColor: 'var(--theme-bg)' }}>
-        {board.phase === 'write' && showIcebreaker && teamId ? (
-          /* Icebreaker warmup replaces columns during write phase — per Rule 10 */
-          <IcebreakerCard teamId={teamId} boardId={board.id} onDismiss={() => setShowIcebreaker(false)} />
+        {board.phase === 'icebreaker' && teamId ? (
+          /* Icebreaker warmup replaces columns during icebreaker phase — per Rule 10 */
+          <IcebreakerWarmup teamId={teamId} boardId={board.id} />
         ) : (
           <div className="flex gap-4 p-4 h-full min-w-min">
             {sortedColumns.map((col) => (

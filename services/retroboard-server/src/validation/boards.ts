@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const BOARD_PHASES = ['write', 'group', 'vote', 'discuss', 'action'] as const;
+export const BOARD_PHASES = ['icebreaker', 'write', 'group', 'vote', 'discuss', 'action'] as const;
 export type BoardPhase = (typeof BOARD_PHASES)[number];
 
 export const FOCUS_ITEM_TYPES = ['card', 'group'] as const;
@@ -8,7 +8,8 @@ export type FocusItemType = (typeof FOCUS_ITEM_TYPES)[number];
 
 // Allowed phase transitions: from -> [allowed targets]
 export const ALLOWED_TRANSITIONS: Record<BoardPhase, BoardPhase[]> = {
-  write: ['group'],
+  icebreaker: ['write'],
+  write: ['icebreaker', 'group'],
   group: ['write', 'vote'],
   vote: ['group', 'discuss'],
   discuss: ['vote', 'action'],
