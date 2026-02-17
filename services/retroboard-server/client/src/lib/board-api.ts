@@ -53,6 +53,17 @@ export interface IcebreakerQuestion {
   category: string;
 }
 
+export interface IcebreakerResponse {
+  id: string;
+  content: string;
+  created_at: string;
+}
+
+export interface IcebreakerResponsesResult {
+  responses: IcebreakerResponse[];
+  count: number;
+}
+
 export interface Board {
   id: string;
   sprint_id: string;
@@ -239,4 +250,14 @@ export const boardApi = {
   // Icebreaker
   rerollIcebreaker: (boardId: string, category?: string) =>
     api.patch<OkResponse<IcebreakerQuestion>>(`/boards/${boardId}/icebreaker`, category ? { category } : {}).then(r => r.data),
+
+  // Icebreaker Responses (S-003)
+  getIcebreakerResponses: (boardId: string) =>
+    api.get<OkResponse<IcebreakerResponsesResult>>(`/boards/${boardId}/icebreaker/responses`).then(r => r.data),
+
+  submitIcebreakerResponse: (boardId: string, content: string) =>
+    api.post<OkResponse<IcebreakerResponse>>(`/boards/${boardId}/icebreaker/responses`, { content }).then(r => r.data),
+
+  deleteIcebreakerResponse: (boardId: string, responseId: string) =>
+    api.delete<OkResponse<{ id: string; deleted: boolean }>>(`/boards/${boardId}/icebreaker/responses/${responseId}`).then(r => r.data),
 };
