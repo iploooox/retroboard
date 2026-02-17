@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Sparkles, RefreshCw, Send, X } from 'lucide-react';
 import { useBoardStore } from '@/stores/board';
 import { boardApi } from '@/lib/board-api';
+import type { IcebreakerResponse } from '@/lib/board-api';
 import { toast } from '@/lib/toast';
 
 const CATEGORIES = ['Fun', 'Team-Building', 'Reflective', 'Creative', 'Quick'] as const;
@@ -15,6 +16,50 @@ const CATEGORY_DISPLAY: Record<string, string> = {
 };
 
 const MAX_RESPONSE_LENGTH = 280;
+
+/** Maximum cards rendered on the wall (older ones remain in store but are not rendered) */
+const MAX_RENDERED_CARDS = 50;
+
+/** Pastel colors assigned deterministically by response ID hash */
+const PASTEL_COLORS = [
+  '#FEF3C7', // warm yellow
+  '#DBEAFE', // soft blue
+  '#FCE7F3', // light pink
+  '#D1FAE5', // mint green
+  '#EDE9FE', // lavender
+  '#FEE2E2', // rose
+  '#E0F2FE', // sky
+  '#FEF9C3', // cream
+] as const;
+
+/** Delay in ms between each card on initial cascade load */
+const CASCADE_DELAY_MS = 50;
+
+/**
+ * Simple deterministic hash for a string.
+ * Used to pick pastel color + rotation for each response, consistent across reloads.
+ */
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    hash = ((hash << 5) - hash + ch) | 0;
+  }
+  return Math.abs(hash);
+}
+
+/** Get a deterministic pastel color for a response ID */
+function getCardColor(responseId: string): string {
+  return PASTEL_COLORS[hashString(responseId) % PASTEL_COLORS.length]!;
+}
+
+/** Get a deterministic rotation between -2deg and +2deg for a response ID */
+function getCardRotation(responseId: string): number {
+  // Use a different seed offset so rotation is independent of color
+  const h = hashString(responseId + '_rot');
+  // Map to range [-2, 2] with 0.5deg granularity
+  return ((h % 9) - 4) * 0.5;
+}
 
 interface IcebreakerWarmupProps {
   boardId: string;
@@ -42,19 +87,43 @@ export function IcebreakerWarmup({ boardId, isFacilitator }: IcebreakerWarmupPro
   const [isSubmitting, setIsSubmitting] = useState(false);
   const wallRef = useRef<HTMLDivElement>(null);
 
+  // Track whether this is the initial load (for cascade vs entrance animation)
+  const isInitialLoadRef = useRef(true);
+  // Track which response IDs have already been rendered (to distinguish new arrivals)
+  const renderedIdsRef = useRef(new Set<string>());
+  // Track IDs that are in the process of exit animation (deleted)
+  const [exitingIds, setExitingIds] = useState<Set<string>>(new Set());
+
   // Load existing responses on mount
   useEffect(() => {
     if (icebreaker) {
-      fetchIcebreakerResponses();
+      fetchIcebreakerResponses().then(() => {
+        // Mark initial load complete after a tick so cascade animation can apply
+        requestAnimationFrame(() => {
+          isInitialLoadRef.current = false;
+        });
+      }).catch(() => {
+        // Error handled in store
+        isInitialLoadRef.current = false;
+      });
     }
   }, [icebreaker, fetchIcebreakerResponses]);
 
-  // Auto-scroll wall to bottom when new responses arrive
+  // Auto-scroll wall to bottom when new responses arrive (smooth scroll)
   useEffect(() => {
     if (wallRef.current) {
-      wallRef.current.scrollTop = wallRef.current.scrollHeight;
+      wallRef.current.scrollTo({
+        top: wallRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
     }
   }, [responses.length]);
+
+  // Clean up will-change after animations complete
+  const handleAnimationEnd = useCallback((e: React.AnimationEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    el.style.willChange = 'auto';
+  }, []);
 
   const handleReroll = useCallback(async () => {
     setIsRerolling(true);
@@ -111,16 +180,28 @@ export function IcebreakerWarmup({ boardId, isFacilitator }: IcebreakerWarmupPro
 
   const handleDeleteResponse = useCallback(
     async (responseId: string) => {
-      try {
-        await deleteIcebreakerResponse(responseId);
-      } catch {
-        // Error toast handled by store
-      }
+      // Add to exiting set to trigger exit animation
+      setExitingIds((prev) => new Set(prev).add(responseId));
+
+      // Wait for exit animation duration, then actually delete
+      setTimeout(async () => {
+        try {
+          await deleteIcebreakerResponse(responseId);
+        } catch {
+          // Error toast handled by store
+        }
+        // Remove from exiting set
+        setExitingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(responseId);
+          return next;
+        });
+      }, 250); // matches card-exit animation duration
     },
     [deleteIcebreakerResponse],
   );
 
-  // Loading state — no question yet
+  // Loading state -- no question yet
   if (!icebreaker) {
     return (
       <div
@@ -145,6 +226,33 @@ export function IcebreakerWarmup({ boardId, isFacilitator }: IcebreakerWarmupPro
   const charCount = responseInput.trim().length;
   const isOverLimit = charCount > MAX_RESPONSE_LENGTH;
   const canSubmit = charCount > 0 && !isOverLimit && !isSubmitting;
+
+  // Limit rendered responses to last MAX_RENDERED_CARDS
+  const visibleResponses = responses.slice(-MAX_RENDERED_CARDS);
+
+  // Build animation class for each card
+  function getCardAnimationClass(response: IcebreakerResponse): string {
+    // Exiting card
+    if (exitingIds.has(response.id)) {
+      return 'icebreaker-card-exit';
+    }
+
+    // Already rendered — no animation
+    if (renderedIdsRef.current.has(response.id)) {
+      return '';
+    }
+
+    // Mark as rendered
+    renderedIdsRef.current.add(response.id);
+
+    // Initial load — cascade with staggered delay
+    if (isInitialLoadRef.current) {
+      return 'icebreaker-card-cascade';
+    }
+
+    // Real-time arrival — entrance animation
+    return 'icebreaker-card-enter';
+  }
 
   return (
     <div
@@ -236,7 +344,7 @@ export function IcebreakerWarmup({ boardId, isFacilitator }: IcebreakerWarmupPro
 
       {/* Response count */}
       <div className="flex-shrink-0 px-4 pb-2">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <p
             className="text-sm font-medium text-slate-500"
             data-testid="icebreaker-response-count"
@@ -252,30 +360,46 @@ export function IcebreakerWarmup({ boardId, isFacilitator }: IcebreakerWarmupPro
         className="flex-1 overflow-y-auto px-4 pb-4"
         data-testid="icebreaker-response-wall"
       >
-        <div className="max-w-2xl mx-auto">
-          <div className="flex flex-wrap gap-3">
-            {responses.map((response) => (
-              <div
-                key={response.id}
-                className="relative bg-white rounded-lg shadow-sm border border-slate-200 px-4 py-3 max-w-xs animate-fade-in"
-                data-testid="icebreaker-response-card"
-              >
-                <p className="text-slate-800 text-sm leading-relaxed break-words">
-                  {response.content}
-                </p>
-                {isFacilitator && (
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteResponse(response.id)}
-                    className="absolute -top-2 -right-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-full p-0.5 transition-colors"
-                    aria-label="Delete response"
-                    data-testid="icebreaker-delete-response"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-            ))}
+        <div className="max-w-4xl mx-auto icebreaker-wall">
+          {/* Responsive grid: 1 col mobile, 2 tablet, 3-4 desktop */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {visibleResponses.map((response, index) => {
+              const animClass = getCardAnimationClass(response);
+              const color = getCardColor(response.id);
+              const rotation = getCardRotation(response.id);
+              const cascadeDelay = animClass === 'icebreaker-card-cascade'
+                ? `${index * CASCADE_DELAY_MS}ms`
+                : undefined;
+
+              return (
+                <div
+                  key={response.id}
+                  className={`icebreaker-card relative rounded-xl shadow-md px-5 py-4 ${animClass}`}
+                  style={{
+                    '--card-rotation': `${rotation}deg`,
+                    '--cascade-delay': cascadeDelay,
+                    backgroundColor: color,
+                  } as React.CSSProperties}
+                  onAnimationEnd={handleAnimationEnd}
+                  data-testid="icebreaker-response-card"
+                >
+                  <p className="text-slate-800 text-sm leading-relaxed break-words">
+                    {response.content}
+                  </p>
+                  {isFacilitator && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteResponse(response.id)}
+                      className="absolute -top-2 -right-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-full p-0.5 transition-colors"
+                      aria-label="Delete response"
+                      data-testid="icebreaker-delete-response"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
