@@ -184,10 +184,15 @@ export function useBoardSync(boardId: string | null, enabled: boolean) {
       if (msg.eventId && seenEventIds.has(msg.eventId)) return;
       if (msg.eventId) seenEventIds.add(msg.eventId);
 
-      const { currentPhase } = msg.payload;
+      const { currentPhase, previousPhase } = msg.payload;
       useBoardStore.setState((state) => ({
         board: state.board ? { ...state.board, phase: currentPhase } : null,
       }));
+
+      // S-007: Trigger energy recap when transitioning from icebreaker to write
+      if (previousPhase === 'icebreaker' && currentPhase === 'write') {
+        useBoardStore.getState().triggerEnergyRecap();
+      }
     };
 
     // Focus events

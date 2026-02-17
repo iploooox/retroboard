@@ -67,6 +67,13 @@ export interface ToggleReactionResult {
   count: number;
 }
 
+export interface IcebreakerSummary {
+  responseCount: number;
+  reactionCount: number;
+  topEmoji: string | null;
+  participantCount: number;
+}
+
 export interface IcebreakerResponsesResult {
   responses: IcebreakerResponse[];
   count: number;
@@ -272,4 +279,8 @@ export const boardApi = {
   // Icebreaker Response Reactions (S-005)
   toggleIcebreakerReaction: (boardId: string, responseId: string, emoji: string) =>
     api.post<OkResponse<ToggleReactionResult>>(`/boards/${boardId}/icebreaker/responses/${responseId}/reactions`, { emoji }).then(r => r.data),
+
+  // Icebreaker Summary (S-007)
+  getIcebreakerSummary: (boardId: string) =>
+    api.get<OkResponse<IcebreakerSummary>>(`/boards/${boardId}/icebreaker/summary`).then(r => r.data),
 };

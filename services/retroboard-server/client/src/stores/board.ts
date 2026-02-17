@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { boardApi, type BoardData, type BoardCard, type BoardGroup, type BoardPhase, type ActionItem, type IcebreakerResponse } from '@/lib/board-api';
+import { boardApi, type BoardData, type BoardCard, type BoardGroup, type BoardPhase, type ActionItem, type IcebreakerResponse, type IcebreakerSummary } from '@/lib/board-api';
 import { ApiError } from '@/lib/api';
 import { toast } from '@/lib/toast';
 
@@ -22,6 +22,10 @@ interface BoardState {
 
   // Icebreaker responses (S-003)
   icebreakerResponses: IcebreakerResponse[];
+
+  // Energy recap (S-007)
+  showEnergyRecap: boolean;
+  energyRecapData: IcebreakerSummary | null;
 
   // UI state
   isLoading: boolean;
@@ -56,6 +60,9 @@ interface BoardState {
   // Icebreaker reaction actions (S-005)
   toggleIcebreakerReaction: (responseId: string, emoji: string) => Promise<void>;
   updateIcebreakerReactionCount: (responseId: string, emoji: string, count: number) => void;
+  // Energy recap actions (S-007)
+  triggerEnergyRecap: () => Promise<void>;
+  dismissEnergyRecap: () => void;
   reset: () => void;
 }
 
@@ -106,6 +113,8 @@ const initialState = {
   isLocked: false,
   cardsRevealed: false,
   icebreakerResponses: [],
+  showEnergyRecap: false,
+  energyRecapData: null,
   isLoading: true,
   error: null,
   actionItemsLoading: false,
@@ -635,6 +644,24 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       responses[idx] = response;
       return { icebreakerResponses: responses };
     });
+  },
+
+  // Energy recap actions (S-007)
+  triggerEnergyRecap: async () => {
+    const { board } = get();
+    if (!board) return;
+
+    try {
+      const summary = await boardApi.getIcebreakerSummary(board.id);
+      set({ showEnergyRecap: true, energyRecapData: summary });
+    } catch {
+      // If summary fetch fails, skip the recap and go straight to write phase
+      set({ showEnergyRecap: false, energyRecapData: null });
+    }
+  },
+
+  dismissEnergyRecap: () => {
+    set({ showEnergyRecap: false, energyRecapData: null });
   },
 
   reset: () => set(initialState),

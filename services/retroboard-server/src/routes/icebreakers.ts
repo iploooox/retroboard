@@ -648,6 +648,106 @@ icebreakersRouter.delete('/boards/:boardId/icebreaker/responses/:responseId', as
   return c.json(okRes({ id: responseId, deleted: true }));
 });
 
+// ---- Icebreaker Summary (S-007) ----
+
+// GET /api/v1/boards/:boardId/icebreaker/summary — Aggregated stats for energy recap
+icebreakersRouter.get('/boards/:boardId/icebreaker/summary', async (c) => {
+  const boardId = c.req.param('boardId');
+  const user = c.get('user');
+
+  // Validate boardId
+  if (!uuidParam.safeParse(boardId).success) {
+    return c.json(errRes('VALIDATION_ERROR', 'Invalid board ID format'), 400);
+  }
+
+  // Get board + team + icebreaker_id
+  const [boardRow] = await sql`
+    SELECT b.id, b.icebreaker_id, s.team_id
+    FROM boards b
+    JOIN sprints s ON b.sprint_id = s.id
+    WHERE b.id = ${boardId}
+  `;
+
+  if (!boardRow) {
+    return c.json(errRes('BOARD_NOT_FOUND', 'Board not found'), 404);
+  }
+
+  const teamId = boardRow.team_id as string;
+
+  // Check user is team member
+  const [member] = await sql`
+    SELECT 1 FROM team_members WHERE team_id = ${teamId} AND user_id = ${user.id}
+  `;
+
+  if (!member) {
+    return c.json(errRes('FORBIDDEN', 'Not a team member'), 403);
+  }
+
+  const icebreakerId = boardRow.icebreaker_id as string | null;
+
+  // If no icebreaker, return zero stats
+  if (!icebreakerId) {
+    return c.json(okRes({
+      responseCount: 0,
+      reactionCount: 0,
+      topEmoji: null,
+      participantCount: 0,
+    }));
+  }
+
+  // Count non-deleted responses for this board + icebreaker
+  const [responseCountRow] = await sql`
+    SELECT COUNT(*)::int AS count
+    FROM icebreaker_responses
+    WHERE board_id = ${boardId}
+      AND icebreaker_id = ${icebreakerId}
+      AND deleted_at IS NULL
+  `;
+  const responseCount = (responseCountRow?.count as number) ?? 0;
+
+  // Count distinct authors (participants)
+  const [participantCountRow] = await sql`
+    SELECT COUNT(DISTINCT author_id)::int AS count
+    FROM icebreaker_responses
+    WHERE board_id = ${boardId}
+      AND icebreaker_id = ${icebreakerId}
+      AND deleted_at IS NULL
+  `;
+  const participantCount = (participantCountRow?.count as number) ?? 0;
+
+  // Count all response reactions for non-deleted responses on this board + icebreaker
+  const [reactionCountRow] = await sql`
+    SELECT COUNT(*)::int AS count
+    FROM icebreaker_response_reactions rr
+    JOIN icebreaker_responses r ON r.id = rr.response_id
+    WHERE r.board_id = ${boardId}
+      AND r.icebreaker_id = ${icebreakerId}
+      AND r.deleted_at IS NULL
+  `;
+  const reactionCount = (reactionCountRow?.count as number) ?? 0;
+
+  // Find top emoji (most reacted)
+  const [topEmojiRow] = await sql`
+    SELECT rr.emoji, COUNT(*)::int AS count
+    FROM icebreaker_response_reactions rr
+    JOIN icebreaker_responses r ON r.id = rr.response_id
+    WHERE r.board_id = ${boardId}
+      AND r.icebreaker_id = ${icebreakerId}
+      AND r.deleted_at IS NULL
+    GROUP BY rr.emoji
+    ORDER BY count DESC
+    LIMIT 1
+  `;
+  const topEmoji = (topEmojiRow?.emoji as string) ?? null;
+
+  return c.json(okRes({
+    responseCount,
+    reactionCount,
+    topEmoji,
+    participantCount,
+  }));
+});
+
 // Export for testing: clear rate limit map
 export function clearResponseRateLimit() {
   responseRateLimit.clear();

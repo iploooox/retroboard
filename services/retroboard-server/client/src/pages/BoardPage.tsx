@@ -24,6 +24,7 @@ import { PresenceBar } from '@/components/board/PresenceBar';
 import { PhaseBar } from '@/components/board/PhaseBar';
 import { FacilitatorToolbar } from '@/components/board/FacilitatorToolbar';
 import { IcebreakerWarmup } from '@/components/board/IcebreakerWarmup';
+import { EnergyRecap } from '@/components/board/EnergyRecap';
 import type { BoardPhase } from '@/lib/board-api';
 
 interface TeamMember {
@@ -520,6 +521,9 @@ export function BoardPage() {
           onRevealCards={handleRevealCards}
         />
       )}
+
+      {/* Energy recap overlay (S-007) — shown briefly during icebreaker→write transition */}
+      <EnergyRecap />
     </div>
   );
 }

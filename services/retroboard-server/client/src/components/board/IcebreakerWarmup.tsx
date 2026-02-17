@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Sparkles, RefreshCw, Send, X } from 'lucide-react';
+import { Sparkles, RefreshCw, Send, X, Play } from 'lucide-react';
 import { useBoardStore } from '@/stores/board';
 import { boardApi } from '@/lib/board-api';
 import type { IcebreakerResponse } from '@/lib/board-api';
@@ -83,10 +83,14 @@ export function IcebreakerWarmup({ boardId, isFacilitator }: IcebreakerWarmupPro
   const submitIcebreakerResponse = useBoardStore((s) => s.submitIcebreakerResponse);
   const deleteIcebreakerResponse = useBoardStore((s) => s.deleteIcebreakerResponse);
 
+  const setPhase = useBoardStore((s) => s.setPhase);
+
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isRerolling, setIsRerolling] = useState(false);
   const [responseInput, setResponseInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showStartConfirm, setShowStartConfirm] = useState(false);
+  const [isStartingRetro, setIsStartingRetro] = useState(false);
   const wallRef = useRef<HTMLDivElement>(null);
 
   // Track whether this is the initial load (for cascade vs entrance animation)
@@ -179,6 +183,28 @@ export function IcebreakerWarmup({ boardId, isFacilitator }: IcebreakerWarmupPro
     },
     [handleSubmitResponse],
   );
+
+  const handleStartRetroClick = useCallback(() => {
+    setShowStartConfirm(true);
+  }, []);
+
+  const handleCancelStart = useCallback(() => {
+    setShowStartConfirm(false);
+  }, []);
+
+  const handleConfirmStartRetro = useCallback(async () => {
+    if (isStartingRetro) return;
+    setIsStartingRetro(true);
+    try {
+      await setPhase('write');
+      // Phase change will trigger WS broadcast and energy recap via useBoardSync
+    } catch {
+      toast.error('Failed to start retro');
+      setShowStartConfirm(false);
+    } finally {
+      setIsStartingRetro(false);
+    }
+  }, [isStartingRetro, setPhase]);
 
   const handleDeleteResponse = useCallback(
     async (responseId: string) => {
@@ -414,6 +440,54 @@ export function IcebreakerWarmup({ boardId, isFacilitator }: IcebreakerWarmupPro
       {/* Vibe bar — above input bar (S-006) */}
       <div className="flex-shrink-0">
         <VibeBar />
+      </div>
+
+      {/* Start Retro / Waiting area (S-007) */}
+      <div className="flex-shrink-0 px-4 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 border-t border-indigo-100" data-testid="icebreaker-start-area">
+        <div className="max-w-2xl mx-auto flex items-center justify-center">
+          {isFacilitator ? (
+            showStartConfirm ? (
+              <div className="flex items-center gap-3" data-testid="icebreaker-start-confirm">
+                <span className="text-sm font-medium text-slate-700">Ready?</span>
+                <button
+                  type="button"
+                  onClick={handleConfirmStartRetro}
+                  disabled={isStartingRetro}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  data-testid="icebreaker-start-confirm-button"
+                >
+                  <Play className="h-4 w-4" />
+                  Start Retro
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelStart}
+                  className="px-4 py-2.5 rounded-lg border border-slate-300 text-slate-600 font-medium hover:bg-slate-100 transition-colors"
+                  data-testid="icebreaker-start-cancel-button"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleStartRetroClick}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-indigo-600 text-white text-lg font-semibold hover:bg-indigo-700 shadow-md hover:shadow-lg transition-all"
+                data-testid="icebreaker-start-retro-button"
+              >
+                <Play className="h-5 w-5" />
+                Start Retro
+              </button>
+            )
+          ) : (
+            <p
+              className="text-sm text-slate-500 italic"
+              data-testid="icebreaker-waiting-text"
+            >
+              Waiting for facilitator to start the retro...
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Input bar -- fixed at bottom */}
