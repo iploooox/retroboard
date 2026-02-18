@@ -66,8 +66,8 @@ export async function setup() {
   await adminSql.end();
 
   const templateUrl = ADMIN_URL.replace(/\/[^/]+$/, `/${TEMPLATE_DB}`);
-  await migrate(templateUrl);
-  await seed(templateUrl);
+  await migrate(templateUrl, process.env.DB_SCHEMA);
+  await seed(templateUrl, process.env.DB_SCHEMA);
 
   // Store the hash so future runs can skip rebuild
   const tplSql = postgres(templateUrl, { onnotice: () => {} });

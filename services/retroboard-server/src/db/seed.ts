@@ -1,13 +1,19 @@
 import postgres from 'postgres';
 
-async function seed(databaseUrl?: string) {
+async function seed(databaseUrl?: string, schema?: string) {
   const url = databaseUrl || process.env.DATABASE_URL;
   if (!url) {
     console.error('DATABASE_URL is required');
     process.exit(1);
   }
 
-  const sql = postgres(url, { onnotice: () => {} });
+  const targetSchema = schema || process.env.DB_SCHEMA;
+  const connectionOpts: Record<string, string> = {};
+  if (targetSchema) {
+    connectionOpts.search_path = `${targetSchema}, public`;
+  }
+
+  const sql = postgres(url, { onnotice: () => {}, connection: connectionOpts });
 
   try {
     // Template 1: What Went Well / Delta
