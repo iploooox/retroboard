@@ -5,14 +5,29 @@ import postgres from 'postgres';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-async function migrate(databaseUrl?: string) {
+async function migrate(databaseUrl?: string, schema?: string) {
   const url = databaseUrl || process.env.DATABASE_URL;
   if (!url) {
     console.error('DATABASE_URL is required');
     process.exit(1);
   }
 
-  const sql = postgres(url, { onnotice: () => {} });
+  const targetSchema = schema || process.env.DB_SCHEMA;
+
+  // If a custom schema is requested, ensure it exists before setting search_path
+  if (targetSchema) {
+    const bootstrapSql = postgres(url, { max: 1, onnotice: () => {} });
+    await bootstrapSql.unsafe(`CREATE SCHEMA IF NOT EXISTS "${targetSchema}"`);
+    await bootstrapSql.end();
+    console.log(`Using schema: ${targetSchema}`);
+  }
+
+  const connectionOpts: Record<string, string> = {};
+  if (targetSchema) {
+    connectionOpts.search_path = `${targetSchema}, public`;
+  }
+
+  const sql = postgres(url, { onnotice: () => {}, connection: connectionOpts });
 
   try {
     await sql`

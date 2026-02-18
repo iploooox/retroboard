@@ -22,7 +22,12 @@ export class NotifyListener {
     if (!this.listenerSql) {
       const url = process.env.DATABASE_URL;
       if (!url) throw new Error('DATABASE_URL not set');
-      this.listenerSql = postgres(url, { max: 1 });
+      const schema = process.env.DB_SCHEMA;
+      const connectionOpts: Record<string, string> = {};
+      if (schema) {
+        connectionOpts.search_path = `${schema}, public`;
+      }
+      this.listenerSql = postgres(url, { max: 1, connection: connectionOpts });
     }
     return this.listenerSql;
   }
