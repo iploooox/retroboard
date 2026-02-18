@@ -36,12 +36,12 @@ describe('FacilitationService', () => {
       expect(result.phase).toBe('group');
     });
 
-    it('3.1.2: Set same phase (idempotent)', async () => {
-      mockSql.mockResolvedValueOnce([{ id: boardId, phase: 'write' }]);
+    it('3.1.2: Set same phase rejects as invalid transition', async () => {
       mockSql.mockResolvedValueOnce([{ id: boardId, phase: 'write' }]);
 
-      const result = await service.setPhase(boardId, 'write', userId);
-      expect(result.phase).toBe('write');
+      await expect(
+        service.setPhase(boardId, 'write', userId),
+      ).rejects.toThrow(/INVALID_TRANSITION/);
     });
 
     it('3.1.3: Set invalid phase value', async () => {
@@ -64,8 +64,9 @@ describe('FacilitationService', () => {
     it('3.1.5: Set phase when no timer running', async () => {
       mockSql.mockResolvedValueOnce([{ id: boardId, phase: 'write' }]); // find board
       mockSql.mockResolvedValueOnce([]); // no timer
+      mockSql.mockResolvedValueOnce([{ id: boardId, phase: 'group' }]); // update
 
-      const result = await service.setPhase(boardId, 'vote', userId);
+      const result = await service.setPhase(boardId, 'group', userId);
       expect(result.timerStopped).toBe(false);
     });
 
@@ -77,20 +78,21 @@ describe('FacilitationService', () => {
       ).rejects.toThrow(/NOT_FOUND/);
     });
 
-    it('3.1.7: Skip phases forward allowed', async () => {
+    it('3.1.7: Skip phases forward rejected', async () => {
       mockSql.mockResolvedValueOnce([{ id: boardId, phase: 'write' }]);
+
+      await expect(
+        service.setPhase(boardId, 'vote', userId),
+      ).rejects.toThrow(/INVALID_TRANSITION/);
+    });
+
+    it('3.1.8: Go backward one step allowed', async () => {
+      mockSql.mockResolvedValueOnce([{ id: boardId, phase: 'discuss' }]);
+      mockSql.mockResolvedValueOnce([]); // no timer in DB
       mockSql.mockResolvedValueOnce([{ id: boardId, phase: 'vote' }]);
 
       const result = await service.setPhase(boardId, 'vote', userId);
       expect(result.phase).toBe('vote');
-    });
-
-    it('3.1.8: Go backward allowed', async () => {
-      mockSql.mockResolvedValueOnce([{ id: boardId, phase: 'discuss' }]);
-      mockSql.mockResolvedValueOnce([{ id: boardId, phase: 'write' }]);
-
-      const result = await service.setPhase(boardId, 'write', userId);
-      expect(result.phase).toBe('write');
     });
   });
 

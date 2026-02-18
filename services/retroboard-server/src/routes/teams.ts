@@ -15,6 +15,7 @@ import {
   updateMemberRoleSchema,
   paginationSchema,
   uuidParamSchema,
+  updateIcebreakerSettingsSchema,
 } from '../validation/teams.js';
 
 function formatTeam(team: Record<string, unknown>) {
@@ -25,6 +26,9 @@ function formatTeam(team: Record<string, unknown>) {
     description: team.description ?? null,
     avatar_url: team.avatar_url ?? null,
     theme: team.theme ?? 'default',
+    icebreaker_enabled: team.icebreaker_enabled ?? true,
+    icebreaker_default_category: team.icebreaker_default_category ?? null,
+    icebreaker_timer_seconds: team.icebreaker_timer_seconds != null ? Number(team.icebreaker_timer_seconds) : null,
     created_by: team.created_by,
     created_at: team.created_at,
     updated_at: team.updated_at,
@@ -264,6 +268,54 @@ const updateTeamHandler = async (c: Context) => {
 };
 teamsRouter.put('/:id', requireTeamRole(['admin']), updateTeamHandler);
 teamsRouter.patch('/:id', requireTeamRole(['admin']), updateTeamHandler);
+
+// PATCH /api/v1/teams/:id/settings/icebreaker — Update icebreaker settings (admin-only)
+teamsRouter.patch('/:id/settings/icebreaker', requireTeamRole(['admin']), async (c) => {
+  const teamId = c.req.param('id');
+  const user = c.get('user');
+  const body = await c.req.json().catch(() => ({}));
+
+  const parsed = updateIcebreakerSettingsSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Validation failed',
+        details: parsed.error.issues.map((i) => ({
+          field: i.path.join('.'),
+          message: i.message,
+        })),
+      },
+    }, 400);
+  }
+
+  // Build SET clause
+  const sets: ReturnType<typeof sql>[] = [];
+  if (parsed.data.enabled !== undefined) {
+    sets.push(sql`icebreaker_enabled = ${parsed.data.enabled}`);
+  }
+  if (parsed.data.defaultCategory !== undefined) {
+    sets.push(sql`icebreaker_default_category = ${parsed.data.defaultCategory}`);
+  }
+  if (parsed.data.timerSeconds !== undefined) {
+    sets.push(sql`icebreaker_timer_seconds = ${parsed.data.timerSeconds}`);
+  }
+  sets.push(sql`updated_at = NOW()`);
+
+  const setCombined = sets.reduce((a, b) => sql`${a}, ${b}`);
+  const [updated] = await sql`
+    UPDATE teams SET ${setCombined}
+    WHERE id = ${teamId} AND deleted_at IS NULL
+    RETURNING *
+  `;
+
+  if (!updated) {
+    return c.json(formatErrorResponse('TEAM_NOT_FOUND', 'Team not found'), 404);
+  }
+
+  const team = await teamRepository.findByIdForUser(teamId, user.id);
+  return c.json({ team: formatTeam(team) });
+});
 
 // DELETE /api/v1/teams/:id — Soft delete team
 teamsRouter.delete('/:id', requireTeamRole(['admin']), async (c) => {

@@ -44,9 +44,9 @@ async function completeFullRetro(
   await page.waitForTimeout(1500);
 
   // Dismiss icebreaker warmup
-  const startWritingBtn = page.getByRole('button', { name: /start writing/i });
-  if (await startWritingBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await startWritingBtn.click();
+  const nextPhaseBtn = page.getByRole('button', { name: /next phase/i });
+  if (await nextPhaseBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await nextPhaseBtn.click();
     await page.waitForTimeout(500);
   }
 
@@ -144,9 +144,9 @@ test.describe('Analytics Dashboard Journey', () => {
     await page.waitForTimeout(1500);
 
     // Dismiss icebreaker warmup
-    const startWritingBtn = page.getByRole('button', { name: /start writing/i });
-    if (await startWritingBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await startWritingBtn.click();
+    const nextPhaseBtn = page.getByRole('button', { name: /next phase/i });
+    if (await nextPhaseBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await nextPhaseBtn.click();
       await page.waitForTimeout(500);
     }
 

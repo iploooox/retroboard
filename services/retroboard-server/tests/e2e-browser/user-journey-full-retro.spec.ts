@@ -82,9 +82,9 @@ test.describe.serial('User Journey: Complete Retrospective Session', () => {
     await page.waitForTimeout(2000);
 
     // Dismiss icebreaker warmup to reveal columns
-    const startWritingBtn = page.getByRole('button', { name: /start writing/i });
-    if (await startWritingBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await startWritingBtn.click();
+    const nextPhaseBtn = page.getByRole('button', { name: /next phase/i });
+    if (await nextPhaseBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await nextPhaseBtn.click();
       await page.waitForTimeout(500);
     }
   });
@@ -151,37 +151,24 @@ test.describe.serial('User Journey: Complete Retrospective Session', () => {
     // Verify we're in vote phase
     await expect(page.getByText('Vote Phase')).toBeVisible();
 
-    // Verify vote buttons are now enabled
-    const voteButton = page.getByText('Great team collaboration!').locator('..').getByRole('button', { name: /vote|👍/i }).first();
-    await expect(voteButton).toBeEnabled();
+    // Verify vote buttons exist (use global selector — toggle UI)
+    await page.locator('button[aria-label="Vote"]').first().waitFor({ state: 'visible', timeout: 10000 });
   });
 
   test('E2E-JOURNEY-8: VOTE phase - Cast votes on cards', async () => {
-    // Vote on "Great team collaboration!"
-    const card1VoteButton = page.getByText('Great team collaboration!').locator('..').getByRole('button', { name: /vote|👍/i }).first();
-    await card1VoteButton.click();
+    // Vote on first card (toggle UI: vote button becomes "Remove vote" after click)
+    await page.locator('button[aria-label="Vote"]').first().click();
     await page.waitForTimeout(500);
 
-    // Verify vote count increased
-    const voteIndicator = page.getByText(/1.*vote|vote.*1/i);
-    await expect(voteIndicator).toBeVisible();
+    // Verify vote count increased (UI shows just the number)
+    await expect(page.getByTestId('card-votes').first()).toContainText('1', { timeout: 5000 });
 
-    // Vote on "Fast sprint delivery"
-    const card2Container = page.getByText('Fast sprint delivery').locator('..');
-    const card2VoteButton = card2Container.getByRole('button', { name: 'Vote', exact: true });
-    await card2VoteButton.click();
+    // Vote on second card (re-query: first card's button is now "Remove vote")
+    await page.locator('button[aria-label="Vote"]').first().click();
     await page.waitForTimeout(500);
 
-    // Verify first vote
-    await expect(card2Container.getByText(/1.*vote|vote.*1|\b1\b/i)).toBeVisible({ timeout: 2000 });
-
-    // Vote again on same card - re-query for button
-    const card2VoteButton2 = card2Container.getByRole('button', { name: 'Vote', exact: true });
-    await card2VoteButton2.click();
-    await page.waitForTimeout(500);
-
-    // Should see 2 votes on this card
-    await expect(card2Container.getByText(/2.*vote|vote.*2|\b2\b/i)).toBeVisible({ timeout: 2000 });
+    // Verify both cards have votes
+    await expect(page.getByTestId('card-votes')).toHaveCount(2, { timeout: 5000 });
   });
 
   test('E2E-JOURNEY-9: Transition to DISCUSS phase', async () => {
@@ -194,8 +181,8 @@ test.describe.serial('User Journey: Complete Retrospective Session', () => {
   });
 
   test('E2E-JOURNEY-10: DISCUSS phase - Verify discussion UI', async () => {
-    // In discuss phase, cards should be visible
-    await expect(page.getByText('Great team collaboration!')).toBeVisible();
+    // In discuss phase, cards appear in ranked list and expanded view (use .first())
+    await expect(page.getByText('Great team collaboration!').first()).toBeVisible();
 
     // The UI should show discussion controls
     await expect(page.getByText('Discuss Phase')).toBeVisible();
@@ -241,9 +228,9 @@ test.describe.serial('User Journey: Complete Retrospective Session', () => {
     // Verify we're still on the board
     await expect(page.url()).toContain('/board');
 
-    // Verify cards are still visible (data persisted)
-    await expect(page.getByText('Great team collaboration!')).toBeVisible();
-    await expect(page.getByText('Fast sprint delivery')).toBeVisible();
+    // Verify cards are still visible (data persisted, use .first() — text in both discussion topics and expanded card)
+    await expect(page.getByText('Great team collaboration!').first()).toBeVisible();
+    await expect(page.getByText('Fast sprint delivery').first()).toBeVisible();
 
     // Verify we're still in action phase (last phase of retro)
     await expect(page.getByText('Action Phase')).toBeVisible();

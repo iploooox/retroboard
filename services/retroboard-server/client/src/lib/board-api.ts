@@ -3,7 +3,7 @@ import { useAuthStore } from '@/stores/auth';
 
 // ---- API response types (snake_case, matching server) ----
 
-export type BoardPhase = 'write' | 'group' | 'vote' | 'discuss' | 'action';
+export type BoardPhase = 'icebreaker' | 'write' | 'group' | 'vote' | 'discuss' | 'action';
 
 export interface CardReaction {
   emoji: string;
@@ -47,6 +47,38 @@ export interface BoardGroup {
   created_at: string;
 }
 
+export interface IcebreakerQuestion {
+  id: string;
+  question: string;
+  category: string;
+}
+
+export interface IcebreakerResponse {
+  id: string;
+  content: string;
+  created_at: string;
+  reactions: Record<string, number>;
+  myReactions: string[];
+}
+
+export interface ToggleReactionResult {
+  action: 'added' | 'removed';
+  emoji: string;
+  count: number;
+}
+
+export interface IcebreakerSummary {
+  responseCount: number;
+  reactionCount: number;
+  topEmoji: string | null;
+  participantCount: number;
+}
+
+export interface IcebreakerResponsesResult {
+  responses: IcebreakerResponse[];
+  count: number;
+}
+
 export interface Board {
   id: string;
   sprint_id: string;
@@ -57,6 +89,9 @@ export interface Board {
   max_votes_per_card: number;
   focus_item_id: string | null;
   focus_item_type: 'card' | 'group' | null;
+  icebreaker_id: string | null;
+  icebreaker_active: boolean;
+  icebreaker: IcebreakerQuestion | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -226,4 +261,26 @@ export const boardApi = {
   // Reactions
   toggleReaction: (cardId: string, emoji: string) =>
     api.post<OkResponse<{ added: boolean; emoji: string; reactions: CardReaction[] }>>(`/cards/${cardId}/reactions`, { emoji }).then(r => r.data),
+
+  // Icebreaker
+  rerollIcebreaker: (boardId: string, category?: string) =>
+    api.patch<OkResponse<IcebreakerQuestion>>(`/boards/${boardId}/icebreaker`, category ? { category } : {}).then(r => r.data),
+
+  // Icebreaker Responses (S-003)
+  getIcebreakerResponses: (boardId: string) =>
+    api.get<OkResponse<IcebreakerResponsesResult>>(`/boards/${boardId}/icebreaker/responses`).then(r => r.data),
+
+  submitIcebreakerResponse: (boardId: string, content: string) =>
+    api.post<OkResponse<IcebreakerResponse>>(`/boards/${boardId}/icebreaker/responses`, { content }).then(r => r.data),
+
+  deleteIcebreakerResponse: (boardId: string, responseId: string) =>
+    api.delete<OkResponse<{ id: string; deleted: boolean }>>(`/boards/${boardId}/icebreaker/responses/${responseId}`).then(r => r.data),
+
+  // Icebreaker Response Reactions (S-005)
+  toggleIcebreakerReaction: (boardId: string, responseId: string, emoji: string) =>
+    api.post<OkResponse<ToggleReactionResult>>(`/boards/${boardId}/icebreaker/responses/${responseId}/reactions`, { emoji }).then(r => r.data),
+
+  // Icebreaker Summary (S-007)
+  getIcebreakerSummary: (boardId: string) =>
+    api.get<OkResponse<IcebreakerSummary>>(`/boards/${boardId}/icebreaker/summary`).then(r => r.data),
 };

@@ -63,8 +63,8 @@ test.describe('Vote Real-time Sync', () => {
     await page2.waitForTimeout(1000);
 
     // Dismiss icebreaker warmup for User 2
-    const startWritingBtn2 = page2.getByRole('button', { name: /start writing/i });
-    await startWritingBtn2.waitFor({ state: 'visible', timeout: 10000 }).then(() => startWritingBtn2.click()).catch(() => {});
+    const nextPhaseBtn2 = page2.getByRole('button', { name: /next phase/i });
+    await nextPhaseBtn2.waitFor({ state: 'visible', timeout: 10000 }).then(() => nextPhaseBtn2.click()).catch(() => {});
     await page2.waitForTimeout(500);
 
     // Verify User 2 can see the card
@@ -75,8 +75,8 @@ test.describe('Vote Real-time Sync', () => {
     await page1.waitForTimeout(500);
 
     // Dismiss icebreaker warmup for User 1 (reloaded)
-    const startWritingBtn1 = page1.getByRole('button', { name: /start writing/i });
-    await startWritingBtn1.waitFor({ state: 'visible', timeout: 10000 }).then(() => startWritingBtn1.click()).catch(() => {});
+    const nextPhaseBtn1 = page1.getByRole('button', { name: /next phase/i });
+    await nextPhaseBtn1.waitFor({ state: 'visible', timeout: 10000 }).then(() => nextPhaseBtn1.click()).catch(() => {});
     await page1.waitForTimeout(500);
 
     // Click Vote button in facilitator toolbar to change phase
@@ -102,10 +102,10 @@ test.describe('Vote Real-time Sync', () => {
     await page1.waitForTimeout(2000); // Allow time for vote API + WebSocket propagation
 
     // Verify User 1 sees vote count = 1
-    await expect(page1.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 5000 });
+    await expect(page1.getByTestId('card-votes').first()).toContainText('1', { timeout: 5000 });
 
     // **THE KEY ASSERTION**: Verify User 2 ALSO sees vote count = 1 without refreshing
-    await expect(page2.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 5000 });
+    await expect(page2.getByTestId('card-votes').first()).toContainText('1', { timeout: 5000 });
 
     // User 2: Vote on the same card
     await card2.hover();
@@ -114,8 +114,8 @@ test.describe('Vote Real-time Sync', () => {
     await page2.waitForTimeout(2000); // Allow time for vote API + WebSocket propagation
 
     // Verify both users see vote count = 2
-    await expect(page1.getByTestId('card-votes').first()).toContainText('2 votes', { timeout: 5000 });
-    await expect(page2.getByTestId('card-votes').first()).toContainText('2 votes', { timeout: 5000 });
+    await expect(page1.getByTestId('card-votes').first()).toContainText('2', { timeout: 5000 });
+    await expect(page2.getByTestId('card-votes').first()).toContainText('2', { timeout: 5000 });
 
     // User 1: Remove their vote
     await card1.hover();
@@ -124,8 +124,8 @@ test.describe('Vote Real-time Sync', () => {
     await page1.waitForTimeout(2000); // Allow time for vote API + WebSocket propagation
 
     // Verify both users see vote count = 1 after User 1 removed their vote
-    await expect(page1.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 5000 });
-    await expect(page2.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 5000 });
+    await expect(page1.getByTestId('card-votes').first()).toContainText('1', { timeout: 5000 });
+    await expect(page2.getByTestId('card-votes').first()).toContainText('1', { timeout: 5000 });
 
     // Cleanup
     await context1.close();
@@ -155,8 +155,8 @@ test.describe('Vote Real-time Sync', () => {
       await addCardButton.click();
       const cardInput = page1.getByPlaceholder(/what.*your mind|card content|enter.*text/i).first();
       await cardInput.fill(`Card ${i}`);
-      await page1.getByRole('button', { name: /^add card$/i }).click();
-      await page1.waitForTimeout(300);
+      await page1.getByRole('button', { name: /^add card$/i }).first().click();
+      await page1.waitForTimeout(500);
     }
 
     // User 2: Register and join team
@@ -193,10 +193,10 @@ test.describe('Vote Real-time Sync', () => {
     await page2.waitForTimeout(500);
 
     // Dismiss icebreaker warmup for both users
-    const swBtn1 = page1.getByRole('button', { name: /start writing/i });
-    await swBtn1.waitFor({ state: 'visible', timeout: 10000 }).then(() => swBtn1.click()).catch(() => {});
-    const swBtn2 = page2.getByRole('button', { name: /start writing/i });
-    await swBtn2.waitFor({ state: 'visible', timeout: 10000 }).then(() => swBtn2.click()).catch(() => {});
+    const npBtn1 = page1.getByRole('button', { name: /next phase/i });
+    await npBtn1.waitFor({ state: 'visible', timeout: 10000 }).then(() => npBtn1.click()).catch(() => {});
+    const npBtn2 = page2.getByRole('button', { name: /next phase/i });
+    await npBtn2.waitFor({ state: 'visible', timeout: 10000 }).then(() => npBtn2.click()).catch(() => {});
     await page1.waitForTimeout(500);
 
     // User 1: Jump directly to Vote phase using phase stepper (same approach as SYNC-1)
@@ -209,25 +209,21 @@ test.describe('Vote Real-time Sync', () => {
     await expect(page1.getByTestId('phase-badge')).toContainText(/vote/i, { timeout: 5000 });
     await expect(page2.getByTestId('phase-badge')).toContainText(/vote/i, { timeout: 5000 });
 
-    // User 1: Cast 2 votes on Card 1
-    // Vote 1
+    // User 1: Vote on Card 1 (toggle UI: single vote per card per user)
     await page1.locator('button[aria-label="Vote"]').first().click();
     await page1.waitForTimeout(2000);
-    await expect(page1.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 5000 });
+    await expect(page1.getByTestId('card-votes').first()).toContainText('1', { timeout: 5000 });
 
-    // Verify User 2 sees vote 1 before casting vote 2
-    await expect(page2.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 10000 });
+    // Verify User 2 sees vote on Card 1 via WebSocket
+    await expect(page2.getByTestId('card-votes').first()).toContainText('1', { timeout: 10000 });
 
-    // Vote 2
+    // User 1: Vote on Card 2 (re-query: Card 1's button is now "Remove vote")
     await page1.locator('button[aria-label="Vote"]').first().click();
-    await page1.waitForTimeout(2000);
-    await expect(page1.getByTestId('card-votes').first()).toContainText('2 votes', { timeout: 5000 });
+    await page1.waitForTimeout(3000);
 
-    // Verify User 2 sees 2 votes on Card 1 in real-time via WebSocket
-    await expect(page2.getByTestId('card-votes').first()).toContainText('2 votes', { timeout: 10000 });
-
-    // Verify User 2 sees their remaining votes decreased (if UI shows this)
-    // This depends on UI implementation - adjust selector as needed
+    // Verify both users see votes on both cards (2 vote badges visible)
+    await expect(page1.getByTestId('card-votes')).toHaveCount(2, { timeout: 10000 });
+    await expect(page2.getByTestId('card-votes')).toHaveCount(2, { timeout: 15000 });
 
     // Cleanup
     await context1.close();

@@ -15,6 +15,9 @@ interface Team {
   member_count: number;
   your_role: string;
   created_at: string;
+  icebreaker_enabled?: boolean;
+  icebreaker_default_category?: string | null;
+  icebreaker_timer_seconds?: number | null;
 }
 
 const roleBadgeVariant = {

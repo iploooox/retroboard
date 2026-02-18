@@ -1,12 +1,13 @@
 import type { BoardPhase } from '@/lib/board-api';
-import { Check } from 'lucide-react';
+import { Check, Sparkles } from 'lucide-react';
 
-const PHASES: Array<{ key: BoardPhase; label: string; number: number }> = [
-  { key: 'write', label: 'Write', number: 1 },
-  { key: 'group', label: 'Group', number: 2 },
-  { key: 'vote', label: 'Vote', number: 3 },
-  { key: 'discuss', label: 'Discuss', number: 4 },
-  { key: 'action', label: 'Action', number: 5 },
+const PHASES: Array<{ key: BoardPhase; label: string; number: number; icon?: 'sparkle' }> = [
+  { key: 'icebreaker', label: 'Icebreaker', number: 1, icon: 'sparkle' },
+  { key: 'write', label: 'Write', number: 2 },
+  { key: 'group', label: 'Group', number: 3 },
+  { key: 'vote', label: 'Vote', number: 4 },
+  { key: 'discuss', label: 'Discuss', number: 5 },
+  { key: 'action', label: 'Action', number: 6 },
 ];
 
 interface PhaseBarProps {
@@ -50,6 +51,8 @@ export function PhaseBar({ currentPhase, isFacilitator, onPhaseClick }: PhaseBar
           >
             {isCompleted ? (
               <Check className="h-4 w-4" />
+            ) : phase.icon === 'sparkle' ? (
+              <Sparkles className="h-4 w-4" />
             ) : (
               <span className="text-sm font-bold">{phase.number}</span>
             )}

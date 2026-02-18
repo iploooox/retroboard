@@ -14,6 +14,8 @@ export type TestVote = { id: string; card_id: string; user_id: string; vote_numb
 export async function truncateTables() {
   // Single round-trip: all cleanup in one sql.unsafe() call
   await sql.unsafe(`
+    DELETE FROM icebreaker_response_reactions;
+    DELETE FROM icebreaker_responses;
     DELETE FROM team_icebreaker_history;
     DELETE FROM icebreakers WHERE is_system = false;
     TRUNCATE TABLE

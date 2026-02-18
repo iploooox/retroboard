@@ -148,6 +148,14 @@ describe('E2E: Phase 4 Happy Path — Analytics & Action Item Carry-over Pipelin
       const board = boardBody.data;
       const boardId = board.id;
 
+      // Advance from icebreaker to write phase so card operations work
+      const advanceRes = await app.request(`/api/v1/boards/${boardId}/phase`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phase: 'write' }),
+      });
+      expect(advanceRes.status).toBe(200);
+
       sprints.push({ id: sprint.id, boardId, name: `Sprint ${i}` });
 
       // WWW template has 2 columns: "What Went Well" (index 0) and "Delta" (index 1)
@@ -213,7 +221,14 @@ describe('E2E: Phase 4 Happy Path — Analytics & Action Item Carry-over Pipelin
         cardIds.push(card.id);
       }
 
-      // Change phase to vote
+      // Step through phases: write -> group -> vote
+      const toGroupRes = await app.request(`/api/v1/boards/${boardId}/phase`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phase: 'group' }),
+      });
+      expect(toGroupRes.status).toBe(200);
+
       const toVoteRes = await app.request(`/api/v1/boards/${boardId}/phase`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
@@ -237,7 +252,14 @@ describe('E2E: Phase 4 Happy Path — Analytics & Action Item Carry-over Pipelin
         });
       }
 
-      // Change phase to action
+      // Step through phases: vote -> discuss -> action
+      const toDiscussRes = await app.request(`/api/v1/boards/${boardId}/phase`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phase: 'discuss' }),
+      });
+      expect(toDiscussRes.status).toBe(200);
+
       const toActionRes = await app.request(`/api/v1/boards/${boardId}/phase`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },

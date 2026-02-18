@@ -123,10 +123,19 @@ describe('E2E: Phase 3 Happy Path — Real-time Retro Ceremony', () => {
       const boardBody = await createBoardRes.json();
       expect(boardBody.ok).toBe(true);
       const board = boardBody.data;
-      expect(board.phase).toBe('write');
+      expect(board.phase).toBe('icebreaker');
       expect(board.anonymous_mode).toBe(true);
 
       const boardId = board.id;
+
+      // Advance from icebreaker to write phase so card operations work
+      const advanceRes = await app.request(`/api/v1/boards/${boardId}/phase`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phase: 'write' }),
+      });
+      expect(advanceRes.status).toBe(200);
+
       const wwwColumnId = board.columns[0].id;
       const deltaColumnId = board.columns[1].id;
 

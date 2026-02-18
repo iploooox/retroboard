@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { boardApi, type BoardData, type BoardCard, type BoardGroup, type BoardPhase, type ActionItem } from '@/lib/board-api';
+import { boardApi, type BoardData, type BoardCard, type BoardGroup, type BoardPhase, type ActionItem, type IcebreakerResponse, type IcebreakerSummary } from '@/lib/board-api';
 import { ApiError } from '@/lib/api';
 import { toast } from '@/lib/toast';
 
@@ -19,6 +19,13 @@ interface BoardState {
   // Phase 3 state
   isLocked: boolean;
   cardsRevealed: boolean;
+
+  // Icebreaker responses (S-003)
+  icebreakerResponses: IcebreakerResponse[];
+
+  // Energy recap (S-007)
+  showEnergyRecap: boolean;
+  energyRecapData: IcebreakerSummary | null;
 
   // UI state
   isLoading: boolean;
@@ -43,6 +50,19 @@ interface BoardState {
   updateActionItem: (id: string, body: { title?: string; status?: 'open' | 'in_progress' | 'done'; assigneeId?: string | null; dueDate?: string | null }) => Promise<void>;
   deleteActionItem: (id: string) => Promise<void>;
   carryOverActionItems: () => Promise<{ totalResolved: number; totalSkipped: number; totalAlreadyCarried: number }>;
+  // Icebreaker response actions (S-003)
+  fetchIcebreakerResponses: () => Promise<void>;
+  submitIcebreakerResponse: (content: string) => Promise<void>;
+  deleteIcebreakerResponse: (responseId: string) => Promise<void>;
+  addIcebreakerResponse: (response: IcebreakerResponse) => void;
+  removeIcebreakerResponse: (responseId: string) => void;
+  setIcebreakerResponses: (responses: IcebreakerResponse[]) => void;
+  // Icebreaker reaction actions (S-005)
+  toggleIcebreakerReaction: (responseId: string, emoji: string) => Promise<void>;
+  updateIcebreakerReactionCount: (responseId: string, emoji: string, count: number) => void;
+  // Energy recap actions (S-007)
+  triggerEnergyRecap: () => Promise<void>;
+  dismissEnergyRecap: () => void;
   reset: () => void;
 }
 
@@ -92,6 +112,9 @@ const initialState = {
   userCardVotes: {},
   isLocked: false,
   cardsRevealed: false,
+  icebreakerResponses: [],
+  showEnergyRecap: false,
+  energyRecapData: null,
   isLoading: true,
   error: null,
   actionItemsLoading: false,
@@ -489,6 +512,156 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       toast.error(err instanceof ApiError ? err.message : 'Failed to carry over action items');
       throw err;
     }
+  },
+
+  // Icebreaker response actions (S-003)
+  fetchIcebreakerResponses: async () => {
+    const { board } = get();
+    if (!board) return;
+
+    try {
+      const result = await boardApi.getIcebreakerResponses(board.id);
+      set({ icebreakerResponses: result.responses });
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to load responses');
+    }
+  },
+
+  submitIcebreakerResponse: async (content: string) => {
+    const { board } = get();
+    if (!board) return;
+
+    try {
+      await boardApi.submitIcebreakerResponse(board.id, content);
+      // Response will be added via WebSocket broadcast
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to submit response');
+      throw err;
+    }
+  },
+
+  deleteIcebreakerResponse: async (responseId: string) => {
+    const { board } = get();
+    if (!board) return;
+
+    try {
+      await boardApi.deleteIcebreakerResponse(board.id, responseId);
+      // Removal will happen via WebSocket broadcast
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to delete response');
+      throw err;
+    }
+  },
+
+  addIcebreakerResponse: (response: IcebreakerResponse) => {
+    set((state) => {
+      // Deduplicate by id
+      if (state.icebreakerResponses.some((r) => r.id === response.id)) {
+        return state;
+      }
+      // Ensure reactions fields are initialized for new responses
+      const newResponse: IcebreakerResponse = {
+        ...response,
+        reactions: response.reactions ?? {},
+        myReactions: response.myReactions ?? [],
+      };
+      return { icebreakerResponses: [...state.icebreakerResponses, newResponse] };
+    });
+  },
+
+  removeIcebreakerResponse: (responseId: string) => {
+    set((state) => ({
+      icebreakerResponses: state.icebreakerResponses.filter((r) => r.id !== responseId),
+    }));
+  },
+
+  setIcebreakerResponses: (responses: IcebreakerResponse[]) => {
+    set({ icebreakerResponses: responses });
+  },
+
+  // Icebreaker reaction actions (S-005)
+  toggleIcebreakerReaction: async (responseId: string, emoji: string) => {
+    const { board, icebreakerResponses } = get();
+    if (!board) return;
+
+    const responseIndex = icebreakerResponses.findIndex((r) => r.id === responseId);
+    if (responseIndex === -1) return;
+
+    const response = icebreakerResponses[responseIndex]!;
+    const isCurrentlyReacted = response.myReactions.includes(emoji);
+    const currentCount = response.reactions[emoji] ?? 0;
+
+    // Optimistic update
+    const optimisticResponses = [...icebreakerResponses];
+    const optimisticResponse = { ...response };
+    const optimisticReactions = { ...response.reactions };
+
+    if (isCurrentlyReacted) {
+      // Removing reaction
+      const newCount = Math.max(0, currentCount - 1);
+      if (newCount === 0) {
+        delete optimisticReactions[emoji];
+      } else {
+        optimisticReactions[emoji] = newCount;
+      }
+      optimisticResponse.myReactions = response.myReactions.filter((e) => e !== emoji);
+    } else {
+      // Adding reaction
+      optimisticReactions[emoji] = currentCount + 1;
+      optimisticResponse.myReactions = [...response.myReactions, emoji];
+    }
+
+    optimisticResponse.reactions = optimisticReactions;
+    optimisticResponses[responseIndex] = optimisticResponse;
+    set({ icebreakerResponses: optimisticResponses });
+
+    try {
+      await boardApi.toggleIcebreakerReaction(board.id, responseId, emoji);
+      // Server response will confirm via WS broadcast; optimistic update is sufficient
+    } catch (err) {
+      // Rollback on error
+      set({ icebreakerResponses: icebreakerResponses });
+      toast.error(err instanceof ApiError ? err.message : 'Failed to toggle reaction');
+    }
+  },
+
+  updateIcebreakerReactionCount: (responseId: string, emoji: string, count: number) => {
+    set((state) => {
+      const idx = state.icebreakerResponses.findIndex((r) => r.id === responseId);
+      if (idx === -1) return state;
+
+      const responses = [...state.icebreakerResponses];
+      const response = { ...responses[idx]! };
+      const reactions = { ...response.reactions };
+
+      if (count > 0) {
+        reactions[emoji] = count;
+      } else {
+        delete reactions[emoji];
+      }
+
+      response.reactions = reactions;
+      responses[idx] = response;
+      return { icebreakerResponses: responses };
+    });
+  },
+
+  // Energy recap actions (S-007)
+  triggerEnergyRecap: async () => {
+    const { board } = get();
+    if (!board) return;
+
+    try {
+      const summary = await boardApi.getIcebreakerSummary(board.id);
+      set({ showEnergyRecap: true, energyRecapData: summary });
+    } catch {
+      // If summary fetch fails, skip the recap and go straight to write phase
+      set({ showEnergyRecap: false, energyRecapData: null });
+    }
+  },
+
+  dismissEnergyRecap: () => {
+    set({ showEnergyRecap: false, energyRecapData: null });
   },
 
   reset: () => set(initialState),

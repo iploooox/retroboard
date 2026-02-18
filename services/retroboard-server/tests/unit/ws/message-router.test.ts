@@ -111,4 +111,177 @@ describe('MessageRouter', () => {
     const lastCall = mockSend.mock.calls[mockSend.mock.calls.length - 1];
     expect(lastCall[0]).toContain('RATE_LIMITED');
   });
+
+  // ────────────────────────────────────────────────────────────
+  // Icebreaker Vibe (S-006)
+  // ────────────────────────────────────────────────────────────
+  describe('icebreaker_vibe', () => {
+    it('S-006.1: Valid vibe message broadcasts to all in room (including sender)', () => {
+      router.handleMessage(
+        mockClient,
+        JSON.stringify({ type: 'icebreaker_vibe', payload: { emoji: 'fire' } }),
+      );
+      expect(mockBroadcast).toHaveBeenCalledWith(
+        'board-1',
+        expect.objectContaining({
+          type: 'icebreaker_vibe',
+          payload: expect.objectContaining({
+            emoji: 'fire',
+            id: expect.any(String),
+          }),
+        }),
+        // No excludeClientId — broadcast to ALL including sender
+      );
+      // Verify third argument (excludeClientId) is NOT passed
+      expect(mockBroadcast.mock.calls[0]).toHaveLength(2);
+    });
+
+    it('S-006.2: Missing emoji field sends error', () => {
+      router.handleMessage(
+        mockClient,
+        JSON.stringify({ type: 'icebreaker_vibe', payload: {} }),
+      );
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.stringContaining('INVALID_MESSAGE'),
+      );
+      expect(mockBroadcast).not.toHaveBeenCalled();
+    });
+
+    it('S-006.3: Invalid emoji key sends error', () => {
+      router.handleMessage(
+        mockClient,
+        JSON.stringify({ type: 'icebreaker_vibe', payload: { emoji: 'poop' } }),
+      );
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.stringContaining('INVALID_MESSAGE'),
+      );
+      expect(mockBroadcast).not.toHaveBeenCalled();
+    });
+
+    it('S-006.4: All 6 valid emoji keys are accepted', () => {
+      const validEmojis = ['laugh', 'fire', 'heart', 'bullseye', 'clap', 'skull'];
+      // Use a different user per emoji to avoid vibe rate limit
+      for (let i = 0; i < validEmojis.length; i++) {
+        const emoji = validEmojis[i];
+        const client: ClientInfo = {
+          clientId: `client-emoji-${i}`,
+          userId: `user-emoji-${i}`,
+          userName: `User ${i}`,
+          boardId: 'board-1',
+          ws: { send: vi.fn(), readyState: 1 },
+        };
+        mockBroadcast.mockClear();
+        router.handleMessage(
+          client,
+          JSON.stringify({ type: 'icebreaker_vibe', payload: { emoji } }),
+        );
+        expect(mockBroadcast).toHaveBeenCalledTimes(1);
+      }
+    });
+
+    it('S-006.5: Vibe rate limit — more than 3 per second per user triggers RATE_LIMITED', () => {
+      // First 3 should succeed
+      for (let i = 0; i < 3; i++) {
+        router.handleMessage(
+          mockClient,
+          JSON.stringify({ type: 'icebreaker_vibe', payload: { emoji: 'fire' } }),
+        );
+      }
+      expect(mockBroadcast).toHaveBeenCalledTimes(3);
+
+      // 4th should be rate limited
+      mockSend.mockClear();
+      router.handleMessage(
+        mockClient,
+        JSON.stringify({ type: 'icebreaker_vibe', payload: { emoji: 'fire' } }),
+      );
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.stringContaining('RATE_LIMITED'),
+      );
+    });
+
+    it('S-006.6: Vibe rate limit is per user, not per client', () => {
+      // Client 1 sends 3 vibes
+      for (let i = 0; i < 3; i++) {
+        router.handleMessage(
+          mockClient,
+          JSON.stringify({ type: 'icebreaker_vibe', payload: { emoji: 'fire' } }),
+        );
+      }
+
+      // A different client with the SAME userId should also be rate limited
+      const client2 = { ...mockClient, clientId: 'client-2' };
+      mockSend.mockClear();
+      router.handleMessage(
+        client2,
+        JSON.stringify({ type: 'icebreaker_vibe', payload: { emoji: 'fire' } }),
+      );
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.stringContaining('RATE_LIMITED'),
+      );
+    });
+
+    it('S-006.7: Different users have independent vibe rate limits', () => {
+      // User 1 sends 3 vibes
+      for (let i = 0; i < 3; i++) {
+        router.handleMessage(
+          mockClient,
+          JSON.stringify({ type: 'icebreaker_vibe', payload: { emoji: 'fire' } }),
+        );
+      }
+
+      // User 2 should not be rate limited
+      const client2: ClientInfo = {
+        clientId: 'client-2',
+        userId: 'user-2',
+        userName: 'Other User',
+        boardId: 'board-1',
+        ws: { send: vi.fn(), readyState: 1 },
+      };
+      router.handleMessage(
+        client2,
+        JSON.stringify({ type: 'icebreaker_vibe', payload: { emoji: 'fire' } }),
+      );
+      expect(mockBroadcast).toHaveBeenCalledTimes(4); // 3 from user-1 + 1 from user-2
+    });
+
+    it('S-006.8: Broadcast payload includes server-generated UUID id', () => {
+      router.handleMessage(
+        mockClient,
+        JSON.stringify({ type: 'icebreaker_vibe', payload: { emoji: 'heart' } }),
+      );
+      const broadcastPayload = mockBroadcast.mock.calls[0][1] as {
+        payload: { id: string; emoji: string };
+      };
+      expect(broadcastPayload.payload.id).toBeDefined();
+      expect(typeof broadcastPayload.payload.id).toBe('string');
+      expect(broadcastPayload.payload.id.length).toBeGreaterThan(0);
+      // UUID v4 format check
+      expect(broadcastPayload.payload.id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      );
+    });
+
+    it('S-006.9: Non-string emoji field sends error', () => {
+      router.handleMessage(
+        mockClient,
+        JSON.stringify({ type: 'icebreaker_vibe', payload: { emoji: 42 } }),
+      );
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.stringContaining('INVALID_MESSAGE'),
+      );
+      expect(mockBroadcast).not.toHaveBeenCalled();
+    });
+
+    it('S-006.10: No payload sends error', () => {
+      router.handleMessage(
+        mockClient,
+        JSON.stringify({ type: 'icebreaker_vibe' }),
+      );
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.stringContaining('INVALID_MESSAGE'),
+      );
+      expect(mockBroadcast).not.toHaveBeenCalled();
+    });
+  });
 });

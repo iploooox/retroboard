@@ -15,6 +15,7 @@ export interface PhasePermissionResult {
 
 // Phase permission matrix: which actions are allowed in which phases
 const PHASE_PERMISSIONS: Record<BoardPhase, Set<PhaseAction>> = {
+  icebreaker: new Set(), // No card/vote/group actions during icebreaker
   write: new Set(['add_card', 'edit_card']),
   group: new Set(['edit_card', 'group_card']),
   vote: new Set(['vote']),

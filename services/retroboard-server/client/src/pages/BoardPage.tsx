@@ -23,7 +23,11 @@ import { ConnectionStatus } from '@/components/board/ConnectionStatus';
 import { PresenceBar } from '@/components/board/PresenceBar';
 import { PhaseBar } from '@/components/board/PhaseBar';
 import { FacilitatorToolbar } from '@/components/board/FacilitatorToolbar';
-import { IcebreakerCard } from '@/components/board/IcebreakerCard';
+import { IcebreakerWarmup } from '@/components/board/IcebreakerWarmup';
+import { GroupPhaseView } from '@/components/board/GroupPhaseView';
+import { DiscussPhaseView } from '@/components/board/DiscussPhaseView';
+import { ActionPhaseView } from '@/components/board/ActionPhaseView';
+import { EnergyRecap } from '@/components/board/EnergyRecap';
 import type { BoardPhase } from '@/lib/board-api';
 
 interface TeamMember {
@@ -164,13 +168,22 @@ export function BoardPage() {
   const [boardNotFound, setBoardNotFound] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
   const [teamTheme, setTeamTheme] = useState<string>('default');
-  const [showIcebreaker, setShowIcebreaker] = useState(true);
   const [actionItemInitialCardId, setActionItemInitialCardId] = useState<string | undefined>();
   const [actionItemInitialTitle, setActionItemInitialTitle] = useState<string | undefined>();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [showPhaseConfirm, setShowPhaseConfirm] = useState(false);
   const [pendingPhase, setPendingPhase] = useState<BoardPhase | null>(null);
+  const [icebreakerTimerSeconds, setIcebreakerTimerSeconds] = useState<number | null>(null);
+  const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
+
+  const toggleCardSelection = useCallback((cardId: string) => {
+    setSelectedCardIds((prev) =>
+      prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId]
+    );
+  }, []);
+
+  const clearSelection = useCallback(() => setSelectedCardIds([]), []);
 
   // WebSocket sync
   useBoardSync(board?.id || null, wsConnected);
@@ -189,12 +202,13 @@ export function BoardPage() {
         // Fallback to member role
       });
 
-    // Fetch team data to get current theme
-    api.get<{ team: { theme?: string } }>(`/teams/${teamId}`)
+    // Fetch team data to get current theme and icebreaker settings
+    api.get<{ team: { theme?: string; icebreaker_timer_seconds?: number | null } }>(`/teams/${teamId}`)
       .then((response) => {
         if (response.team.theme) {
           setTeamTheme(response.team.theme);
         }
+        setIcebreakerTimerSeconds(response.team.icebreaker_timer_seconds ?? null);
       })
       .catch(() => {
         // Use default theme
@@ -347,6 +361,8 @@ export function BoardPage() {
     // Dismiss any open phase confirmation dialog to prevent stale overlays
     setShowPhaseConfirm(false);
     setPendingPhase(null);
+    // Clear card selection when changing phases
+    setSelectedCardIds([]);
   };
 
   const handleLockToggle = (locked: boolean) => {
@@ -394,9 +410,6 @@ export function BoardPage() {
         onInvite={handleInvite}
       />
 
-      {/* Group manager (group phase only) */}
-      <GroupManager isFacilitator={isFacilitator} />
-
       {/* Locked board banner */}
       {isLocked && !isFacilitator && (
         <div className="px-4 py-2 bg-yellow-50 border-b border-yellow-200">
@@ -406,26 +419,52 @@ export function BoardPage() {
         </div>
       )}
 
-      {/* Board columns area — hidden when icebreaker warmup is active (Rule 10: fullscreen overlay) */}
-      <div className="flex-1 overflow-x-auto min-h-0 relative" style={{ backgroundColor: 'var(--theme-bg)' }}>
-        {board.phase === 'write' && showIcebreaker && teamId ? (
-          /* Icebreaker warmup replaces columns during write phase — per Rule 10 */
-          <IcebreakerCard teamId={teamId} boardId={board.id} onDismiss={() => setShowIcebreaker(false)} />
-        ) : (
-          <div className="flex gap-4 p-4 h-full min-w-min">
-            {sortedColumns.map((col) => (
-              <BoardColumn
-                key={col.id}
-                columnId={col.id}
-                name={col.name}
-                color={col.color}
+      {/* Board content area — switches layout based on phase */}
+      {(() => {
+        const useGroupView = board.phase === 'group' || board.phase === 'vote';
+        const useDiscussView = board.phase === 'discuss';
+        const useActionView = board.phase === 'action';
+        const isSpecialLayout = board.phase === 'icebreaker' || useGroupView || useDiscussView || useActionView;
+        return (
+          <div className={`flex-1 min-h-0 relative ${isSpecialLayout ? 'flex flex-col overflow-hidden' : 'overflow-x-auto'}`} style={{ backgroundColor: 'var(--theme-bg)' }}>
+            {board.phase === 'icebreaker' && teamId ? (
+              <IcebreakerWarmup boardId={board.id} isFacilitator={isFacilitator} timerSeconds={icebreakerTimerSeconds} />
+            ) : useActionView ? (
+              <ActionPhaseView
+                isFacilitator={isFacilitator}
+                teamId={teamId || ''}
+              />
+            ) : useDiscussView ? (
+              <DiscussPhaseView
                 isFacilitator={isFacilitator}
                 onCreateActionItem={handleCreateActionItemFromCard}
               />
-            ))}
+            ) : useGroupView ? (
+              <GroupPhaseView
+                isFacilitator={isFacilitator}
+                onCreateActionItem={handleCreateActionItemFromCard}
+                selectedCardIds={selectedCardIds}
+                onToggleCardSelect={toggleCardSelection}
+              />
+            ) : (
+              <div className="flex gap-4 p-4 h-full min-w-min">
+                {sortedColumns.map((col) => (
+                  <BoardColumn
+                    key={col.id}
+                    columnId={col.id}
+                    name={col.name}
+                    color={col.color}
+                    isFacilitator={isFacilitator}
+                    onCreateActionItem={handleCreateActionItemFromCard}
+                    selectedCardIds={selectedCardIds}
+                    onToggleCardSelect={toggleCardSelection}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        );
+      })()}
 
       {/* Action items panel */}
       <ActionItemsPanel
@@ -506,6 +545,13 @@ export function BoardPage() {
         </div>
       )}
 
+      {/* Group manager floating bar (group phase only) */}
+      <GroupManager
+        isFacilitator={isFacilitator}
+        selectedCardIds={selectedCardIds}
+        onClearSelection={clearSelection}
+      />
+
       {/* Facilitator toolbar (only for facilitators/admins) */}
       {isFacilitator && board && (
         <FacilitatorToolbar
@@ -521,6 +567,9 @@ export function BoardPage() {
           onRevealCards={handleRevealCards}
         />
       )}
+
+      {/* Energy recap overlay (S-007) — shown briefly during icebreaker→write transition */}
+      <EnergyRecap />
     </div>
   );
 }

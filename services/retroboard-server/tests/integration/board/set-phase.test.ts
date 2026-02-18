@@ -121,7 +121,7 @@ describe('PUT /api/v1/boards/:id/phase — Set Phase', () => {
     expect(body.data.previous_phase).toBe('group');
   });
 
-  it('2.12.6: Skip write to vote', async () => {
+  it('2.12.6: Skip write to vote is rejected', async () => {
     const res = await app.request(`/api/v1/boards/${board.id}/phase`, {
       method: 'PUT',
       headers: {
@@ -131,10 +131,9 @@ describe('PUT /api/v1/boards/:id/phase — Set Phase', () => {
       body: JSON.stringify({ phase: 'vote' }),
     });
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(422);
     const body = await res.json();
-    expect(body.ok).toBe(true);
-    expect(body.data.phase).toBe('vote');
+    expect(body.error.code).toBe('INVALID_TRANSITION');
   });
 
   it('2.12.7: Set phase as member (not facilitator)', async () => {

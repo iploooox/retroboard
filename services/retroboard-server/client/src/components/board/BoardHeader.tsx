@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import type { BoardPhase } from '@/lib/board-api';
 
 const phaseLabels: Record<BoardPhase, string> = {
+  icebreaker: 'Icebreaker',
   write: 'Write',
   group: 'Group',
   vote: 'Vote',
@@ -13,6 +14,7 @@ const phaseLabels: Record<BoardPhase, string> = {
 };
 
 const phaseBadgeVariant: Record<BoardPhase, 'blue' | 'purple' | 'yellow' | 'green' | 'red'> = {
+  icebreaker: 'purple',
   write: 'blue',
   group: 'purple',
   vote: 'yellow',

@@ -56,6 +56,22 @@ describe('Phase Transition Logic', () => {
     }
   });
 
+  it('1.4.15: Advance from icebreaker to write', () => {
+    expect(ALLOWED_TRANSITIONS['icebreaker']).toContain('write');
+  });
+
+  it('1.4.16: Icebreaker to group is NOT allowed', () => {
+    expect(ALLOWED_TRANSITIONS['icebreaker']).not.toContain('group');
+  });
+
+  it('1.4.17: Icebreaker to vote is NOT allowed', () => {
+    expect(ALLOWED_TRANSITIONS['icebreaker']).not.toContain('vote');
+  });
+
+  it('1.4.18: Go back from write to icebreaker', () => {
+    expect(ALLOWED_TRANSITIONS['write']).toContain('icebreaker');
+  });
+
   it('1.4.14: All defined phases have transition rules', () => {
     for (const phase of BOARD_PHASES) {
       expect(ALLOWED_TRANSITIONS[phase]).toBeDefined();

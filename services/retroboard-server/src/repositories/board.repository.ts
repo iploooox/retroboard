@@ -1,5 +1,6 @@
 import { sql } from '../db/connection.js';
 import type { BoardPhase, FocusItemType } from '../validation/boards.js';
+import { icebreakerService } from '../services/icebreaker-service.js';
 
 export interface BoardRow {
   id: string;
@@ -14,6 +15,8 @@ export interface BoardRow {
   is_locked: boolean;
   cards_revealed: boolean;
   phase_durations: Record<string, number>;
+  icebreaker_id: string | null;
+  icebreaker_active: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -42,6 +45,8 @@ function formatBoard(row: Record<string, unknown>): BoardRow {
     is_locked: row.is_locked as boolean,
     cards_revealed: row.cards_revealed as boolean,
     phase_durations: row.phase_durations as Record<string, number>,
+    icebreaker_id: (row.icebreaker_id as string) ?? null,
+    icebreaker_active: (row.icebreaker_active as boolean) ?? true,
     created_by: row.created_by as string,
     created_at: (row.created_at as Date).toISOString(),
     updated_at: (row.updated_at as Date).toISOString(),
@@ -66,7 +71,7 @@ export async function createBoard(data: {
   max_votes_per_user: number;
   max_votes_per_card: number;
   created_by: string;
-}): Promise<{ board: BoardRow; columns: ColumnRow[] }> {
+}): Promise<{ board: BoardRow & { icebreaker: { id: string; question: string; category: string } | null }; columns: ColumnRow[] }> {
   return sql.begin(async (tx) => {
     // Create the board
     const [boardRow] = await tx`
@@ -92,7 +97,47 @@ export async function createBoard(data: {
       columns.push(formatColumn(col));
     }
 
-    return { board: formatBoard(boardRow), columns };
+    // Check team icebreaker settings and auto-select icebreaker if enabled
+    const boardId = boardRow.id as string;
+    let icebreaker: { id: string; question: string; category: string } | null = null;
+    try {
+      // Get team_id and icebreaker settings from the sprint's team (within transaction)
+      const [sprintRow] = await tx`
+        SELECT s.team_id, t.icebreaker_enabled, t.icebreaker_default_category
+        FROM sprints s
+        JOIN teams t ON t.id = s.team_id
+        WHERE s.id = ${data.sprint_id}
+      `;
+      if (sprintRow) {
+        const teamId = sprintRow.team_id as string;
+        const icebreakerEnabled = sprintRow.icebreaker_enabled as boolean;
+        const defaultCategory = sprintRow.icebreaker_default_category as string | null;
+
+        if (!icebreakerEnabled) {
+          // Skip icebreaker phase — start in write
+          await tx`UPDATE boards SET phase = 'write' WHERE id = ${boardId}`;
+          boardRow.phase = 'write';
+        } else {
+          // Auto-select an icebreaker question (boards start in icebreaker phase)
+          const selected = await icebreakerService.getRandom(teamId, defaultCategory ?? undefined);
+          if (selected) {
+            await tx`UPDATE boards SET icebreaker_id = ${selected.id} WHERE id = ${boardId}`;
+            // Record history within the transaction (board not committed yet, FK needs same tx)
+            await tx`
+              INSERT INTO team_icebreaker_history (team_id, icebreaker_id, board_id, used_at)
+              VALUES (${teamId}, ${selected.id}, ${boardId}, NOW())
+            `;
+            // Update the boardRow data to reflect the new icebreaker_id
+            boardRow.icebreaker_id = selected.id;
+            icebreaker = selected;
+          }
+        }
+      }
+    } catch {
+      // Icebreaker auto-select is non-critical — board creation succeeds regardless
+    }
+
+    return { board: { ...formatBoard(boardRow), icebreaker }, columns };
   });
 }
 
@@ -118,7 +163,7 @@ export async function getColumns(boardId: string): Promise<ColumnRow[]> {
 }
 
 export async function getFullBoard(sprintId: string, userId: string): Promise<{
-  board: BoardRow;
+  board: BoardRow & { icebreaker: { id: string; question: string; category: string } | null };
   columns: (ColumnRow & { cards: unknown[] })[];
   groups: unknown[];
   user_votes_remaining: number;
@@ -130,6 +175,12 @@ export async function getFullBoard(sprintId: string, userId: string): Promise<{
   if (!boardRow) return null;
 
   const board = formatBoard(boardRow);
+
+  // Fetch full icebreaker object if board has one
+  let icebreaker: { id: string; question: string; category: string } | null = null;
+  if (board.icebreaker_id) {
+    icebreaker = await icebreakerService.getById(board.icebreaker_id);
+  }
 
   const columnsRows = await sql`
     SELECT * FROM columns WHERE board_id = ${board.id} ORDER BY position
@@ -227,7 +278,7 @@ export async function getFullBoard(sprintId: string, userId: string): Promise<{
   }));
 
   return {
-    board,
+    board: { ...board, icebreaker },
     columns,
     groups,
     user_votes_remaining: userVotesRemaining,

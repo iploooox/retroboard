@@ -1,0 +1,489 @@
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { Sparkles, RefreshCw, Send, X, Clock } from 'lucide-react';
+import { useBoardStore } from '@/stores/board';
+import { boardApi } from '@/lib/board-api';
+import type { IcebreakerResponse } from '@/lib/board-api';
+import { toast } from '@/lib/toast';
+import { IcebreakerReactionBar } from './IcebreakerReactionBar';
+import { VibeBar } from './VibeBar';
+
+const CATEGORIES = ['Fun', 'Team-Building', 'Reflective', 'Creative', 'Quick'] as const;
+
+const CATEGORY_DISPLAY: Record<string, string> = {
+  'fun': 'Fun',
+  'team-building': 'Team-Building',
+  'reflective': 'Reflective',
+  'creative': 'Creative',
+  'quick': 'Quick',
+};
+
+const MAX_RESPONSE_LENGTH = 280;
+
+/** Maximum cards rendered on the wall (older ones remain in store but are not rendered) */
+const MAX_RENDERED_CARDS = 50;
+
+/** Pastel colors assigned deterministically by response ID hash */
+const PASTEL_COLORS = [
+  '#FEF3C7', // warm yellow
+  '#DBEAFE', // soft blue
+  '#FCE7F3', // light pink
+  '#D1FAE5', // mint green
+  '#EDE9FE', // lavender
+  '#FEE2E2', // rose
+  '#E0F2FE', // sky
+  '#FEF9C3', // cream
+] as const;
+
+/** Delay in ms between each card on initial cascade load */
+const CASCADE_DELAY_MS = 50;
+
+/**
+ * Simple deterministic hash for a string.
+ * Used to pick pastel color + rotation for each response, consistent across reloads.
+ */
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    hash = ((hash << 5) - hash + ch) | 0;
+  }
+  return Math.abs(hash);
+}
+
+/** Get a deterministic pastel color for a response ID */
+function getCardColor(responseId: string): string {
+  return PASTEL_COLORS[hashString(responseId) % PASTEL_COLORS.length]!;
+}
+
+/** Get a deterministic rotation between -2deg and +2deg for a response ID */
+function getCardRotation(responseId: string): number {
+  // Use a different seed offset so rotation is independent of color
+  const h = hashString(responseId + '_rot');
+  // Map to range [-2, 2] with 0.5deg granularity
+  return ((h % 9) - 4) * 0.5;
+}
+
+interface IcebreakerWarmupProps {
+  boardId: string;
+  isFacilitator: boolean;
+  timerSeconds?: number | null;
+}
+
+/**
+ * Fullscreen icebreaker warmup phase component.
+ * Renders when board.phase === 'icebreaker'.
+ * Shows a shared question to all participants.
+ * Facilitators get controls to reroll and filter by category.
+ * All participants can submit anonymous responses that appear on a shared wall.
+ */
+export function IcebreakerWarmup({ boardId, isFacilitator, timerSeconds }: IcebreakerWarmupProps) {
+  const icebreaker = useBoardStore((s) => s.board?.icebreaker ?? null);
+  const responses = useBoardStore((s) => s.icebreakerResponses);
+  const fetchIcebreakerResponses = useBoardStore((s) => s.fetchIcebreakerResponses);
+  const submitIcebreakerResponse = useBoardStore((s) => s.submitIcebreakerResponse);
+  const deleteIcebreakerResponse = useBoardStore((s) => s.deleteIcebreakerResponse);
+
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [isRerolling, setIsRerolling] = useState(false);
+  const [responseInput, setResponseInput] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const wallRef = useRef<HTMLDivElement>(null);
+
+  // Countdown timer state
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(
+    timerSeconds != null && timerSeconds > 0 ? timerSeconds : null,
+  );
+  const [timerExpired, setTimerExpired] = useState(false);
+
+  // Start countdown timer when component mounts (if timerSeconds is set)
+  useEffect(() => {
+    if (timerSeconds == null || timerSeconds <= 0) return;
+
+    const interval = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev == null || prev <= 1) {
+          setTimerExpired(true);
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timerSeconds]);
+
+  // Track whether this is the initial load (for cascade vs entrance animation)
+  const isInitialLoadRef = useRef(true);
+  // Track which response IDs have already been rendered (to distinguish new arrivals)
+  const renderedIdsRef = useRef(new Set<string>());
+  // Track IDs that are in the process of exit animation (deleted)
+  const [exitingIds, setExitingIds] = useState<Set<string>>(new Set());
+
+  // Load existing responses on mount
+  useEffect(() => {
+    if (icebreaker) {
+      fetchIcebreakerResponses().then(() => {
+        // Mark initial load complete after a tick so cascade animation can apply
+        requestAnimationFrame(() => {
+          isInitialLoadRef.current = false;
+        });
+      }).catch(() => {
+        // Error handled in store
+        isInitialLoadRef.current = false;
+      });
+    }
+  }, [icebreaker, fetchIcebreakerResponses]);
+
+  // Auto-scroll wall to bottom when new responses arrive (smooth scroll)
+  useEffect(() => {
+    if (wallRef.current) {
+      wallRef.current.scrollTo({
+        top: wallRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  }, [responses.length]);
+
+  // Clean up will-change after animations complete
+  const handleAnimationEnd = useCallback((e: React.AnimationEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    el.style.willChange = 'auto';
+  }, []);
+
+  const handleReroll = useCallback(async () => {
+    setIsRerolling(true);
+    try {
+      const result = await boardApi.rerollIcebreaker(
+        boardId,
+        selectedCategory ? selectedCategory.toLowerCase() : undefined,
+      );
+      // Update store immediately for the facilitator (WS will update for others)
+      useBoardStore.setState((state) => ({
+        board: state.board
+          ? {
+              ...state.board,
+              icebreaker_id: result.id,
+              icebreaker: result,
+            }
+          : null,
+      }));
+    } catch {
+      toast.error('Failed to get a new question');
+    } finally {
+      setIsRerolling(false);
+    }
+  }, [boardId, selectedCategory]);
+
+  const handleCategorySelect = useCallback((category: string | null) => {
+    setSelectedCategory(category);
+  }, []);
+
+  const handleSubmitResponse = useCallback(async () => {
+    const trimmed = responseInput.trim();
+    if (!trimmed || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      await submitIcebreakerResponse(trimmed);
+      setResponseInput('');
+    } catch {
+      // Error toast handled by store
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [responseInput, isSubmitting, submitIcebreakerResponse]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSubmitResponse();
+      }
+    },
+    [handleSubmitResponse],
+  );
+
+  const handleDeleteResponse = useCallback(
+    async (responseId: string) => {
+      // Add to exiting set to trigger exit animation
+      setExitingIds((prev) => new Set(prev).add(responseId));
+
+      // Wait for exit animation duration, then actually delete
+      setTimeout(async () => {
+        try {
+          await deleteIcebreakerResponse(responseId);
+        } catch {
+          // Error toast handled by store
+        }
+        // Remove from exiting set
+        setExitingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(responseId);
+          return next;
+        });
+      }, 250); // matches card-exit animation duration
+    },
+    [deleteIcebreakerResponse],
+  );
+
+  // Loading state -- no question yet
+  if (!icebreaker) {
+    return (
+      <div
+        className="flex-1 flex flex-col items-center justify-center px-4"
+        data-testid="icebreaker-warmup"
+      >
+        <div className="max-w-lg w-full text-center space-y-6">
+          <div className="flex items-center justify-center">
+            <Sparkles className="h-12 w-12 text-slate-400 animate-pulse" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900">
+            Icebreaker Warmup
+          </h2>
+          <p className="text-slate-600" data-testid="icebreaker-loading">
+            Loading icebreaker question...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const charCount = responseInput.trim().length;
+  const isOverLimit = charCount > MAX_RESPONSE_LENGTH;
+  const canSubmit = charCount > 0 && !isOverLimit && !isSubmitting;
+
+  // Limit rendered responses to last MAX_RENDERED_CARDS
+  const visibleResponses = responses.slice(-MAX_RENDERED_CARDS);
+
+  // Build animation class for each card
+  function getCardAnimationClass(response: IcebreakerResponse): string {
+    // Exiting card
+    if (exitingIds.has(response.id)) {
+      return 'icebreaker-card-exit';
+    }
+
+    // Already rendered — no animation
+    if (renderedIdsRef.current.has(response.id)) {
+      return '';
+    }
+
+    // Mark as rendered
+    renderedIdsRef.current.add(response.id);
+
+    // Initial load — cascade with staggered delay
+    if (isInitialLoadRef.current) {
+      return 'icebreaker-card-cascade';
+    }
+
+    // Real-time arrival — entrance animation
+    return 'icebreaker-card-enter';
+  }
+
+  return (
+    <div
+      className="flex-1 flex flex-col min-h-0 relative"
+      data-testid="icebreaker-warmup"
+    >
+      {/* ── Floating Vibe Bar — right edge ── */}
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10 hidden sm:block">
+        <VibeBar vertical />
+      </div>
+
+      {/* ── ZONE 1: Question Hero ── */}
+      <div className="flex-shrink-0 border-b border-slate-200/60 px-4 pt-4 pb-3">
+        <div className="max-w-2xl mx-auto space-y-2">
+          {/* Question row: heading + question text */}
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 text-center">🎲 Icebreaker Question</h2>
+          <p
+            className="font-fraunces text-xl sm:text-2xl text-center text-slate-900 leading-snug"
+            data-testid="icebreaker-question-text"
+          >
+            {icebreaker.question}
+          </p>
+
+          {/* Compact meta row: badge + timer + category pills + reroll — all inline */}
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <span
+              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
+              data-testid="icebreaker-category-badge"
+            >
+              {CATEGORY_DISPLAY[icebreaker.category] || icebreaker.category}
+            </span>
+
+            {/* Countdown timer */}
+            {timeRemaining != null && (
+              <div data-testid="icebreaker-timer">
+                {timerExpired ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium text-xs animate-pulse" data-testid="icebreaker-timer-expired">
+                    <Clock className="h-3 w-3" />
+                    Time&apos;s up!
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-mono text-xs" data-testid="icebreaker-timer-countdown">
+                    <Clock className="h-3 w-3" />
+                    {Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, '0')}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Facilitator controls inline */}
+            {isFacilitator && (
+              <>
+                <span className="text-slate-300">|</span>
+                <div className="flex items-center gap-1" data-testid="icebreaker-facilitator-controls">
+                  <button
+                    type="button"
+                    onClick={() => handleCategorySelect(null)}
+                    className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                      selectedCategory === null
+                        ? 'bg-slate-800 text-white'
+                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                    }`}
+                    data-testid="icebreaker-category-all"
+                  >
+                    All
+                  </button>
+                  {CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => handleCategorySelect(cat)}
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                        selectedCategory === cat
+                          ? 'bg-slate-800 text-white'
+                          : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                      }`}
+                      data-testid={`icebreaker-category-${cat.toLowerCase()}`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={handleReroll}
+                    disabled={isRerolling}
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-white hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    data-testid="icebreaker-reroll-button"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${isRerolling ? 'animate-spin' : ''}`} />
+                    New Question
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── ZONE 2: Response Wall ── */}
+      <div
+        ref={wallRef}
+        className="flex-1 overflow-y-auto px-4 pb-4"
+        data-testid="icebreaker-response-wall"
+      >
+        <div className="max-w-4xl mx-auto">
+          {/* Response count label */}
+          <p
+            className="text-sm font-medium text-slate-500 mb-3"
+            data-testid="icebreaker-response-count"
+          >
+            {responses.length} {responses.length === 1 ? 'response' : 'responses'}
+          </p>
+
+          {/* Responsive grid: 1 col mobile, 2 tablet, 3-4 desktop */}
+          <div className="icebreaker-wall">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {visibleResponses.map((response, index) => {
+                const animClass = getCardAnimationClass(response);
+                const color = getCardColor(response.id);
+                const rotation = getCardRotation(response.id);
+                const cascadeDelay = animClass === 'icebreaker-card-cascade'
+                  ? `${index * CASCADE_DELAY_MS}ms`
+                  : undefined;
+
+                return (
+                  <div
+                    key={response.id}
+                    className={`icebreaker-card group relative rounded-xl shadow-md px-5 py-4 ${animClass}`}
+                    style={{
+                      '--card-rotation': `${rotation}deg`,
+                      '--cascade-delay': cascadeDelay,
+                      backgroundColor: color,
+                    } as React.CSSProperties}
+                    onAnimationEnd={handleAnimationEnd}
+                    data-testid="icebreaker-response-card"
+                  >
+                    <p className="text-slate-800 text-sm leading-relaxed break-words">
+                      {response.content}
+                    </p>
+                    <IcebreakerReactionBar
+                      responseId={response.id}
+                      reactions={response.reactions ?? {}}
+                      myReactions={response.myReactions ?? []}
+                    />
+                    {isFacilitator && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteResponse(response.id)}
+                        className="absolute -top-2 -right-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-full p-0.5 transition-colors"
+                        aria-label="Delete response"
+                        data-testid="icebreaker-delete-response"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── ZONE 3: Input Bar ── */}
+      <div className="flex-shrink-0 border-t border-slate-200 bg-white/90 backdrop-blur-sm px-4 py-2.5">
+        <div className="max-w-2xl mx-auto">
+          {/* Mobile vibe bar — shown below sm breakpoint */}
+          <div className="sm:hidden mb-2">
+            <VibeBar />
+          </div>
+          <div className="flex items-center gap-2" data-testid="icebreaker-input-bar">
+            <input
+              type="text"
+              value={responseInput}
+              onChange={(e) => setResponseInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type your anonymous response..."
+              maxLength={300}
+              className={`flex-1 px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 transition-colors ${
+                isOverLimit
+                  ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                  : 'border-slate-200 focus:ring-slate-400 focus:border-slate-400'
+              }`}
+              data-testid="icebreaker-response-input"
+            />
+            <span
+              className={`text-xs tabular-nums ${isOverLimit ? 'text-red-500 font-medium' : 'text-slate-400'}`}
+              data-testid="icebreaker-char-count"
+            >
+              {charCount}/{MAX_RESPONSE_LENGTH}
+            </span>
+            <button
+              type="button"
+              onClick={handleSubmitResponse}
+              disabled={!canSubmit}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              aria-label="Submit response"
+              data-testid="icebreaker-submit-response"
+            >
+              <Send className="h-4 w-4" />
+              Send
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

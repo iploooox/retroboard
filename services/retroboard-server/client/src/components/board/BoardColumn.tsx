@@ -1,8 +1,17 @@
 import { useState, type FormEvent } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { useBoardStore } from '@/stores/board';
 import { CardItem } from './CardItem';
 import type { BoardCard } from '@/lib/board-api';
+
+const GROUP_COLORS = [
+  { bg: '#eff6ff', border: '#3b82f6', label: 'blue' },
+  { bg: '#ecfdf5', border: '#10b981', label: 'emerald' },
+  { bg: '#fffbeb', border: '#f59e0b', label: 'amber' },
+  { bg: '#fff1f2', border: '#f43f5e', label: 'rose' },
+  { bg: '#f5f3ff', border: '#8b5cf6', label: 'violet' },
+  { bg: '#ecfeff', border: '#06b6d4', label: 'cyan' },
+];
 
 interface BoardColumnProps {
   columnId: string;
@@ -10,13 +19,16 @@ interface BoardColumnProps {
   color: string;
   isFacilitator: boolean;
   onCreateActionItem?: (cardId: string, cardContent: string) => void;
+  selectedCardIds?: string[];
+  onToggleCardSelect?: (cardId: string) => void;
 }
 
-export function BoardColumn({ columnId, name, color, isFacilitator, onCreateActionItem }: BoardColumnProps) {
+export function BoardColumn({ columnId, name, color, isFacilitator, onCreateActionItem, selectedCardIds, onToggleCardSelect }: BoardColumnProps) {
   const board = useBoardStore((s) => s.board);
   const cards = useBoardStore((s) => s.cards);
   const groups = useBoardStore((s) => s.groups);
   const addCard = useBoardStore((s) => s.addCard);
+  const deleteGroup = useBoardStore((s) => s.deleteGroup);
   const isLocked = useBoardStore((s) => s.isLocked);
 
   const [newCardContent, setNewCardContent] = useState('');
@@ -24,7 +36,14 @@ export function BoardColumn({ columnId, name, color, isFacilitator, onCreateActi
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isWritePhase = board?.phase === 'write';
+  const isGroupPhase = board?.phase === 'group';
   const canAddCards = isWritePhase && !isLocked;
+
+  // Build a stable group index map for consistent color assignment
+  const allGroupsSorted = Object.values(groups)
+    .filter((g) => g !== undefined)
+    .sort((a, b) => a.position - b.position);
+  const groupIndexMap = new Map(allGroupsSorted.map((g, i) => [g.id, i]));
 
   // Get cards for this column, sorted by position
   const columnCards = Object.values(cards)
@@ -91,14 +110,35 @@ export function BoardColumn({ columnId, name, color, isFacilitator, onCreateActi
         {/* Grouped cards */}
         {columnGroups.map((group) => {
           const groupCards = groupedByGroup.get(group.id) ?? [];
+          const colorIndex = groupIndexMap.get(group.id) ?? 0;
+          const groupColor = GROUP_COLORS[colorIndex % GROUP_COLORS.length] ?? GROUP_COLORS[0]!;
           return (
-            <div key={group.id} className="rounded-lg border-2 border-dashed border-slate-300 p-2 space-y-2 bg-white/50">
-              <div className="flex items-center justify-between px-1">
-                <span className="text-xs font-semibold uppercase tracking-wider truncate" style={{ color: 'var(--theme-text-secondary, #475569)' }}>
+            <div
+              key={group.id}
+              className="rounded-lg border-l-[3px] p-2 space-y-2"
+              style={{ borderLeftColor: groupColor.border, backgroundColor: groupColor.bg }}
+            >
+              <div className="flex items-center gap-1.5 px-1 mb-1">
+                <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: groupColor.border }} />
+                <span className="text-xs font-semibold truncate" style={{ color: 'var(--theme-text-secondary, #475569)' }}>
                   {group.title}
                 </span>
+                <span className="text-xs ml-auto shrink-0" style={{ color: 'var(--theme-text-muted, #64748b)' }}>
+                  {groupCards.length}
+                </span>
                 {group.total_votes > 0 && (
-                  <span className="text-xs font-medium" style={{ color: 'var(--theme-text-muted, #64748b)' }}>{group.total_votes} votes</span>
+                  <span className="text-xs font-medium shrink-0" style={{ color: 'var(--theme-text-muted, #64748b)' }}>
+                    · {group.total_votes} votes
+                  </span>
+                )}
+                {isFacilitator && isGroupPhase && (
+                  <button
+                    onClick={() => deleteGroup(group.id)}
+                    className="p-0.5 rounded hover:bg-white/60 text-slate-400 hover:text-red-500 transition-colors shrink-0"
+                    aria-label={`Dissolve group ${group.title}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
                 )}
               </div>
               {groupCards.map((card) => (
@@ -110,7 +150,14 @@ export function BoardColumn({ columnId, name, color, isFacilitator, onCreateActi
 
         {/* Ungrouped cards */}
         {ungroupedCards.map((card) => (
-          <CardItem key={card.id} card={card} isFacilitator={isFacilitator} onCreateActionItem={onCreateActionItem} />
+          <CardItem
+            key={card.id}
+            card={card}
+            isFacilitator={isFacilitator}
+            onCreateActionItem={onCreateActionItem}
+            isSelected={selectedCardIds?.includes(card.id)}
+            onToggleSelect={onToggleCardSelect ? () => onToggleCardSelect(card.id) : undefined}
+          />
         ))}
       </div>
 

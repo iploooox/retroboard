@@ -102,4 +102,25 @@ export const paginationSchema = z.object({
     .default(20),
 });
 
+export const updateIcebreakerSettingsSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    defaultCategory: z
+      .union([
+        z.enum(['fun', 'team-building', 'reflective', 'creative', 'quick']),
+        z.null(),
+      ])
+      .optional(),
+    timerSeconds: z
+      .union([z.number().int().min(30).max(600), z.null()])
+      .optional(),
+  })
+  .refine(
+    (data) =>
+      data.enabled !== undefined ||
+      data.defaultCategory !== undefined ||
+      data.timerSeconds !== undefined,
+    { message: 'At least one setting must be provided' },
+  );
+
 export const uuidParamSchema = z.string().uuid('Invalid UUID format');

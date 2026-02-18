@@ -227,21 +227,24 @@ test.describe('Board Operations', () => {
 
     // Change to group phase (Write → Group)
     await page.getByRole('button', { name: /next phase/i }).first().click();
-    await expect(page.getByText('Group Phase')).toBeVisible();
-
-    // Create a new group (not via card selection in this test)
-    await page.getByRole('button', { name: 'New Group' }).click();
-
-    // Name the group
-    await page.getByPlaceholder(/group name|title/i).fill('Collaboration Wins');
-
-    // Add cards to group
-    // (implementation depends on group creation modal - may need card selection)
-    await page.getByRole('button', { name: /create|save/i }).click();
     await page.waitForTimeout(1000);
 
-    // Verify group exists
-    await expect(page.getByText('Collaboration Wins')).toBeVisible();
+    // Select cards by clicking on them (new click-to-select flow)
+    await page.getByText('Card 1').click();
+    await page.waitForTimeout(300);
+    await page.getByText('Card 2').click();
+    await page.waitForTimeout(300);
+
+    // Click "Create Group" in the floating action bar
+    await page.getByRole('button', { name: /create group/i }).click();
+
+    // Name the group
+    await page.getByPlaceholder(/group name/i).fill('Collaboration Wins');
+    await page.getByRole('button', { name: /^create$/i }).click();
+    await page.waitForTimeout(1000);
+
+    // Verify group exists (use heading role to avoid matching floating bar legend)
+    await expect(page.getByRole('heading', { name: 'Collaboration Wins' })).toBeVisible();
   });
 
   test('E2E-BOARD-8: Phase progression write → vote → group → discuss', async ({ page }) => {
@@ -304,8 +307,8 @@ test.describe('Board Operations', () => {
     await page.waitForTimeout(2000);
 
     // Dismiss icebreaker warmup (shows before columns in write phase)
-    const startWritingBtn = page.getByRole('button', { name: /start writing/i });
-    await startWritingBtn.waitFor({ state: 'visible', timeout: 10000 }).then(() => startWritingBtn.click()).catch(() => {});
+    const nextPhaseBtn = page.getByRole('button', { name: /next phase/i });
+    await nextPhaseBtn.waitFor({ state: 'visible', timeout: 10000 }).then(() => nextPhaseBtn.click()).catch(() => {});
     await page.waitForTimeout(500);
 
     // Verify template columns exist

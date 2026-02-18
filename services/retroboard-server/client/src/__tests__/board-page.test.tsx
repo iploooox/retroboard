@@ -37,8 +37,20 @@ vi.mock('@/components/board/CreateBoardModal', () => ({
   CreateBoardModal: () => <div data-testid="create-board-modal" />,
 }));
 
-vi.mock('@/components/board/IcebreakerCard', () => ({
-  IcebreakerCard: () => <div data-testid="icebreaker-card" />,
+vi.mock('@/components/board/IcebreakerWarmup', () => ({
+  IcebreakerWarmup: () => <div data-testid="icebreaker-warmup" />,
+}));
+
+vi.mock('@/components/board/GroupPhaseView', () => ({
+  GroupPhaseView: () => <div data-testid="group-phase-view" />,
+}));
+
+vi.mock('@/components/board/DiscussPhaseView', () => ({
+  DiscussPhaseView: () => <div data-testid="discuss-phase-view" />,
+}));
+
+vi.mock('@/components/board/ActionPhaseView', () => ({
+  ActionPhaseView: () => <div data-testid="action-phase-view" />,
 }));
 
 vi.mock('@/lib/api', async (importOriginal) => {
@@ -56,12 +68,15 @@ const mockBoardData: BoardData = {
   id: 'board-1',
   sprint_id: 'sprint-1',
   template_id: 'tpl-1',
-  phase: 'discuss',
+  phase: 'write',
   anonymous_mode: false,
   max_votes_per_user: 5,
   max_votes_per_card: 3,
   focus_item_id: null,
   focus_item_type: null,
+  icebreaker_id: null,
+  icebreaker_active: true,
+  icebreaker: null,
   created_by: 'user-1',
   created_at: '',
   updated_at: '',

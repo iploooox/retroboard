@@ -12,7 +12,7 @@ test.describe('Facilitator Tools - Complete User Journey', () => {
     await createTeamAndBoard(page, { teamName: 'Facilitator Test Team' });
 
     // Should be on board page - user who creates board is automatically facilitator/admin
-    await expect(page.getByRole('button', { name: /^1\s+Write$/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^2\s+Write$/i })).toBeVisible();
 
     // ========================================
     // PHASE 1: TIMER CONTROLS
@@ -137,7 +137,7 @@ test.describe('Facilitator Tools - Complete User Journey', () => {
       await confirmButton2.click();
       await page.waitForTimeout(500); // Wait for modal to close
     }
-    await expect(page.getByText(/vote|voting/i)).toBeVisible();
+    await expect(page.getByText('Vote Phase')).toBeVisible();
 
     // Transition to Discuss phase
     await page.getByRole('button', { name: 'Next phase', exact: true }).click();
@@ -145,15 +145,15 @@ test.describe('Facilitator Tools - Complete User Journey', () => {
     if (await confirmButton3.isVisible({ timeout: 2000 }).catch(() => false)) {
       await confirmButton3.click();
     }
-    await expect(page.getByText(/discuss/i)).toBeVisible();
+    await expect(page.getByText('Discuss Phase')).toBeVisible();
 
     // ========================================
     // PHASE 5: FOCUS CONTROLS (in Discuss phase)
     // ========================================
 
     // Focus can only be set during discuss phase
-    // Click on a card to focus on it
-    const cardToFocus = page.getByText('Test card for lock feature');
+    // Click on a card to focus on it (use .first() — card text appears in both ranked list and expanded view)
+    const cardToFocus = page.getByText('Test card for lock feature').first();
     await cardToFocus.click();
 
     // Click focus button
@@ -177,14 +177,14 @@ test.describe('Facilitator Tools - Complete User Journey', () => {
     if (await confirmButton4.isVisible({ timeout: 2000 }).catch(() => false)) {
       await confirmButton4.click();
     }
-    await expect(page.getByText(/action/i)).toBeVisible();
+    await expect(page.getByText('Action Phase')).toBeVisible();
 
     // ========================================
     // VERIFICATION: All phases completed
     // ========================================
 
     // Should be in action phase now
-    await expect(page.getByText(/action/i)).toBeVisible();
+    await expect(page.getByText('Action Phase')).toBeVisible();
 
     // Timer should still be functional in action phase
     await page.getByRole('button', { name: /start timer/i }).click();
