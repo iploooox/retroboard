@@ -18,13 +18,7 @@ test.describe.serial('Card Interactions - Full User Journey', () => {
     await registerUser(page, { email, password, displayName });
     await createTeamAndBoard(page, { teamName: 'Card Journey Team' });
 
-    // Dismiss icebreaker warmup if it's still showing (safety net)
-    const startWritingBtn = page.getByRole('button', { name: /start writing/i });
-    if (await startWritingBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await startWritingBtn.click();
-      await page.waitForTimeout(500);
-    }
-
+    // createTeamAndBoard already dismisses icebreaker and lands in write phase
     // Verify we're on a board in Write phase
     await expect(page.getByText('Write Phase')).toBeVisible();
 
@@ -164,13 +158,7 @@ test.describe.serial('Card Interactions - Full User Journey', () => {
 
   test('E2E-CARDS-8: Transition to Vote phase for voting test', async () => {
 
-    // Dismiss icebreaker warmup if visible (it overlays the board and blocks clicks)
-    const startWritingBtn = page.getByRole('button', { name: /start writing/i });
-    if (await startWritingBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await startWritingBtn.click();
-      await page.waitForTimeout(500);
-    }
-
+    // Board is already in write phase (icebreaker dismissed by createTeamAndBoard)
     // Transition through phases: Write -> Group -> Vote
     // Use data-testid for reliable selection (matches FacilitatorToolbar)
     const nextPhaseButton = page.getByTestId('next-phase-button');
@@ -209,8 +197,8 @@ test.describe.serial('Card Interactions - Full User Journey', () => {
     await voteButton.click();
     await page.waitForTimeout(2000);
 
-    // Verify vote count appears — rendered as "1 vote" in a span with data-testid="card-votes"
-    await expect(page.getByTestId('card-votes').first()).toContainText('1 vote', { timeout: 5000 });
+    // Verify vote count appears — rendered as just the number in a span with data-testid="card-votes"
+    await expect(page.getByTestId('card-votes').first()).toContainText('1', { timeout: 5000 });
   });
 
   test('E2E-CARDS-10: Toggle vote off (unvote)', async () => {
@@ -294,7 +282,8 @@ test.describe.serial('Card Interactions - Full User Journey', () => {
     await expect(page.getByText('Need to improve documentation')).toBeVisible();
 
     // Verify we can still interact with cards (votes should work in Vote phase)
-    const voteButton = page.getByRole('button', { name: /^vote$/i }).first();
+    // After earlier voting tests, some buttons may be "Remove vote" instead of "Vote"
+    const voteButton = page.locator('button[aria-label="Vote"], button[aria-label="Remove vote"]').first();
     await expect(voteButton).toBeVisible();
   });
 });

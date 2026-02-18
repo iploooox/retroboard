@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Sparkles, RefreshCw, Send, X, Play, Clock } from 'lucide-react';
+import { Sparkles, RefreshCw, Send, X, Clock } from 'lucide-react';
 import { useBoardStore } from '@/stores/board';
 import { boardApi } from '@/lib/board-api';
 import type { IcebreakerResponse } from '@/lib/board-api';
@@ -83,14 +83,10 @@ export function IcebreakerWarmup({ boardId, isFacilitator, timerSeconds }: Icebr
   const submitIcebreakerResponse = useBoardStore((s) => s.submitIcebreakerResponse);
   const deleteIcebreakerResponse = useBoardStore((s) => s.deleteIcebreakerResponse);
 
-  const setPhase = useBoardStore((s) => s.setPhase);
-
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isRerolling, setIsRerolling] = useState(false);
   const [responseInput, setResponseInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showStartConfirm, setShowStartConfirm] = useState(false);
-  const [isStartingRetro, setIsStartingRetro] = useState(false);
   const wallRef = useRef<HTMLDivElement>(null);
 
   // Countdown timer state
@@ -208,28 +204,6 @@ export function IcebreakerWarmup({ boardId, isFacilitator, timerSeconds }: Icebr
     [handleSubmitResponse],
   );
 
-  const handleStartRetroClick = useCallback(() => {
-    setShowStartConfirm(true);
-  }, []);
-
-  const handleCancelStart = useCallback(() => {
-    setShowStartConfirm(false);
-  }, []);
-
-  const handleConfirmStartRetro = useCallback(async () => {
-    if (isStartingRetro) return;
-    setIsStartingRetro(true);
-    try {
-      await setPhase('write');
-      // Phase change will trigger WS broadcast and energy recap via useBoardSync
-    } catch {
-      toast.error('Failed to start retro');
-      setShowStartConfirm(false);
-    } finally {
-      setIsStartingRetro(false);
-    }
-  }, [isStartingRetro, setPhase]);
-
   const handleDeleteResponse = useCallback(
     async (responseId: string) => {
       // Add to exiting set to trigger exit animation
@@ -262,7 +236,7 @@ export function IcebreakerWarmup({ boardId, isFacilitator, timerSeconds }: Icebr
       >
         <div className="max-w-lg w-full text-center space-y-6">
           <div className="flex items-center justify-center">
-            <Sparkles className="h-12 w-12 text-indigo-500 animate-pulse" />
+            <Sparkles className="h-12 w-12 text-slate-400 animate-pulse" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900">
             Icebreaker Warmup
@@ -308,263 +282,206 @@ export function IcebreakerWarmup({ boardId, isFacilitator, timerSeconds }: Icebr
 
   return (
     <div
-      className="flex-1 flex flex-col h-full"
+      className="flex-1 flex flex-col min-h-0 relative"
       data-testid="icebreaker-warmup"
     >
-      {/* Top section: Question + controls */}
-      <div className="flex-shrink-0 px-4 pt-6 pb-4">
-        <div className="max-w-2xl mx-auto text-center space-y-4">
-          {/* Sparkle icon */}
-          <div className="flex items-center justify-center">
-            <Sparkles className="h-10 w-10 text-indigo-500" />
-          </div>
+      {/* ── Floating Vibe Bar — right edge ── */}
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10 hidden sm:block">
+        <VibeBar vertical />
+      </div>
 
-          {/* Question card -- large, centered, prominent */}
-          <div
-            className="bg-white rounded-2xl shadow-lg p-8 transition-opacity duration-300"
-            data-testid="icebreaker-question-card"
+      {/* ── ZONE 1: Question Hero ── */}
+      <div className="flex-shrink-0 border-b border-slate-200/60 px-4 pt-4 pb-3">
+        <div className="max-w-2xl mx-auto space-y-2">
+          {/* Question row: heading + question text */}
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 text-center">🎲 Icebreaker Question</h2>
+          <p
+            className="font-fraunces text-xl sm:text-2xl text-center text-slate-900 leading-snug"
+            data-testid="icebreaker-question-text"
           >
-            <p
-              className="text-3xl font-bold text-center text-slate-900 leading-relaxed"
-              data-testid="icebreaker-question-text"
-            >
-              {icebreaker.question}
-            </p>
-          </div>
+            {icebreaker.question}
+          </p>
 
-          {/* Category badge */}
-          <div className="flex justify-center">
+          {/* Compact meta row: badge + timer + category pills + reroll — all inline */}
+          <div className="flex items-center justify-center gap-2 flex-wrap">
             <span
-              className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800"
+              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
               data-testid="icebreaker-category-badge"
             >
               {CATEGORY_DISPLAY[icebreaker.category] || icebreaker.category}
             </span>
-          </div>
 
-          {/* Countdown timer */}
-          {timeRemaining != null && (
-            <div className="flex justify-center" data-testid="icebreaker-timer">
-              {timerExpired ? (
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 text-amber-800 font-medium text-sm animate-pulse" data-testid="icebreaker-timer-expired">
-                  <Clock className="h-4 w-4" />
-                  Time&apos;s up!
-                </div>
-              ) : (
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 text-slate-700 font-mono text-sm" data-testid="icebreaker-timer-countdown">
-                  <Clock className="h-4 w-4" />
-                  {Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, '0')}
-                </div>
-              )}
-            </div>
-          )}
+            {/* Countdown timer */}
+            {timeRemaining != null && (
+              <div data-testid="icebreaker-timer">
+                {timerExpired ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium text-xs animate-pulse" data-testid="icebreaker-timer-expired">
+                    <Clock className="h-3 w-3" />
+                    Time&apos;s up!
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-mono text-xs" data-testid="icebreaker-timer-countdown">
+                    <Clock className="h-3 w-3" />
+                    {Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, '0')}
+                  </span>
+                )}
+              </div>
+            )}
 
-          {/* Facilitator controls -- only visible to facilitators */}
-          {isFacilitator && (
-            <div className="space-y-4" data-testid="icebreaker-facilitator-controls">
-              {/* Category filter pills */}
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleCategorySelect(null)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    selectedCategory === null
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                  data-testid="icebreaker-category-all"
-                >
-                  All
-                </button>
-                {CATEGORIES.map((cat) => (
+            {/* Facilitator controls inline */}
+            {isFacilitator && (
+              <>
+                <span className="text-slate-300">|</span>
+                <div className="flex items-center gap-1" data-testid="icebreaker-facilitator-controls">
                   <button
-                    key={cat}
                     type="button"
-                    onClick={() => handleCategorySelect(cat)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                      selectedCategory === cat
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    onClick={() => handleCategorySelect(null)}
+                    className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                      selectedCategory === null
+                        ? 'bg-slate-800 text-white'
+                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                     }`}
-                    data-testid={`icebreaker-category-${cat.toLowerCase()}`}
+                    data-testid="icebreaker-category-all"
                   >
-                    {cat}
+                    All
                   </button>
-                ))}
-              </div>
-
-              {/* Reroll button */}
-              <div className="flex justify-center">
-                <button
-                  type="button"
-                  onClick={handleReroll}
-                  disabled={isRerolling}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  data-testid="icebreaker-reroll-button"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isRerolling ? 'animate-spin' : ''}`} />
-                  New Question
-                </button>
-              </div>
-            </div>
-          )}
+                  {CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => handleCategorySelect(cat)}
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                        selectedCategory === cat
+                          ? 'bg-slate-800 text-white'
+                          : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                      }`}
+                      data-testid={`icebreaker-category-${cat.toLowerCase()}`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={handleReroll}
+                    disabled={isRerolling}
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-white hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    data-testid="icebreaker-reroll-button"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${isRerolling ? 'animate-spin' : ''}`} />
+                    New Question
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Response count */}
-      <div className="flex-shrink-0 px-4 pb-2">
-        <div className="max-w-4xl mx-auto">
-          <p
-            className="text-sm font-medium text-slate-500"
-            data-testid="icebreaker-response-count"
-          >
-            {responses.length} {responses.length === 1 ? 'response' : 'responses'}
-          </p>
-        </div>
-      </div>
-
-      {/* Response wall -- scrollable, takes remaining space */}
+      {/* ── ZONE 2: Response Wall ── */}
       <div
         ref={wallRef}
         className="flex-1 overflow-y-auto px-4 pb-4"
         data-testid="icebreaker-response-wall"
       >
-        <div className="max-w-4xl mx-auto icebreaker-wall">
-          {/* Responsive grid: 1 col mobile, 2 tablet, 3-4 desktop */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {visibleResponses.map((response, index) => {
-              const animClass = getCardAnimationClass(response);
-              const color = getCardColor(response.id);
-              const rotation = getCardRotation(response.id);
-              const cascadeDelay = animClass === 'icebreaker-card-cascade'
-                ? `${index * CASCADE_DELAY_MS}ms`
-                : undefined;
+        <div className="max-w-4xl mx-auto">
+          {/* Response count label */}
+          <p
+            className="text-sm font-medium text-slate-500 mb-3"
+            data-testid="icebreaker-response-count"
+          >
+            {responses.length} {responses.length === 1 ? 'response' : 'responses'}
+          </p>
 
-              return (
-                <div
-                  key={response.id}
-                  className={`icebreaker-card group relative rounded-xl shadow-md px-5 py-4 ${animClass}`}
-                  style={{
-                    '--card-rotation': `${rotation}deg`,
-                    '--cascade-delay': cascadeDelay,
-                    backgroundColor: color,
-                  } as React.CSSProperties}
-                  onAnimationEnd={handleAnimationEnd}
-                  data-testid="icebreaker-response-card"
-                >
-                  <p className="text-slate-800 text-sm leading-relaxed break-words">
-                    {response.content}
-                  </p>
-                  <IcebreakerReactionBar
-                    responseId={response.id}
-                    reactions={response.reactions ?? {}}
-                    myReactions={response.myReactions ?? []}
-                  />
-                  {isFacilitator && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteResponse(response.id)}
-                      className="absolute -top-2 -right-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-full p-0.5 transition-colors"
-                      aria-label="Delete response"
-                      data-testid="icebreaker-delete-response"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+          {/* Responsive grid: 1 col mobile, 2 tablet, 3-4 desktop */}
+          <div className="icebreaker-wall">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {visibleResponses.map((response, index) => {
+                const animClass = getCardAnimationClass(response);
+                const color = getCardColor(response.id);
+                const rotation = getCardRotation(response.id);
+                const cascadeDelay = animClass === 'icebreaker-card-cascade'
+                  ? `${index * CASCADE_DELAY_MS}ms`
+                  : undefined;
+
+                return (
+                  <div
+                    key={response.id}
+                    className={`icebreaker-card group relative rounded-xl shadow-md px-5 py-4 ${animClass}`}
+                    style={{
+                      '--card-rotation': `${rotation}deg`,
+                      '--cascade-delay': cascadeDelay,
+                      backgroundColor: color,
+                    } as React.CSSProperties}
+                    onAnimationEnd={handleAnimationEnd}
+                    data-testid="icebreaker-response-card"
+                  >
+                    <p className="text-slate-800 text-sm leading-relaxed break-words">
+                      {response.content}
+                    </p>
+                    <IcebreakerReactionBar
+                      responseId={response.id}
+                      reactions={response.reactions ?? {}}
+                      myReactions={response.myReactions ?? []}
+                    />
+                    {isFacilitator && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteResponse(response.id)}
+                        className="absolute -top-2 -right-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-full p-0.5 transition-colors"
+                        aria-label="Delete response"
+                        data-testid="icebreaker-delete-response"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Vibe bar — above input bar (S-006) */}
-      <div className="flex-shrink-0">
-        <VibeBar />
-      </div>
-
-      {/* Start Retro / Waiting area (S-007) */}
-      <div className="flex-shrink-0 px-4 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 border-t border-indigo-100" data-testid="icebreaker-start-area">
-        <div className="max-w-2xl mx-auto flex items-center justify-center">
-          {isFacilitator ? (
-            showStartConfirm ? (
-              <div className="flex items-center gap-3" data-testid="icebreaker-start-confirm">
-                <span className="text-sm font-medium text-slate-700">Ready?</span>
-                <button
-                  type="button"
-                  onClick={handleConfirmStartRetro}
-                  disabled={isStartingRetro}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  data-testid="icebreaker-start-confirm-button"
-                >
-                  <Play className="h-4 w-4" />
-                  Start Retro
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCancelStart}
-                  className="px-4 py-2.5 rounded-lg border border-slate-300 text-slate-600 font-medium hover:bg-slate-100 transition-colors"
-                  data-testid="icebreaker-start-cancel-button"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={handleStartRetroClick}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-indigo-600 text-white text-lg font-semibold hover:bg-indigo-700 shadow-md hover:shadow-lg transition-all"
-                data-testid="icebreaker-start-retro-button"
-              >
-                <Play className="h-5 w-5" />
-                Start Retro
-              </button>
-            )
-          ) : (
-            <p
-              className="text-sm text-slate-500 italic"
-              data-testid="icebreaker-waiting-text"
+      {/* ── ZONE 3: Input Bar ── */}
+      <div className="flex-shrink-0 border-t border-slate-200 bg-white/90 backdrop-blur-sm px-4 py-2.5">
+        <div className="max-w-2xl mx-auto">
+          {/* Mobile vibe bar — shown below sm breakpoint */}
+          <div className="sm:hidden mb-2">
+            <VibeBar />
+          </div>
+          <div className="flex items-center gap-2" data-testid="icebreaker-input-bar">
+            <input
+              type="text"
+              value={responseInput}
+              onChange={(e) => setResponseInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type your anonymous response..."
+              maxLength={300}
+              className={`flex-1 px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 transition-colors ${
+                isOverLimit
+                  ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                  : 'border-slate-200 focus:ring-slate-400 focus:border-slate-400'
+              }`}
+              data-testid="icebreaker-response-input"
+            />
+            <span
+              className={`text-xs tabular-nums ${isOverLimit ? 'text-red-500 font-medium' : 'text-slate-400'}`}
+              data-testid="icebreaker-char-count"
             >
-              Waiting for facilitator to start the retro...
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Input bar -- fixed at bottom */}
-      <div className="flex-shrink-0 border-t border-slate-200 bg-white px-4 py-3" data-testid="icebreaker-input-bar">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <input
-            type="text"
-            value={responseInput}
-            onChange={(e) => setResponseInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type your anonymous response..."
-            maxLength={300}
-            className={`flex-1 px-4 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 transition-colors ${
-              isOverLimit
-                ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                : 'border-slate-300 focus:ring-indigo-500 focus:border-indigo-500'
-            }`}
-            data-testid="icebreaker-response-input"
-          />
-          <span
-            className={`text-xs tabular-nums ${isOverLimit ? 'text-red-500 font-medium' : 'text-slate-400'}`}
-            data-testid="icebreaker-char-count"
-          >
-            {charCount}/{MAX_RESPONSE_LENGTH}
-          </span>
-          <button
-            type="button"
-            onClick={handleSubmitResponse}
-            disabled={!canSubmit}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            aria-label="Submit response"
-            data-testid="icebreaker-submit-response"
-          >
-            <Send className="h-4 w-4" />
-            Send
-          </button>
+              {charCount}/{MAX_RESPONSE_LENGTH}
+            </span>
+            <button
+              type="button"
+              onClick={handleSubmitResponse}
+              disabled={!canSubmit}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              aria-label="Submit response"
+              data-testid="icebreaker-submit-response"
+            >
+              <Send className="h-4 w-4" />
+              Send
+            </button>
+          </div>
         </div>
       </div>
     </div>

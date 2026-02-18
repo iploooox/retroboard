@@ -25,10 +25,9 @@ interface IcebreakerReactionBarProps {
 
 /**
  * Reaction bar displayed below each icebreaker response card.
- * Shows 6 emoji buttons with toggle behavior and count badges.
  *
- * Desktop: hidden by default, shown on card hover via CSS (parent .group).
- * Mobile: always visible in compact form.
+ * - Reactions with counts > 0 are always visible.
+ * - The full emoji picker (all 6) appears on card hover so users can add new reactions.
  */
 export function IcebreakerReactionBar({ responseId, reactions, myReactions }: IcebreakerReactionBarProps) {
   const toggleReaction = useBoardStore((s) => s.toggleIcebreakerReaction);
@@ -42,22 +41,26 @@ export function IcebreakerReactionBar({ responseId, reactions, myReactions }: Ic
 
   return (
     <div
-      className="flex items-center gap-1 mt-2 flex-wrap
-        sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity sm:duration-200"
+      className="flex items-center gap-0.5 mt-2"
       data-testid="icebreaker-reaction-bar"
     >
       {EMOJI_KEYS.map((key) => {
         const count = reactions[key] ?? 0;
         const isActive = myReactions.includes(key);
+        const isVisible = count > 0 || isActive;
 
         return (
           <button
             key={key}
             type="button"
             onClick={() => handleClick(key)}
-            className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs transition-colors
+            className={`inline-flex items-center gap-px px-1 py-0.5 rounded-full text-[11px] transition-all
+              ${isVisible
+                ? ''
+                : 'sm:opacity-0 sm:group-hover:opacity-100'
+              }
               ${isActive
-                ? 'bg-indigo-100 ring-1 ring-indigo-300'
+                ? 'bg-amber-100 ring-1 ring-amber-300'
                 : 'bg-white/60 hover:bg-white/90'
               }`}
             aria-label={`React with ${key}`}

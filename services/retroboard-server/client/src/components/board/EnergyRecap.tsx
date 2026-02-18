@@ -113,14 +113,14 @@ export function EnergyRecap() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-4" data-testid="energy-recap-stats">
-          <div className="bg-indigo-50 rounded-xl px-4 py-3">
+          <div className="bg-amber-50 rounded-xl px-4 py-3">
             <p
-              className="text-3xl font-bold text-indigo-600"
+              className="text-3xl font-bold text-amber-600"
               data-testid="energy-recap-response-count"
             >
               {recapData.responseCount}
             </p>
-            <p className="text-sm text-indigo-800 font-medium">
+            <p className="text-sm text-amber-800 font-medium">
               {recapData.responseCount === 1 ? 'response shared' : 'responses shared'}
             </p>
           </div>

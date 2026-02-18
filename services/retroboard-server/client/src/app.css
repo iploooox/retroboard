@@ -1,6 +1,13 @@
 @import "tailwindcss";
 
 /* ──────────────────────────────────────────────────────────────
+   Fraunces serif for icebreaker question hero
+   ────────────────────────────────────────────────────────────── */
+.font-fraunces {
+  font-family: 'Fraunces', Georgia, serif;
+}
+
+/* ──────────────────────────────────────────────────────────────
    Generic fade-in (used by non-icebreaker components)
    ────────────────────────────────────────────────────────────── */
 @keyframes fade-in {
@@ -105,22 +112,42 @@
 }
 
 /* ──────────────────────────────────────────────────────────────
-   Vibe Bar — reaction bar at bottom of icebreaker screen (S-006)
+   Vibe Bar — reaction bar (S-006)
    ────────────────────────────────────────────────────────────── */
 .vibe-bar {
-  backdrop-filter: blur(8px);
-  background: rgba(255, 255, 255, 0.8);
-  border-top: 1px solid rgba(148, 163, 184, 0.2);
   padding: 8px 16px;
   transition: box-shadow 0.3s ease;
+}
+
+/* Vertical floating variant — right-edge sidebar */
+.vibe-bar.vibe-bar-vertical {
+  padding: 10px 6px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.vibe-bar.vibe-bar-vertical .vibe-bar-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.vibe-bar.vibe-bar-vertical .vibe-bar-button span {
+  font-size: 22px;
 }
 
 /* Active glow when reactions are flying */
 .vibe-bar-active {
   box-shadow:
-    0 -2px 20px rgba(99, 102, 241, 0.15),
-    0 -1px 8px rgba(99, 102, 241, 0.1);
-  border-top-color: rgba(99, 102, 241, 0.3);
+    0 -2px 20px rgba(100, 116, 139, 0.12),
+    0 -1px 8px rgba(100, 116, 139, 0.08);
+}
+
+.vibe-bar-vertical.vibe-bar-active {
+  box-shadow: 0 2px 20px rgba(100, 116, 139, 0.15);
 }
 
 /* Emoji buttons — 48px hit target for touch */
@@ -139,7 +166,7 @@
 }
 
 .vibe-bar-button:hover {
-  background: rgba(99, 102, 241, 0.08);
+  background: rgba(100, 116, 139, 0.08);
 }
 
 .vibe-bar-button:active,

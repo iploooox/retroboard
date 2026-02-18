@@ -16,7 +16,11 @@ const VIBE_EMOJIS = [
 const CLIENT_RATE_MAX = 3;
 const CLIENT_RATE_WINDOW_MS = 1_000;
 
-export function VibeBar() {
+interface VibeBarProps {
+  vertical?: boolean;
+}
+
+export function VibeBar({ vertical }: VibeBarProps) {
   const engineRef = useRef<ReactionRainEngine | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isActive, setIsActive] = useState(false);
@@ -102,12 +106,12 @@ export function VibeBar() {
   return (
     <div
       ref={containerRef}
-      className={`vibe-bar ${isActive ? 'vibe-bar-active' : ''}`}
+      className={`vibe-bar ${vertical ? 'vibe-bar-vertical' : ''} ${isActive ? 'vibe-bar-active' : ''}`}
       data-testid="vibe-bar"
       role="toolbar"
       aria-label="Vibe reactions"
     >
-      <div className="flex items-center justify-center gap-3">
+      <div className={`flex items-center justify-center ${vertical ? 'flex-col gap-1' : 'gap-3'}`}>
         {VIBE_EMOJIS.map(({ key, char, label }) => (
           <button
             key={key}

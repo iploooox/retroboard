@@ -109,9 +109,9 @@ test.describe.serial('Retro Flow - Happy Path', () => {
     // Wait for board to load — icebreaker warmup shows first
     await page.waitForTimeout(1500);
 
-    // Dismiss icebreaker warmup to reveal columns
-    const startWritingBtn = page.getByRole('button', { name: /start writing/i });
-    await startWritingBtn.waitFor({ state: 'visible', timeout: 10000 }).then(() => startWritingBtn.click()).catch(() => {});
+    // Dismiss icebreaker warmup to reveal columns via phase transition
+    const nextPhaseBtn = page.getByRole('button', { name: /next phase/i });
+    await nextPhaseBtn.waitFor({ state: 'visible', timeout: 10000 }).then(() => nextPhaseBtn.click()).catch(() => {});
     await page.waitForTimeout(500);
 
     await expect(page.getByText(/what went well|went well/i)).toBeVisible();
@@ -151,15 +151,15 @@ test.describe.serial('Retro Flow - Happy Path', () => {
   });
 
   test('E2E-FLOW-9: Vote on 2 cards and verify count updates', async () => {
-    // Find vote buttons on cards (use aria-label to avoid phase stepper buttons)
-    const voteButtons = await page.locator('button[aria-label="Vote"]').all();
+    // Wait for vote buttons to appear after phase transition
+    await page.locator('button[aria-label="Vote"]').first().waitFor({ state: 'visible', timeout: 10000 });
 
-    // Vote on first card
-    await voteButtons[0].click();
+    // Vote on first card (after click, this button becomes "Remove vote")
+    await page.locator('button[aria-label="Vote"]').first().click();
     await page.waitForTimeout(500);
 
-    // Vote on second card
-    await voteButtons[1].click();
+    // Vote on second card (re-query: first card's button is now "Remove vote")
+    await page.locator('button[aria-label="Vote"]').first().click();
     await page.waitForTimeout(500);
 
     // Verify vote count appears (at least one card should show "1")
@@ -196,17 +196,17 @@ test.describe.serial('Retro Flow - Happy Path', () => {
     // Click Create button
     await page.getByRole('button', { name: 'Create', exact: true }).click();
 
-    // Verify action item appears
+    // Verify action item appears (use .first() — appears in both panel and action phase view)
     await page.waitForTimeout(500);
-    await expect(page.getByText('Review and update docs')).toBeVisible();
+    await expect(page.getByText('Review and update docs').first()).toBeVisible();
   });
 
   test('E2E-FLOW-12: Verify board displays all content', async () => {
-    // Verify cards
-    await expect(page.getByText('Great teamwork!')).toBeVisible();
-    await expect(page.getByText('Improve documentation')).toBeVisible();
+    // Verify cards (use .first() — text appears in both discussion topics and expanded card)
+    await expect(page.getByText('Great teamwork!').first()).toBeVisible();
+    await expect(page.getByText('Improve documentation').first()).toBeVisible();
 
     // Verify action item (action items panel should still be open from FLOW-11)
-    await expect(page.getByText('Review and update docs')).toBeVisible();
+    await expect(page.getByText('Review and update docs').first()).toBeVisible();
   });
 });

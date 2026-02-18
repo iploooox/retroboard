@@ -14,8 +14,8 @@ test.describe('Board Themes (S-027)', () => {
     // Create team and board
     await createTeamAndBoard(page, { teamName });
 
-    // Wait for board to be ready
-    await expect(page.getByRole('heading', { name: /What Went Well/i })).toBeVisible({ timeout: 10000 });
+    // Wait for board to be ready (write phase — columns visible)
+    await expect(page.getByRole('button', { name: /add a card/i }).first()).toBeVisible({ timeout: 10000 });
 
     // Open board settings modal (only available to facilitators)
     const settingsButton = page.getByRole('button', { name: 'Board settings' });
@@ -43,12 +43,10 @@ test.describe('Board Themes (S-027)', () => {
     // Save settings
     await page.getByRole('button', { name: /save settings/i }).click();
 
-    // Wait for page reload — icebreaker warmup shows again after reload
+    // Wait for settings save to take effect (board stays in write phase)
     await page.waitForTimeout(2000);
-    const startWritingBtn = page.getByRole('button', { name: /start writing/i });
-    await startWritingBtn.waitFor({ state: 'visible', timeout: 10000 }).then(() => startWritingBtn.click()).catch(() => {});
-    await page.waitForTimeout(500);
-    await expect(page.getByRole('heading', { name: /What Went Well/i })).toBeVisible({ timeout: 10000 });
+    // Verify board is still in write phase (columns visible)
+    await expect(page.getByRole('button', { name: /add a card/i }).first()).toBeVisible({ timeout: 10000 });
   });
 
   test('E2E-THEME-2: Theme selection persists across sessions', async ({ page }) => {
@@ -74,10 +72,14 @@ test.describe('Board Themes (S-027)', () => {
     // Save and wait for reload
     await page.getByRole('button', { name: /save settings/i }).click();
     await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
 
-    // Logout
-    await page.locator('header button').filter({ has: page.locator('.rounded-full') }).click();
-    await page.locator('div.absolute.right-0').filter({ hasText: 'Log out' }).waitFor({ state: 'visible' });
+    // Navigate to dashboard first to avoid board overlays blocking logout click
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL('/dashboard', { timeout: 10000 });
+
+    // Logout from dashboard (no overlays here)
+    await page.getByRole('button', { name: 'Account menu' }).click();
     await page.getByRole('button', { name: /log out/i }).click();
     await expect(page).toHaveURL('/login', { timeout: 5000 });
 
@@ -95,12 +97,7 @@ test.describe('Board Themes (S-027)', () => {
     // Click Board link for the sprint
     await page.getByRole('link', { name: 'Board', exact: true }).click();
 
-    // Dismiss icebreaker warmup (shows again after page navigation)
-    const startWritingBtn2 = page.getByRole('button', { name: /start writing/i });
-    await startWritingBtn2.waitFor({ state: 'visible', timeout: 10000 }).then(() => startWritingBtn2.click()).catch(() => {});
-    await page.waitForTimeout(500);
-
-    // Wait for board page to load
+    // Board should load in write phase (icebreaker was already dismissed in previous visit)
     await expect(page.getByRole('heading', { name: /What Went Well/i })).toBeVisible({ timeout: 10000 });
 
     // Open settings again and verify Forest theme is still selected

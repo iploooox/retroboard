@@ -79,14 +79,7 @@ test.describe.serial('User Journey: Analytics and Export', () => {
     // Verify we're on the board page
     expect(page.url()).toContain('/board');
 
-    // Safety: dismiss icebreaker if still showing
-    const startWritingBtn = page.getByRole('button', { name: /start writing/i });
-    if (await startWritingBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await startWritingBtn.click();
-      await page.waitForTimeout(500);
-    }
-
-    // Wait for board to fully load - check for any column heading
+    // Board is already in write phase (icebreaker dismissed by createTeamAndBoard)
     await page.waitForTimeout(1000);
 
     // Get all "Add a card" buttons (should exist in Write phase)
@@ -172,8 +165,8 @@ test.describe.serial('User Journey: Analytics and Export', () => {
     await page.getByRole('button', { name: 'Create', exact: true }).click();
     await page.waitForTimeout(500);
 
-    // Verify action item appears
-    await expect(page.getByText('Review and improve documentation')).toBeVisible();
+    // Verify action item appears (use .first() — shows in both ActionPhaseView and ActionItemsPanel)
+    await expect(page.getByText('Review and improve documentation').first()).toBeVisible();
   });
 
   // Skipped: requires multi-sprint createCompletedSprint helper that cannot create 2nd sprint through UI
@@ -325,7 +318,8 @@ test.describe.serial('User Journey: Analytics and Export', () => {
 
   test('ANALYTICS-9: Verify action items can be listed', async () => {
     // Check if action item is already visible (panel might still be open from ANALYTICS-4)
-    const actionItemText = page.getByText('Review and improve documentation');
+    // Use .first() — text appears in both ActionPhaseView and ActionItemsPanel
+    const actionItemText = page.getByText('Review and improve documentation').first();
     const isVisible = await actionItemText.isVisible().catch(() => false);
 
     if (!isVisible) {
@@ -338,14 +332,14 @@ test.describe.serial('User Journey: Analytics and Export', () => {
     // Verify action item is visible
     await expect(actionItemText).toBeVisible();
 
-    // Check for completion checkbox/button
-    const actionItemElement = page.locator('text=Review and improve documentation').locator('..');
+    // Check for completion checkbox/button (use .first() — appears in both ActionPhaseView and panel)
+    const actionItemElement = page.locator('text=Review and improve documentation').first().locator('..');
     expect(await actionItemElement.isVisible()).toBeTruthy();
   });
 
   test('ANALYTICS-10: Verify action item completion toggle', async () => {
     // Find and click the completion toggle for the action item
-    const actionItemRow = page.locator('text=Review and improve documentation').locator('..');
+    const actionItemRow = page.locator('text=Review and improve documentation').first().locator('..');
     const checkbox = actionItemRow.locator('input[type="checkbox"], button').first();
 
     if (await checkbox.isVisible()) {

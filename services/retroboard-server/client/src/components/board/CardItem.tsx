@@ -13,9 +13,11 @@ interface CardItemProps {
   card: BoardCard;
   isFacilitator: boolean;
   onCreateActionItem?: (cardId: string, cardContent: string) => void;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
 }
 
-export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemProps) {
+export function CardItem({ card, isFacilitator, onCreateActionItem, isSelected, onToggleSelect }: CardItemProps) {
   const user = useAuthStore((s) => s.user);
   const board = useBoardStore((s) => s.board);
   const isLocked = useBoardStore((s) => s.isLocked);
@@ -26,6 +28,7 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
   const userVotesRemaining = useBoardStore((s) => s.userVotesRemaining);
   const userCardVotes = useBoardStore((s) => s.userCardVotes);
   const setFocus = useBoardStore((s) => s.setFocus);
+  const updateGroup = useBoardStore((s) => s.updateGroup);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(card.content);
@@ -71,7 +74,6 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
 
   const cardUserVotes = userCardVotes[card.id] ?? 0;
   const canVote = isVotePhase && userVotesRemaining > 0 && cardUserVotes < board.max_votes_per_card;
-  const canUnvote = isVotePhase && cardUserVotes > 0;
 
   const authorDisplay = board.anonymous_mode && !isOwner && !isFacilitator
     ? 'Anonymous'
@@ -126,6 +128,18 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
     }
   };
 
+  const isGroupPhase = phase === 'group';
+  const isSelectable = isGroupPhase && isFacilitator && !card.group_id;
+
+  const handleUngroup = async () => {
+    if (!card.group_id) return;
+    try {
+      await updateGroup(card.group_id, { remove_card_ids: [card.id] });
+    } catch {
+      // Error handled in store
+    }
+  };
+
   const handleReactionClick = async (emoji: string) => {
     try {
       const result = await boardApi.toggleReaction(card.id, emoji);
@@ -148,17 +162,47 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
 
   return (
     <div
-      className={`rounded-lg border p-3 transition-all ${
+      className={`relative rounded-lg border p-3 transition-all ${
         isFocused
           ? 'ring-2 ring-indigo-200'
-          : 'hover:shadow-sm'
-      } ${isDiscussPhase && isFacilitator ? 'cursor-pointer' : ''}`}
+          : isSelected
+            ? 'ring-2 ring-blue-300'
+            : 'hover:shadow-sm'
+      } ${isDiscussPhase && isFacilitator ? 'cursor-pointer' : ''} ${isSelectable ? 'cursor-pointer' : ''}`}
       style={{
-        backgroundColor: isFocused ? '#eef2ff' : 'var(--theme-card-bg, #ffffff)',
-        borderColor: isFocused ? '#818cf8' : 'var(--theme-card-border, #e2e8f0)',
+        backgroundColor: isFocused ? '#eef2ff' : isSelected ? 'rgba(219,234,254,0.3)' : 'var(--theme-card-bg, #ffffff)',
+        borderColor: isFocused ? '#818cf8' : isSelected ? '#93c5fd' : 'var(--theme-card-border, #e2e8f0)',
       }}
-      onClick={isDiscussPhase && isFacilitator && !isEditing ? handleFocus : undefined}
+      onClick={
+        isSelectable && !isEditing
+          ? (e) => { e.stopPropagation(); onToggleSelect?.(); }
+          : isDiscussPhase && isFacilitator && !isEditing
+            ? handleFocus
+            : undefined
+      }
     >
+      {/* Selection checkbox for ungrouped cards in group phase */}
+      {isSelectable && (
+        <div className="absolute -left-1.5 -top-1.5 z-10">
+          <div className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
+            isSelected ? 'bg-blue-500 border-blue-500 text-white' : 'border-slate-300 bg-white shadow-sm'
+          }`}>
+            {isSelected && <Check className="h-3 w-3" />}
+          </div>
+        </div>
+      )}
+
+      {/* Ungroup button for grouped cards in group phase */}
+      {isGroupPhase && isFacilitator && card.group_id && (
+        <button
+          onClick={(e) => { e.stopPropagation(); handleUngroup(); }}
+          className="absolute -top-1.5 -right-1.5 z-10 h-5 w-5 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-300 transition-colors"
+          aria-label="Remove from group"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      )}
+
       {isEditing ? (
         <div className="space-y-2">
           <textarea
@@ -283,29 +327,37 @@ export function CardItem({ card, isFacilitator, onCreateActionItem }: CardItemPr
             <div className="flex items-center gap-1">
               {(isVotePhase || card.vote_count > 0) && (
                 <div className="flex items-center gap-1">
-                  {canVote && (
+                  {isVotePhase ? (
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleVote(); }}
-                      className="p-1 rounded hover:bg-indigo-50 text-indigo-400 hover:text-indigo-600"
-                      aria-label="Vote"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (cardUserVotes > 0) {
+                          handleUnvote();
+                        } else if (canVote) {
+                          handleVote();
+                        }
+                      }}
+                      disabled={cardUserVotes === 0 && !canVote}
+                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors ${
+                        cardUserVotes > 0
+                          ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                          : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'
+                      }`}
+                      aria-label={cardUserVotes > 0 ? 'Remove vote' : 'Vote'}
                     >
-                      <ThumbsUp className="h-3.5 w-3.5" />
+                      <ThumbsUp className={`h-3.5 w-3.5 ${cardUserVotes > 0 ? 'fill-current' : ''}`} />
+                      {card.vote_count > 0 && (
+                        <span className="text-xs font-medium" data-testid="card-votes">
+                          {card.vote_count}
+                        </span>
+                      )}
                     </button>
-                  )}
-                  {canUnvote && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleUnvote(); }}
-                      className="p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600"
-                      aria-label="Remove vote"
-                    >
-                      <ThumbsUp className="h-3.5 w-3.5 fill-current" />
-                    </button>
-                  )}
-                  {card.vote_count > 0 && (
-                    <span className="text-xs font-medium ml-0.5" data-testid="card-votes" style={{ color: 'var(--theme-text-secondary, #475569)' }}>
-                      {card.vote_count} {card.vote_count === 1 ? 'vote' : 'votes'}
+                  ) : card.vote_count > 0 ? (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium" data-testid="card-votes" style={{ color: 'var(--theme-text-secondary, #475569)' }}>
+                      <ThumbsUp className="h-3 w-3" />
+                      {card.vote_count}
                     </span>
-                  )}
+                  ) : null}
                 </div>
               )}
               {canEdit && isWritePhase && (

@@ -111,7 +111,7 @@ export async function createTeamAndBoard(
 
   // Auto-dismiss icebreaker warmup unless explicitly kept
   if (!options.keepIcebreaker) {
-    await page.getByRole('button', { name: /start writing/i }).click();
+    await page.getByRole('button', { name: /next phase/i }).click();
     await page.getByRole('button', { name: /add a card/i }).first().waitFor({ state: 'visible', timeout: 10000 });
   }
 
